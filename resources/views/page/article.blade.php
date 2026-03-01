@@ -22,7 +22,7 @@
         <article class="article-card">
             <header class="article-hero">
                 <div class="article-meta">
-                    <span class="article-chip">Blog Damelo</span>
+                    <span class="article-chip">Blog Kconecta</span>
                     @if ($article->updated_at)
                         <span class="article-date">Actualizado {{ $article->updated_at->format('d/m/Y') }}</span>
                     @endif

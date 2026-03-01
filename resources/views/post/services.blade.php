@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', ($isProviderView ?? false) ? 'Damelo Damelo - Servicios' : 'Damelo Damelo - Proveedores de servicios')
+@section('title', ($isProviderView ?? false) ? 'Kconecta - Servicios' : 'Kconecta - Proveedores de servicios')
 
 @section('heading')
     {{ ($isProviderView ?? false) ? 'Servicios' : 'Proveedores de servicios' }}

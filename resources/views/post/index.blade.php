@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Agregar propiedad')
+@section('title', 'Kconecta - Agregar propiedad')
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/page/create-property.css') }}">

@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Damelo Damelo - {{ $mode === 'register' ? 'Crear cuenta' : 'Iniciar sesion' }}</title>
+        <title>Kconecta - {{ $mode === 'register' ? 'Crear cuenta' : 'Iniciar sesion' }}</title>
         <link rel="stylesheet" href="{{ asset('css/page/login.css') }}">
-        <link rel="shortcut icon" href="{{ asset('img/damelo_damelo_icon.webp') }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ asset('img/kconecta_icon.webp') }}" type="image/x-icon">
     </head>
     <body>
         @if ($errors->any() || session('status'))
@@ -31,7 +31,7 @@
                     @csrf
                     <div class="container-logo-image-dml-redirect-start">
                         <a href="{{ url('/') }}">
-                            <img src="{{ asset('img/damelo_damelo_icon.webp') }}" alt="Damelo Damelo">
+                            <img src="{{ asset('img/kconecta_icon.webp') }}" alt="Kconecta">
                         </a>
                     </div>
                     <h1 class="title-main-section">Crea tu Cuenta</h1>
@@ -121,7 +121,7 @@
                     @csrf
                     <div class="container-logo-image-dml-redirect-start">
                         <a href="{{ url('/') }}">
-                            <img src="{{ asset('img/damelo_damelo_icon.webp') }}" alt="Damelo Damelo">
+                            <img src="{{ asset('img/kconecta_icon.webp') }}" alt="Kconecta">
                         </a>
                     </div>
                     <h1 class="title-main-section">Iniciar Sesi&oacute;n</h1>

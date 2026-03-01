@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Proveedor de servicio')
+@section('title', 'Kconecta - Proveedor de servicio')
 
 @section('heading')
     Agregar proveedor de servicio
@@ -40,45 +40,39 @@
 
             <h2 class="title-main-row-section">Datos del usuario</h2>
             <div class="container-row-form box">
-                <div class="div-col-1">
-                    <label>
-                        <span class="title-label">Tipo de documento *</span>
-                        <div class="select">
-                            <select name="document_type" id="document_type" required>
-                                <option value="" selected disabled>Seleccione</option>
-                                <option value="dni">DNI</option>
-                                <option value="nie">NIE</option>
-                                <option value="passport">Pasaporte</option>
-                                <option value="cif">CIF</option>
-                                <option value="otros">Otro</option>
-                            </select>
-                        </div>
-                    </label>
-                    <label>
-                        <span class="title-label">N&uacute;mero de documento *</span>
-                        <input type="text" class="input" name="document_number" required>
-                    </label>
-                </div>
-                <div class="div-col-1">
-                    <label>
-                        <span class="title-label">Nombre *</span>
-                        <input type="text" class="input" name="first_name" required>
-                    </label>
-                    <label class="container-label-last_name">
-                        <span class="title-label">Apellido *</span>
-                        <input type="text" class="input" name="last_name" required>
-                    </label>
-                </div>
-                <div class="div-col-1">
-                    <label>
-                        <span class="title-label">M&oacute;vil (WhatsApp) *</span>
-                        <input type="text" class="input" name="phone" required>
-                    </label>
-                    <label>
-                        <span class="title-label">Tel&eacute;fono fijo</span>
-                        <input type="text" class="input" name="landline_phone">
-                    </label>
-                </div>
+                <label>
+                    <span class="title-label">Tipo de documento *</span>
+                    <div class="select">
+                        <select name="document_type" id="document_type" required>
+                            <option value="" selected disabled>Seleccione</option>
+                            <option value="dni">DNI</option>
+                            <option value="nie">NIE</option>
+                            <option value="passport">Pasaporte</option>
+                            <option value="cif">CIF</option>
+                            <option value="otros">Otro</option>
+                        </select>
+                    </div>
+                </label>
+                <label>
+                    <span class="title-label">N&uacute;mero de documento *</span>
+                    <input type="text" class="input" name="document_number" required>
+                </label>
+                <label>
+                    <span class="title-label">Nombre *</span>
+                    <input type="text" class="input" name="first_name" required>
+                </label>
+                <label class="container-label-last_name">
+                    <span class="title-label">Apellido *</span>
+                    <input type="text" class="input" name="last_name" required>
+                </label>
+                <label>
+                    <span class="title-label">M&oacute;vil (WhatsApp) *</span>
+                    <input type="text" class="input" name="phone" required>
+                </label>
+                <label>
+                    <span class="title-label">Tel&eacute;fono fijo</span>
+                    <input type="text" class="input" name="landline_phone">
+                </label>
                 <label>
                     <span class="title-label">E-mail *</span>
                     <input type="email" class="input" name="email" required autocomplete="off">
@@ -172,9 +166,9 @@
 
                 <div class="container-main-template-input-simple">
                     <div class="container-images" id="container-images">
-                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image">
-                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image">
-                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image">
+                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image" width="240" height="180" style="width: 240px; height: 180px; object-fit: cover;">
+                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image" width="240" height="180" style="width: 240px; height: 180px; object-fit: cover;">
+                        <img src="{{ asset('img/image-icon-1280x960.png') }}" alt="Placeholder image" width="240" height="180" style="width: 240px; height: 180px; object-fit: cover;">
                     </div>
                     <label for="more_images">
                         <div class="btn-upload-image">

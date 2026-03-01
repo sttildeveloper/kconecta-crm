@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', $pageTitle ?? 'Damelo Damelo - Mi perfil')
+@section('title', $pageTitle ?? 'Kconecta - Mi perfil')
 
 @section('heading')
     {{ $pageHeading ?? 'Mi perfil' }}

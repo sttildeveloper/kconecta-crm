@@ -3,25 +3,25 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Damelo Damelo</title>
+        <title>Kconecta</title>
         <link rel="preload" href="{{ asset('css/libraries/bulma.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
         <noscript><link rel="stylesheet" href="{{ asset('css/libraries/bulma.css') }}"></noscript>
         <link rel="stylesheet" href="{{ asset('css/page/index.css') }}">
         <link rel="stylesheet" href="{{ asset('css/page/cookie.css') }}">
-        <link rel="shortcut icon" href="{{ asset('img/damelo_damelo_icon.webp') }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ asset('img/kconecta_icon.webp') }}" type="image/x-icon">
         <meta name="robots" content="index, follow">
-        <meta name="author" content="Damelo Damelo">
+        <meta name="author" content="Kconecta">
 
         @yield('css')
     </head>
     <body>
         <div class="loader-page-change" id="loader-page-change">
-            <img src="{{ asset('img/damelo_damelo_icon.webp') }}" alt="Damelo Damelo">
+            <img src="{{ asset('img/kconecta_icon.webp') }}" alt="Kconecta">
         </div>
         <header class="header-app">
             <div class="logo">
-                <a href="{{ url('/') }}" aria-label="Damelo Damelo">
-                    <img src="{{ asset('img/damelo_damelo.webp') }}" alt="Damelo Damelo">
+                <a href="{{ url('/') }}" aria-label="Kconecta">
+                    <img src="{{ asset('img/kconecta.webp') }}" alt="Kconecta">
                 </a>
             </div>
             <div class="control-container-nav">
@@ -56,7 +56,7 @@
                 <h2>Tu espacio ideal, a un toque de distancia: Compra, Alquila, Vive!</h2>
             </div>
             <div class="row-images">
-                <img src="{{ asset('img/footer_1.webp') }}" class="img_1" alt="damelo damelo">
+                <img src="{{ asset('img/footer_1.webp') }}" class="img_1" alt="kconecta">
                 <a href="https://www.vendoyo.es" target="_blank" class="__no-loader">
                     <img src="{{ asset('img/banner_gestiona_sin_comisiones.webp') }}" class="img_1" alt="VendoYo">
                 </a>
@@ -73,20 +73,20 @@
                     </div>
                     <div class="row-li">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8acab9" d="m20 8l-8 5l-8-5V6l8 5l8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2"/></svg>
-                        <span>dameloinfo@damelodamelo.es</span>
+                        <span>info@kconecta.com</span>
                     </div>
                 </div>
-                <img src="{{ asset('img/ucrania_1.webp') }}" class="img_3" alt="damelo damelo ucrania">
+                <img src="{{ asset('img/ucrania_1.webp') }}" class="img_3" alt="kconecta ucrania">
             </div>
             <div class="container-row-3">
-                <h3>(c) 2024 Damelo Damelo Tablon de anuncios inmobiliario particulares y profesionales gratis.</h3>
+                <h3>(c) 2024 Kconecta Tablon de anuncios inmobiliario particulares y profesionales gratis.</h3>
                 <div class="container-imgs">
-                    <img src="{{ asset('img/google_play.webp') }}" class="img_1" alt="damelo damelo google play">
-                    <img src="{{ asset('img/app_store.webp') }}" class="img_2" alt="damelo damelo app store">
+                    <img src="{{ asset('img/google_play.webp') }}" class="img_1" alt="kconecta google play">
+                    <img src="{{ asset('img/app_store.webp') }}" class="img_2" alt="kconecta app store">
                 </div>
             </div>
             <div id="cookieBanner" class="cookie-banner hide">
-                <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="cookie damelo damelo">
+                <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="cookie kconecta">
                 <h1>COOKIES</h1>
                 <p>Usamos cookies para mejorar tu experiencia en el sitio, analizar el trafico y personalizar contenido. Al hacer clic en "Aceptar", consientes su uso. Consulta nuestra <a href="{{ url('/policy_and_privacy') }}">Politica de Privacidad</a> para mas informacion</p>
                 <div class="cookie-buttons">

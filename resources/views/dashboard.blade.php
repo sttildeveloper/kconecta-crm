@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Dashboard')
+@section('title', 'Kconecta - Dashboard')
 
 @section('heading')
     Hola, {{ $user?->first_name ?: ($user?->user_name ?: 'Usuario') }}

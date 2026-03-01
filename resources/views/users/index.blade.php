@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Usuarios')
+@section('title', 'Kconecta - Usuarios')
 
 @section('heading')
     Usuarios

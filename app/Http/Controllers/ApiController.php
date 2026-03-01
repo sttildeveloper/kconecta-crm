@@ -478,7 +478,7 @@ class ApiController extends Controller
             . '<p>Puedes ver todos los detalles en el siguiente enlace:</p>'
             . '<div class="button-container"><a href="' . $safeLink . '" class="button" style="color:white;">Ver Inmueble</a></div>'
             . '<p>Saludos,</p></div><div class="footer"><p>Este correo ha sido enviado porque un usuario compartio un inmueble.</p>'
-            . '<p>&copy; ' . date('Y') . ' Damelo Damelo.</p></div></div></body></html>';
+            . '<p>&copy; ' . date('Y') . ' Kconecta.</p></div></div></body></html>';
 
         $emailService = app(EmailService::class);
         $emails = array_filter(array_map('trim', explode(',', $userEmails)));

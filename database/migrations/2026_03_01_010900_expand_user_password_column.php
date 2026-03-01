@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        if (! Schema::hasTable('user') || ! Schema::hasColumn('user', 'password')) {
+            return;
+        }
+
+        DB::statement('ALTER TABLE `user` MODIFY `password` VARCHAR(255) NOT NULL');
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Keep as no-op to avoid truncating existing password hashes.
+    }
+};
+

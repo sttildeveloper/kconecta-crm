@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Terreno')
+@section('title', 'Kconecta - Terreno')
 
 @section('heading')
     Agregar propiedad
@@ -40,7 +40,7 @@
         <input type="hidden" name="latitude" id="latitude">
         <input type="hidden" name="longitude" id="longitude">
 
-        <h2 class="title-main-row-section">Localización del inmueble</h2>
+        <h2 class="title-main-row-section">LocalizaciÃ³n del inmueble</h2>
         <div class="container-row-form box">
 
             <label for="" class="label-col-100">
@@ -49,7 +49,7 @@
             </label>
 
             <label for="" class="label-col-100">
-                <span class="title-label">Nombre de la vía *</span>
+                <span class="title-label">Nombre de la vÃ­a *</span>
                 <div class="container-google-maps-required-tags">
                     <input type="text" class="input" id="address" name="address" required autocomplete="off">
                     <button class="button" type="button" id="button-open-map-google"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24"><g fill="none" stroke="#666666" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="#666666"><path d="M15.129 13.747a.906.906 0 0 1-1.258 0c-1.544-1.497-3.613-3.168-2.604-5.595A3.53 3.53 0 0 1 14.5 6c1.378 0 2.688.84 3.233 2.152c1.008 2.424-1.056 4.104-2.604 5.595M14.5 9.5h.009"/><path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12M17 21L3 7m7 7l-6 6"/></g></svg></button>
@@ -67,11 +67,11 @@
                 </label>
             </div>
             <label for="" class="label-col-100">
-                <span class="title-label">Nombre de la urbanización</span>
+                <span class="title-label">Nombre de la urbanizaciÃ³n</span>
                 <input type="text" class="input" name="name_urbanization">
             </label>
             <!-- <div class="div-col-1">
-                <span class="title-label">¿Cómo prefieres que te contacten?</span>
+                <span class="title-label">Â¿CÃ³mo prefieres que te contacten?</span>
                 <?php foreach($contactOption as $cnt_option){ ?>
                 <label class="radio label-radio-checkbox-col-100">
                     <input type="radio" name="contact_option" value="<?= $cnt_option["id"] ?>" /><?= $cnt_option["name"]?>
@@ -90,10 +90,10 @@
             
         </div>
 
-        <h2 class="title-main-row-section">Operación y precio *</h2>
+        <h2 class="title-main-row-section">OperaciÃ³n y precio *</h2>
         <div class="container-row-form box">
             <div class="div-col-1">
-                <span class="title-label">Operación</span>
+                <span class="title-label">OperaciÃ³n</span>
                 <?php foreach($category as $cate){ 
                     if (intval($cate["id"]) === 2 || intval($cate["id"]) === 1){ 
                 ?>
@@ -115,14 +115,14 @@
                 <label for="" class="label-col-100 sale_price_label">
                     <span class="title-label">Precio de venta *</span>
                     <div class="group-icon-input-ui-2">
-                        <span class="icon-ui">€</span>
+                        <span class="icon-ui">â‚¬</span>
                         <input placeholder="Precio" type="text" class="input-ui" name="sale_price" id="sale_price">
                     </div>
                 </label>
                 <label for="" class="label-col-100 rental_price_label" style="display: none;">
                     <span class="title-label">Precio de alquiler</span>
                     <div class="group-icon-input-ui-2">
-                        <span class="icon-ui">€</span>
+                        <span class="icon-ui">â‚¬</span>
                         <input placeholder="Precio" type="text" class="input-ui" name="rental_price" id="rental_price">
                     </div>
                 </label>
@@ -168,10 +168,10 @@
             </div> -->
         </div>
 
-        <!-- <h2 class="title-main-row-section container-for-sale-only">Estado de ocupación</h2>
+        <!-- <h2 class="title-main-row-section container-for-sale-only">Estado de ocupaciÃ³n</h2>
         <div class="container-row-form box container-for-sale-only">
             <div class="div-col-1">
-                <span class="title-label">¿Tiene inquilinos? *</span>
+                <span class="title-label">Â¿Tiene inquilinos? *</span>
                 <label class="radio label-radio-checkbox-col-100">
                     <label class="container-input-radio-ui"><input type="radio" name="has_tenants" value="1" required /><div class="checkmark"></div></label>
                     SI
@@ -182,10 +182,10 @@
                 </label>
             </div>
         </div> -->
-        <h2 class="title-main-row-section">Características del terreno</h2>
+        <h2 class="title-main-row-section">CaracterÃ­sticas del terreno</h2>
         <div class="container-row-form box">
             <!-- <div class="div-col-1 container-for-sale-only">
-                <span class="title-label">Característica adicional *</span>
+                <span class="title-label">CaracterÃ­stica adicional *</span>
                 <?php foreach($typeFloor as $tf){ ?>
                 <label class="radio label-radio-checkbox-col-100">
                     <input type="checkbox" name="type_floor[]" value="<?= $tf["id"] ?>" /><?= $tf["name"] ?>
@@ -193,7 +193,7 @@
                 <?php } ?>
             </div> -->
             <!-- <div class="div-col-1 container-for-sale-only">
-                <span class="title-label">Tipología *</span>
+                <span class="title-label">TipologÃ­a *</span>
                 <?php foreach($typology as $typ){ ?>
                 <label class="radio label-radio-checkbox-col-100">
                     <input type="radio" name="typology" value="<?= $typ["id"] ?>" required /><?= $typ["name"] ?>
@@ -230,7 +230,7 @@
                 <?php } ?>
             </div>
             <div class="div-col-1">
-                <span class="title-label">Distancia municipio más cercano *</span>
+                <span class="title-label">Distancia municipio mÃ¡s cercano *</span>
                 <?php foreach($nearestMunicipalityDistance as $nmd){ ?>
                 <label class="radio label-radio-checkbox-col-100">
                     <label class="container-input-radio-ui"><input type="radio" name="nearest_municipality_distance" value="<?= $nmd["id"] ?>" required /><div class="checkmark"></div></label>
@@ -251,7 +251,7 @@
                     <input type="text" class="input" name="meters_built">
                 </label> -->
                 <!-- <label for="">
-                    <span class="title-label">M<sup>2</sup> útiles</span>
+                    <span class="title-label">M<sup>2</sup> Ãºtiles</span>
                     <input type="text" class="input" name="useful_meters">
                 </label> -->
             </div>
@@ -261,11 +261,11 @@
             </label> -->
             <!-- <div class="div-col-1">
                 <label for="">
-                    <span class="title-label">Número de dormitorios *</span>
+                    <span class="title-label">NÃºmero de dormitorios *</span>
                     <input type="text" class="input" name="bedrooms" required>
                 </label>
                 <label for="">
-                    <span class="title-label">Número de baños*</span>
+                    <span class="title-label">NÃºmero de baÃ±os*</span>
                     <input type="text" class="input" name="bathrooms" required>
                 </label>
             </div> -->
@@ -282,7 +282,7 @@
                 </label>
             </div> -->
             <!-- <div class="div-col-1">
-                <span class="title-label">Número de escaparates *</span>
+                <span class="title-label">NÃºmero de escaparates *</span>
                 <label for="">
                     <input type="text" class="input" name="number_of_shop_windows" required>
                 </label>
@@ -298,7 +298,7 @@
                 <input type="text" class="input" name="number_of_plants">
             </label> -->
             <!-- <label for="" class="container-for-rent-only">
-                <span class="title-label">Número de habitaciones *</span>
+                <span class="title-label">NÃºmero de habitaciones *</span>
                 <input type="text" class="input" name="rooms" required>
             </label> -->
             <!-- <div class="div-col-1">
@@ -310,7 +310,7 @@
                 <?php } ?>
             </div> -->
             <!-- <label for="" class="label-col-100">
-                <span class="title-label">Clase energética *</span>
+                <span class="title-label">Clase energÃ©tica *</span>
                 <div class="select">
                     <select name="energy_class" required>
                         <option>Seleccione</option>
@@ -322,7 +322,7 @@
             </label> -->
             
             <!-- <div class="div-col-1">
-                <span class="title-label">Orientación</span>
+                <span class="title-label">OrientaciÃ³n</span>
                 <?php foreach($orientation as $orient){ ?>
                 <label class="checkbox label-radio-checkbox-col-100">
                     <input type="checkbox" name="orientation[]" value="<?= $orient["id"] ?>" /><?= $orient["name"] ?>
@@ -331,7 +331,7 @@
             </div> -->
             
             <!-- <div class="div-col-1">
-                <span class="title-label">Otras características del piso</span>
+                <span class="title-label">Otras caracterÃ­sticas del piso</span>
                 <?php foreach($feature as $featur){ 
                     if ($featur["id_type"] == 1){
                 ?>
@@ -341,11 +341,11 @@
                 <?php }} ?>
             </div> -->
             <!-- <label for="">
-                <span class="title-label">Año de construcción del edificio</span>
+                <span class="title-label">AÃ±o de construcciÃ³n del edificio</span>
                 <input type="text" class="input" name="year_of_construction">
             </label> -->
             <div class="div-col-1">
-                <span class="title-label">Categoría</span>
+                <span class="title-label">CategorÃ­a</span>
                 <label class="checkbox label-radio-checkbox-col-100">
                     <input type="checkbox" class="checkbox-input-ui" hidden="" name="bank_owned_property" value="1" />
                     <span class="checkmark-checkbox-input-ui"></span>
@@ -362,7 +362,7 @@
                 </label> 
             </div>  -->
             <!-- <div class="div-col-1">
-                <span class="title-label">Tipo de calefacción</span>
+                <span class="title-label">Tipo de calefacciÃ³n</span>
                 <div class="select">
                     <select name="type_heating">
                         <option>Seleccione</option>
@@ -386,7 +386,7 @@
         <!-- <h2 class="title-main-row-section">Ascensor</h2>
         <div class="container-row-form box">
             <div class="div-col-1">
-                <span class="title-label">¿Tiene ascensor?</span>
+                <span class="title-label">Â¿Tiene ascensor?</span>
                 <label class="radio label-radio-checkbox-col-100">
                     <input type="radio" name="elevator" value="1" /> SI
                 </label>
@@ -403,11 +403,11 @@
                 </div>
             </div>
         </div> -->
-        <!-- <h2 class="title-main-row-section">Energía y emisiones</h2>
+        <!-- <h2 class="title-main-row-section">EnergÃ­a y emisiones</h2>
         <div class="container-row-form box">
             <div class="div-col-1">
                 <label for="" class="label-col-100">
-                    <span class="title-label">Calificación de consumo de energía *</span>
+                    <span class="title-label">CalificaciÃ³n de consumo de energÃ­a *</span>
                     <div class="select">
                         <select name="power_consumption_rating" required>
                             <option>Seleccione</option>
@@ -418,13 +418,13 @@
                     </div>
                 </label>
                 <label for="">
-                    <span class="title-label">Consumo de energía</span>
+                    <span class="title-label">Consumo de energÃ­a</span>
                     <input type="text" class="input" name="energy_consumption">
                 </label>
             </div>
             <div  class="div-col-1">
                 <label for="" class="label-col-100">
-                    <span class="title-label">Calificación de emisiones</span>
+                    <span class="title-label">CalificaciÃ³n de emisiones</span>
                     <div class="select">
                         <select name="emissions_rating">
                             <option>Seleccione</option>
@@ -440,26 +440,26 @@
                 </label>
             </div>
         </div> -->
-        <!-- <h2 class="title-main-row-section container-for-rent-only">¿Qué inquilinos buscas?</h2>
+        <!-- <h2 class="title-main-row-section container-for-rent-only">Â¿QuÃ© inquilinos buscas?</h2>
         <div class="container-row-form box container-for-rent-only">
             <label for="">
-                <span class="title-label">Número máximo de inquilinos</span>
+                <span class="title-label">NÃºmero mÃ¡ximo de inquilinos</span>
                 <input type="text" class="input" name="max_num_tenants">
             </label>
             <div class="div-col-1">
-                <span class="title-label">¿Apropiado para niños (0-12 años)?</span>
+                <span class="title-label">Â¿Apropiado para niÃ±os (0-12 aÃ±os)?</span>
                 <label class="checkbox label-radio-checkbox-col-100">
-                    <input type="checkbox" name="appropriate_for_children" value="1" />La vivienda es apropiada para niños
+                    <input type="checkbox" name="appropriate_for_children" value="1" />La vivienda es apropiada para niÃ±os
                 </label>
             </div>
             <div class="div-col-1">
-                <span class="title-label">¿Admites mascotas? </span>
+                <span class="title-label">Â¿Admites mascotas? </span>
                 <label class="checkbox label-radio-checkbox-col-100">
-                    <input type="checkbox" name="pet_friendly" value="1" />Sí, admito mascotas
+                    <input type="checkbox" name="pet_friendly" value="1" />SÃ­, admito mascotas
                 </label>
             </div>
         </div> -->
-        <!-- <h2 class="title-main-row-section container-for-sale-only">¿La vivienda se venderá en alguna de estas situaciones? *</h2>
+        <!-- <h2 class="title-main-row-section container-for-sale-only">Â¿La vivienda se venderÃ¡ en alguna de estas situaciones? *</h2>
         <div class="container-row-form box container-for-sale-only">
             <div class="div-col-1">
                 <?php foreach($reasonForSale as $rfs){ ?>
@@ -469,10 +469,10 @@
                 <?php } ?>
             </div>
         </div> -->
-        <h2 class="title-main-row-section">Descripción de la propiedad</h2>
+        <h2 class="title-main-row-section">DescripciÃ³n de la propiedad</h2>
         <div class="container-row-form box">
             <label for="" class="container-two-grid-col">
-                <span class="title-label">Título *</span>
+                <span class="title-label">TÃ­tulo *</span>
                 <input type="text" class="input" name="title" required>
             </label>
             <label for="">
@@ -483,14 +483,14 @@
         <div class="container-row-form-col-1 box">
             <div class="div-col-1">
                 <label for="">
-                    <span class="title-label">Descripción *</span>
+                    <span class="title-label">DescripciÃ³n *</span>
                     <textarea class="textarea" name="description" required></textarea>
                 </label>
             </div>
         </div>
 
 
-        <h2 class="title-main-row-section">Fotos y vídeos </h2>
+        <h2 class="title-main-row-section">Fotos y vÃ­deos </h2>
         <div class="container-row-form-images box">
             <div class="container-main-template-input-simple">
                 <div class="container-image">
@@ -513,7 +513,7 @@
                 </div>
                 <label for="more_images">
                     <div class="btn-upload-image">
-                        Subir imágenes *
+                        Subir imÃ¡genes *
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48"><g fill="none"><path fill="#ffffff" d="M44 24a2 2 0 1 0-4 0zM24 8a2 2 0 1 0 0-4zm15 32H9v4h30zM8 39V9H4v30zm32-15v15h4V24zM9 8h15V4H9zm0 32a1 1 0 0 1-1-1H4a5 5 0 0 0 5 5zm30 4a5 5 0 0 0 5-5h-4a1 1 0 0 1-1 1zM8 9a1 1 0 0 1 1-1V4a5 5 0 0 0-5 5z"/><path stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="m6 35l10.693-9.802a2 2 0 0 1 2.653-.044L32 36m-4-5l4.773-4.773a2 2 0 0 1 2.615-.186L42 31m-5-13V6m-5 5l5-5l5 5"/></g></svg>
                     </div>
                     <input type="file" name="more_images[]" id="more_images" class="input-simple-main-template" accept="image/png, image/jpeg, image/jpg, image/webp" multiple required>
@@ -545,8 +545,8 @@
     <div class="modal-background"></div>
     <div class="modal-content box">
         <div class="message-title-map">
-            <h3>Seleccione ubicación</h3>
-            <p>Arrastre el marcador a la ubicación exacta de la propiedad.</p>
+            <h3>Seleccione ubicaciÃ³n</h3>
+            <p>Arrastre el marcador a la ubicaciÃ³n exacta de la propiedad.</p>
         </div>
         <div class="container-map-google">
             <div id="map"></div>
@@ -565,7 +565,7 @@
                 <span class="value-attr" id="state-map"></span>
             </div>
             <div class="container-row-value">
-                <span class="name-attr">País: </span>
+                <span class="name-attr">PaÃ­s: </span>
                 <span class="value-attr" id="country-map"></span>
             </div>
         </div>
@@ -573,7 +573,7 @@
             <button class="button" onclick="closeModal(document.getElementById('modal-view-map-select'))">Cerrar</button>
             <button class="button" id="my-location">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#666666" d="M12 2c-4.4 0-8 3.6-8 8c0 5.4 7 11.5 7.3 11.8c.2.1.5.2.7.2s.5-.1.7-.2C13 21.5 20 15.4 20 10c0-4.4-3.6-8-8-8m0 17.7c-2.1-2-6-6.3-6-9.7c0-3.3 2.7-6 6-6s6 2.7 6 6s-3.9 7.7-6 9.7M12 6c-2.2 0-4 1.8-4 4s1.8 4 4 4s4-1.8 4-4s-1.8-4-4-4m0 6c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2"/></svg>  
-                Mi ubicación
+                Mi ubicaciÃ³n
             </button>
         </div>
     </div>

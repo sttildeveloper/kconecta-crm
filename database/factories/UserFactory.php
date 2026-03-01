@@ -26,9 +26,9 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        $firstName = fake()->firstName();
-        $lastName = fake()->lastName();
-        $email = fake()->unique()->safeEmail();
+        $firstName = $this->faker->firstName();
+        $lastName = $this->faker->lastName();
+        $email = $this->faker->unique()->safeEmail();
 
         return [
             'first_name' => $firstName,
@@ -36,11 +36,11 @@ class UserFactory extends Factory
             'user_name' => Str::slug($firstName.'.'.$lastName),
             'email' => $email,
             'email_verified_at' => now(),
-            'phone' => fake()->numerify('#########'),
-            'landline_phone' => fake()->optional()->numerify('#########'),
+            'phone' => $this->faker->numerify('#########'),
+            'landline_phone' => $this->faker->optional()->numerify('#########'),
             'document_type' => 'DNI',
-            'document_number' => fake()->numerify('########'),
-            'address' => fake()->streetAddress(),
+            'document_number' => $this->faker->numerify('########'),
+            'address' => $this->faker->streetAddress(),
             'user_level_id' => User::LEVEL_ADMIN,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -57,3 +57,6 @@ class UserFactory extends Factory
         ]);
     }
 }
+
+
+

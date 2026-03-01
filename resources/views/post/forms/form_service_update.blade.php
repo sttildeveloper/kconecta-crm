@@ -1,6 +1,6 @@
-﻿@extends('layouts.backoffice')
+@extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Actualizar proveedor de servicio')
+@section('title', 'Kconecta - Actualizar proveedor de servicio')
 
 @section('heading')
     Editar proveedor de servicio

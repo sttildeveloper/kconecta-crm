@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Crear articulo')
+@section('title', 'Kconecta - Crear articulo')
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/app/blog_create_modal.css') }}">

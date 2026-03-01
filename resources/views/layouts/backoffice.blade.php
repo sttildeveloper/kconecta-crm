@@ -3,17 +3,17 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>@yield('title', $title ?? 'Damelo Damelo')</title>
+        <title>@yield('title', $title ?? 'Kconecta')</title>
         <link rel="stylesheet" href="{{ asset('css/page/dashboard.css') }}">
-        <link rel="shortcut icon" href="{{ asset('img/damelo_damelo_icon.webp') }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ asset('img/kconecta_icon.webp') }}" type="image/x-icon">
         @yield('styles')
     </head>
     <body>
         <div class="dashboard-shell">
             <aside class="dashboard-sidebar">
                 <div class="brand">
-                    <img src="{{ asset('img/damelo_damelo_icon.webp') }}" alt="Damelo Damelo">
-                    <span>Damelo Damelo</span>
+                    <img src="{{ asset('img/kconecta_icon.webp') }}" alt="Kconecta">
+                    <span>Kconecta</span>
                 </div>
                 <nav class="sidebar-nav">
                     @php

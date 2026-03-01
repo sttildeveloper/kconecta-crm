@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Mis propiedades')
+@section('title', 'Kconecta - Mis propiedades')
 
 @section('heading')
     Mis propiedades

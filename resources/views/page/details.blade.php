@@ -39,11 +39,11 @@
                     <?php } ?>
                 </div>
 
-                <!-- Botones de navegación -->
+                <!-- Botones de navegaciÃ³n -->
                 <div class="swiper-button-next"></div>
                 <div class="swiper-button-prev"></div>
 
-                <!-- Paginación -->
+                <!-- PaginaciÃ³n -->
                 <div class="swiper-pagination"></div>
             </div>            
         </div>
@@ -126,7 +126,7 @@
             <?php } ?>
 
             <div class="btn-dec">
-                <span class="">Categoría</span>
+                <span class="">CategorÃ­a</span>
                 <span><?= $property["category_name"] ?></span>
             </div>
             <div class="btn-dec">
@@ -139,7 +139,7 @@
                     }else{
                         echo "";
                     }
-                    ?> €
+                    ?> â‚¬
                 </span>
             </div>
             <?php if (!empty($property["meters_built"])){ ?>
@@ -159,7 +159,7 @@
             <?php if (!empty($property["page_url"])){ ?>
             <a href="<?= $property["page_url"] ?>" class="tag is-link" target="_blank">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16"><path fill="#ffffff" d="M6.01 10.49a.47.47 0 0 1-.35-.15c-.2-.2-.2-.51 0-.71l8.49-8.48c.2-.2.51-.2.71 0s.2.51 0 .71l-8.5 8.48c-.1.1-.23.15-.35.15"/><path fill="#ffffff" d="M14.5 7c-.28 0-.5-.22-.5-.5V2H9.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h5c.28 0 .5.22.5.5v5c0 .28-.22.5-.5.5m-3 8H2.49C1.67 15 1 14.33 1 13.51V4.49C1 3.67 1.67 3 2.49 3H7.5c.28 0 .5.22.5.5s-.22.5-.5.5H2.49a.49.49 0 0 0-.49.49v9.02c0 .27.22.49.49.49h9.01c.27 0 .49-.22.49-.49V8.5c0-.28.22-.5.5-.5s.5.22.5.5v5.01c0 .82-.67 1.49-1.49 1.49"/></svg>
-                Visita nuestra página web
+                Visita nuestra pÃ¡gina web
             </a>
             <?php } ?>
         </div>
@@ -172,7 +172,7 @@
                     <div class="container-row-free">
                         <?php if(!empty($property["state_conservation"])){ ?>
                         <div class="box-li">
-                            <h3 class="text-title-h">Estado de conservación</h3>
+                            <h3 class="text-title-h">Estado de conservaciÃ³n</h3>
                             <span class="text-span"><?= $property["state_conservation"][0]["name"] ?></span>
                         </div>
                         <?php } ?>
@@ -200,7 +200,7 @@
                             <?php if (!empty($property["rental_price"])){ ?>
                             <div class="box-li">
                                 <h3 class="text-title-h">Fianza</h3>
-                                <span class="text-span"><?= $property["rental_price"] ?> €</span>
+                                <span class="text-span"><?= $property["rental_price"] ?> â‚¬</span>
                             </div>
                             <?php } ?>
                         </div>
@@ -213,15 +213,15 @@
                         <div class="container-row-free">
                             <?php if(!empty($property["max_num_tenants"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Número máximo de inquilinos</h3>
+                                <h3 class="text-title-h">NÃºmero mÃ¡ximo de inquilinos</h3>
                                 <span class="text-span"><?= $property["max_num_tenants"] ?></span>
                             </div>
                             <?php } if(!empty($property["appropriate_for_children"])){ ?>
                             <div class="box-li">
                                 <?php if($property["appropriate_for_children"]){
-                                    echo "<h3 class='text-title-h'>Apropiado para niños</h3>";
+                                    echo "<h3 class='text-title-h'>Apropiado para niÃ±os</h3>";
                                  }else{
-                                    echo "<h3 class='text-title-h'>No apropiado para niños</h3>";
+                                    echo "<h3 class='text-title-h'>No apropiado para niÃ±os</h3>";
                                  } ?>
                             </div>
                             <?php } ?>
@@ -259,7 +259,7 @@
                             <?php } ?>
                             <?php if (!empty($property["nearest_municipality_distance"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Distancia municipio más cercano</h3>
+                                <h3 class="text-title-h">Distancia municipio mÃ¡s cercano</h3>
                                 <span class="text-span"><?= $property["nearest_municipality_distance"][0]["name"] ?></span>
                             </div>
                             <?php } ?>
@@ -273,31 +273,31 @@
 
                             <?php if (!empty($property["typology"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Tipología</h3>
+                                <h3 class="text-title-h">TipologÃ­a</h3>
                                 <span class="text-span"><?= $property["typology"][0]["name"] ?></span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["community_expenses"])){ ?>
                             <div class="box-li">
                                 <h3 class="text-title-h">Gastos de comunidad</h3>
-                                <span class="text-span"><?= $property["community_expenses"] ?> €</span>
+                                <span class="text-span"><?= $property["community_expenses"] ?> â‚¬</span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["ibi"])){ ?>
                             <div class="box-li">
                                 <h3 class="text-title-h">IBI</h3>
-                                <span class="text-span"><?= $property["ibi"] ?> €</span>
+                                <span class="text-span"><?= $property["ibi"] ?> â‚¬</span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["mortgage_rate"])){ ?>
                             <div class="box-li">
                                 <h3 class="text-title-h">Hipoteca</h3>
-                                <span class="text-span"><?= $property["mortgage_rate"] ?> €</span>
+                                <span class="text-span"><?= $property["mortgage_rate"] ?> â‚¬</span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["reason_for_sale"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Situación de venta</h3>
+                                <h3 class="text-title-h">SituaciÃ³n de venta</h3>
                                 <span class="text-span"><?= $property["reason_for_sale"][0]["name"] ?></span>
                             </div>
                             <?php } ?>
@@ -338,7 +338,7 @@
                             <?php } ?>
                             <?php if (!empty($property["useful_meters"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">M<sup>2</sup> útiles</h3>
+                                <h3 class="text-title-h">M<sup>2</sup> Ãºtiles</h3>
                                 <span class="text-span"><?= $property["useful_meters"] ?> m<sup>2</sup></span>
                             </div>
                             <?php } ?>
@@ -356,13 +356,13 @@
                             <?php } ?>
                             <?php if (!empty($property["bathrooms"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Número de baños y aseo</h3>
+                                <h3 class="text-title-h">NÃºmero de baÃ±os y aseo</h3>
                                 <span class="text-span"><?= $property["bathrooms"] ?></span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["bedrooms"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Número de dormitorios</h3>
+                                <h3 class="text-title-h">NÃºmero de dormitorios</h3>
                                 <span class="text-span"><?= $property["bedrooms"] ?></span>
                             </div>
                             <?php } ?>
@@ -382,7 +382,7 @@
                             <?php } ?>
                             <?php if (!empty($property["number_of_shop_windows"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Número de escaparates</h3>
+                                <h3 class="text-title-h">NÃºmero de escaparates</h3>
                                 <span class="text-span"><?= $property["number_of_shop_windows"] ?></span>
                             </div>
                             <?php } ?>
@@ -392,19 +392,19 @@
 
                             <?php if (!empty($property["year_of_construction"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Año de construcción</h3>
+                                <h3 class="text-title-h">AÃ±o de construcciÃ³n</h3>
                                 <span class="text-span"><?= $property["year_of_construction"] ?></span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["type_heating"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Tipo de calefacción</h3>
+                                <h3 class="text-title-h">Tipo de calefacciÃ³n</h3>
                                 <span class="text-span"><?= $property["type_heating"][0]["name"] ?></span>
                             </div>
                             <?php } ?>
                             <?php if (!empty($property["orientations"])){ ?>
                             <div class="box-li">
-                                <h3 class="text-title-h">Orientación</h3>
+                                <h3 class="text-title-h">OrientaciÃ³n</h3>
                                 <span class="text-span">
                                 <?php
                                     $crows = 1;
@@ -443,7 +443,7 @@
             <?php if (!empty($property["features"])){ ?>
                 <article class="message">
                     <div class="message-header">
-                        <p>Características básicas</p>
+                        <p>CaracterÃ­sticas bÃ¡sicas</p>
                     </div>
                     <div class="message-body">
                         <div class="container-row">
@@ -477,13 +477,13 @@
             <?php if (!empty($property["power_consumption_rating"])){ ?>
                 <article class="message">
                     <div class="message-header">
-                        <p>Certificado energético</p>
+                        <p>Certificado energÃ©tico</p>
                     </div>
                     <div class="message-body">
                         <div class="container-row">
                             <?php if (!empty($property["power_consumption_rating_id"]) || !empty($property["energy_consumption"])){ ?>
                                 <div class="container-row-icon-rating">
-                                    <span>Consumo de energía</span>
+                                    <span>Consumo de energÃ­a</span>
                                     <div class="container-value">
                                         <?php 
                                         if (intval($property["power_consumption_rating_id"]) === 1 || intval($property["power_consumption_rating_id"]) === 9 || intval($property["power_consumption_rating_id"]) === 10 ){     
@@ -507,7 +507,7 @@
                                         }
                                         ?>
                                         <?php if (!empty($property["energy_consumption"])){ ?>
-                                            <span><?= $property["energy_consumption"] ?> kWh/m² año</span>
+                                            <span><?= $property["energy_consumption"] ?> kWh/mÂ² aÃ±o</span>
                                         <?php } ?>
                                     </div>
                                 </div>
@@ -536,7 +536,7 @@
                                         }
                                         ?>
                                         <?php if (!empty($property["emissions_consumption"])){ ?>
-                                            <span><?= $property["emissions_consumption"] ?> kgCO/m² año</span>
+                                            <span><?= $property["emissions_consumption"] ?> kgCO/mÂ² aÃ±o</span>
                                         <?php } ?>
                                     </div>
                                 </div>
@@ -554,13 +554,13 @@
                         <div class="container-row">
                             <ul>
                                 <?php if (!empty($property["interior_wheelchair"])){
-                                    echo "<li>El acceso exterior a la vivienda está adaptada para silla de ruedas</li>";
+                                    echo "<li>El acceso exterior a la vivienda estÃ¡ adaptada para silla de ruedas</li>";
                                 }else{
-                                    echo "<li>El acceso exterior a la vivienda <span class='tag is-danger'>NO</span> está adaptada para silla de ruedas</li>";
+                                    echo "<li>El acceso exterior a la vivienda <span class='tag is-danger'>NO</span> estÃ¡ adaptada para silla de ruedas</li>";
                                 } if (!empty($property["outdoor_wheelchair"])){ 
-                                    echo "<li>El interior de la vivienda está adaptada para silla de ruedas</li>";
+                                    echo "<li>El interior de la vivienda estÃ¡ adaptada para silla de ruedas</li>";
                                 } else{
-                                    echo "<li>El interior de la vivienda <span class='tag is-danger'>NO</span> está adaptada para silla de ruedas</li>";
+                                    echo "<li>El interior de la vivienda <span class='tag is-danger'>NO</span> estÃ¡ adaptada para silla de ruedas</li>";
                                 }
                                 ?>
                             </ul>
@@ -585,7 +585,7 @@
                     <input type="text" class="input">
                 </label>
                 <label for="">
-                    <span>Teléfono:</span>
+                    <span>TelÃ©fono:</span>
                     <input type="text" class="input">
                 </label>
                 <label for="">
@@ -593,7 +593,7 @@
                     <input type="text" class="input">
                 </label>
                 <label for="">
-                    <input type="checkbox" name="" id="" class="checkbox"> Aceptar política de privacidad
+                    <input type="checkbox" name="" id="" class="checkbox"> Aceptar polÃ­tica de privacidad
                 </label>
                 <button class="button is-link">Contactar por chat</button> -->
                 
@@ -610,7 +610,7 @@
                             <span class="span-value"><?= $property["user"]["first_name"] ?><?= !empty($property["user"]["last_name"])? ", ".$property["user"]["last_name"] : ""?></span>
                         </div>
                         <div class="data-row-in">
-                            <span class="span-title">Última actualización</span>
+                            <span class="span-title">Ãšltima actualizaciÃ³n</span>
                             <span class="span-value">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 36 36"><path fill="#666666" d="M32.25 6H29v2h3v22H4V8h3V6H3.75A1.78 1.78 0 0 0 2 7.81v22.38A1.78 1.78 0 0 0 3.75 32h28.5A1.78 1.78 0 0 0 34 30.19V7.81A1.78 1.78 0 0 0 32.25 6" class="clr-i-outline clr-i-outline-path-1"></path><path fill="#666666" d="M8 14h2v2H8z" class="clr-i-outline clr-i-outline-path-2"></path><path fill="#666666" d="M14 14h2v2h-2z" class="clr-i-outline clr-i-outline-path-3"></path><path fill="#666666" d="M20 14h2v2h-2z" class="clr-i-outline clr-i-outline-path-4"></path><path fill="#666666" d="M26 14h2v2h-2z" class="clr-i-outline clr-i-outline-path-5"></path><path fill="#666666" d="M8 19h2v2H8z" class="clr-i-outline clr-i-outline-path-6"></path><path fill="#666666" d="M14 19h2v2h-2z" class="clr-i-outline clr-i-outline-path-7"></path><path fill="#666666" d="M20 19h2v2h-2z" class="clr-i-outline clr-i-outline-path-8"></path><path fill="#666666" d="M26 19h2v2h-2z" class="clr-i-outline clr-i-outline-path-9"></path><path fill="#666666" d="M8 24h2v2H8z" class="clr-i-outline clr-i-outline-path-10"></path><path fill="#666666" d="M14 24h2v2h-2z" class="clr-i-outline clr-i-outline-path-11"></path><path fill="#666666" d="M20 24h2v2h-2z" class="clr-i-outline clr-i-outline-path-12"></path><path fill="#666666" d="M26 24h2v2h-2z" class="clr-i-outline clr-i-outline-path-13"></path><path fill="#666666" d="M10 10a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v6a1 1 0 0 0 1 1" class="clr-i-outline clr-i-outline-path-14"></path><path fill="#666666" d="M26 10a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v6a1 1 0 0 0 1 1" class="clr-i-outline clr-i-outline-path-15"></path><path fill="#666666" d="M13 6h10v2H13z" class="clr-i-outline clr-i-outline-path-16"></path><path fill="none" d="M0 0h36v36H0z"></path></svg>
                                 <?= $property["updated_at_text"] ?>
@@ -627,7 +627,7 @@
                             <?php } ?>
                         </div>
     
-                        <button id="btn-openLoginModal" data-email="<?= $property["user"]["email"] ?>" data-link="https://damelodamelo.com/result/<?=$property["reference"]?>">
+                        <button id="btn-openLoginModal" data-email="<?= $property["user"]["email"] ?>" data-link="https://kconecta.com/result/<?=$property["reference"]?>">
                             <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24"><path fill="#666666" d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2zm-2 0l-8 5l-8-5zm0 12H4V8l8 5l8-5z"/></svg>
                             Enviar mensaje por correo
                         </button>
@@ -677,7 +677,7 @@
                         <input type="hidden" name="property_id" value="<?= $property["id"] ?>">
                         <div class="field">
                             <div class="control">
-                                <textarea name="message" id="messageEmailToProvider" class="textarea is-medium" placeholder="Escribe tu mensaje aquí..."></textarea>
+                                <textarea name="message" id="messageEmailToProvider" class="textarea is-medium" placeholder="Escribe tu mensaje aquÃ­..."></textarea>
                             </div>
                         </div>
                         <div class="control">
@@ -688,7 +688,7 @@
             </div>
         </div>
         <div class="ctn-googleSignInButton is-fullwidth" style="display:none;">
-            <h2 style="margin-bottom: 1rem;">Inicia sesión con Google</h2>
+            <h2 style="margin-bottom: 1rem;">Inicia sesiÃ³n con Google</h2>
             <div id="googleSignInButton"></div>
             <div id="loginStatus" style="margin-top:10px;"></div>
         </div>
@@ -699,11 +699,11 @@
     <div class="modal-background"></div>
     <div class="modal-content">
         <div class="box p-5"> <!-- Aumentado el padding con p-5 -->
-            <!-- Sección de cabecera con título y botón de cierre -->
+            <!-- SecciÃ³n de cabecera con tÃ­tulo y botÃ³n de cierre -->
             <div class="is-clearfix"> <!-- Aumentado el margen inferior -->
-                <h3 class="title is-4 is-pulled-left has-text-grey-darker">Compartir anuncio</h3> <!-- Color de texto más oscuro -->
-                <!-- El botón de eliminar es típicamente manejado por el componente padre del modal,
-                    pero se incluye aquí para la completitud visual como se ve en la imagen. -->
+                <h3 class="title is-4 is-pulled-left has-text-grey-darker">Compartir anuncio</h3> <!-- Color de texto mÃ¡s oscuro -->
+                <!-- El botÃ³n de eliminar es tÃ­picamente manejado por el componente padre del modal,
+                    pero se incluye aquÃ­ para la completitud visual como se ve en la imagen. -->
                 <button class="delete is-large is-pulled-right" onclick="closeModal(document.getElementById('modal-share'))" aria-label="close"></button>
             </div>
             <p class="subtitle is-6 mb-2 has-text-grey"><?= $property["title"] ?></p> <!-- Color de texto gris -->
@@ -715,23 +715,23 @@
                     }else{
                         echo "";
                     }
-                    ?> €
+                    ?> â‚¬
             </p> <!-- Precio en negrita y color primario -->
 
-            <hr class="has-background-light"> <!-- Línea divisoria más clara -->
+            <hr class="has-background-light"> <!-- LÃ­nea divisoria mÃ¡s clara -->
 
-            <!-- Sección de Compartir por Mensajería -->
+            <!-- SecciÃ³n de Compartir por MensajerÃ­a -->
             <div class="field mb-5">
-                <label class="label has-text-grey-dark">Compartir por redes sociales</label> <!-- Color de texto más oscuro -->
+                <label class="label has-text-grey-dark">Compartir por redes sociales</label> <!-- Color de texto mÃ¡s oscuro -->
                 <div class="control">
-                    <a style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="whatsapp_clicks" href="https://wa.me/?text=Estimado/a, comparto con usted los detalles de una propiedad que podría resultar de interés. https://damelodamelo.com/result/<?=$property["reference"] ?>" target="_blank">
+                    <a style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="whatsapp_clicks" href="https://wa.me/?text=Estimado/a, comparto con usted los detalles de una propiedad que podrÃ­a resultar de interÃ©s. https://kconecta.com/result/<?=$property["reference"] ?>" target="_blank">
                         <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="#65a30d" fill-rule="evenodd" d="M12 1.25c5.937 0 10.75 4.813 10.75 10.75S17.937 22.75 12 22.75c-1.86 0-3.61-.473-5.137-1.305l-4.74.795a.75.75 0 0 1-.865-.852l.8-5.29A10.7 10.7 0 0 1 1.25 12C1.25 6.063 6.063 1.25 12 1.25M7.943 6.7c-.735 0-1.344.62-1.23 1.386c.216 1.436.854 4.082 2.752 5.994c1.984 1.999 4.823 2.854 6.36 3.191c.796.175 1.475-.455 1.475-1.232v-1.824a.3.3 0 0 0-.192-.28l-1.96-.753a.3.3 0 0 0-.166-.014l-1.977.386c-1.275-.66-2.047-1.4-2.51-2.515l.372-2.015a.3.3 0 0 0-.014-.16l-.735-1.969a.3.3 0 0 0-.28-.195z" clip-rule="evenodd"/></svg>
                         Enviar por Whatsapp
                     </a>
                 </div>
-                <!-- <label class="label has-text-grey-dark">Compartir por mensajería</label> -->
+                <!-- <label class="label has-text-grey-dark">Compartir por mensajerÃ­a</label> -->
                 <div class="control mt-3">
-                    <button style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="shared_facebook" id="btn-share-facebook" data-url="https://damelodamelo.com/result/<?=$property["reference"] ?>">
+                    <button style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="shared_facebook" id="btn-share-facebook" data-url="https://kconecta.com/result/<?=$property["reference"] ?>">
                         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256"><path fill="#1877F2" d="M256 128C256 57.308 198.692 0 128 0S0 57.308 0 128c0 63.888 46.808 116.843 108 126.445V165H75.5v-37H108V99.8c0-32.08 19.11-49.8 48.348-49.8C170.352 50 185 52.5 185 52.5V84h-16.14C152.959 84 148 93.867 148 103.99V128h35.5l-5.675 37H148v89.445c61.192-9.602 108-62.556 108-126.445"/><path fill="#FFF" d="m177.825 165l5.675-37H148v-24.01C148 93.866 152.959 84 168.86 84H185V52.5S170.352 50 156.347 50C127.11 50 108 67.72 108 99.8V128H75.5v37H108v89.445A129 129 0 0 0 128 256a129 129 0 0 0 20-1.555V165z"/></svg>
                         Publicar en facebook
                     </button>
@@ -740,7 +740,7 @@
 
             <hr class="has-background-light">
 
-            <!-- Sección de Copiar Enlace -->
+            <!-- SecciÃ³n de Copiar Enlace -->
             <div class="field mb-5">
                 <label class="label has-text-grey-dark">Copiar enlace</label>
                 <div class="field has-addons">
@@ -748,26 +748,26 @@
                         <input class="input is-rounded" id="link-reference" type="text" value="<?= base_url("result/").$property["reference"] ?>" readonly> <!-- Input redondeado -->
                     </div>
                     <div class="control">
-                        <button class="button is-info is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="link_copied" id="copyLinkButton">Copiar</button> <!-- Botón redondeado -->
+                        <button class="button is-info is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="link_copied" id="copyLinkButton">Copiar</button> <!-- BotÃ³n redondeado -->
                     </div>
                 </div>
             </div>
 
             <hr class="has-background-light">
 
-            <!-- Sección de Compartir por Email -->
+            <!-- SecciÃ³n de Compartir por Email -->
             <div class="field mb-5">
                 <label class="label has-text-grey-dark">Compartir por email</label>
                 <div class="control">
                     <input class="input is-rounded" type="email" placeholder="Email de tus amigos" id="input-email-share"> <!-- Input redondeado -->
                 </div>
-                <p class="help has-text-grey-light">Si son varios sepáralos con una coma (,)</p> <!-- Texto de ayuda más claro -->
+                <p class="help has-text-grey-light">Si son varios sepÃ¡ralos con una coma (,)</p> <!-- Texto de ayuda mÃ¡s claro -->
             </div>
 
-            <!-- Botón de Enviar -->
+            <!-- BotÃ³n de Enviar -->
             <div class="field is-grouped is-grouped-right">
                 <div class="control">
-                    <button class="button is-primary is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="shared_friends" id="send-share-to-emails">Enviar</button> <!-- Botón redondeado -->
+                    <button class="button is-primary is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="shared_friends" id="send-share-to-emails">Enviar</button> <!-- BotÃ³n redondeado -->
                 </div>
             </div>
         </div>
@@ -807,12 +807,12 @@
     document.getElementById('copyLinkButton').addEventListener('click', function() {
         const linkInput = this.closest('.field').querySelector('input');
         linkInput.select();
-        linkInput.setSelectionRange(0, 99999); // Para dispositivos móviles
+        linkInput.setSelectionRange(0, 99999); // Para dispositivos mÃ³viles
         document.execCommand("copy");
 
         // Proporcionar feedback visual al usuario (solo cambio de texto)
         const originalText = this.textContent;
-        this.textContent = '¡Copiado!';
+        this.textContent = 'Â¡Copiado!';
         setTimeout(() => {
             this.textContent = originalText;
         }, 2000);
@@ -852,7 +852,7 @@
             context: 'use'
         });
         
-        // Renderizar el botón
+        // Renderizar el botÃ³n
         google.accounts.id.renderButton(
             document.getElementById("googleSignInButton"),{ 
                 theme: "outline", 
@@ -861,7 +861,7 @@
             }
         );
         
-        // Opcional: Mostrar el One Tap (aparece automáticamente)
+        // Opcional: Mostrar el One Tap (aparece automÃ¡ticamente)
         google.accounts.id.prompt();
     }
 
@@ -870,7 +870,7 @@
         loginStatus.innerHTML = 'Verificando credenciales...';
         const form_data = new FormData();
         form_data.append("credential", response.credential);
-        // Enviar el token al backend para verificación
+        // Enviar el token al backend para verificaciÃ³n
         fetch('/api/google/user/verify_token_google', {
             method: 'POST',
             body: form_data,
@@ -893,7 +893,7 @@
             document.getElementsByName("user_name")[0].value = data.user.name;
         })
         .catch(error => {
-            loginStatus.innerHTML = 'Error en la conexión';
+            loginStatus.innerHTML = 'Error en la conexiÃ³n';
             console.error('Error:', error);
         });
     }
@@ -968,10 +968,10 @@
 
 <script>
     const swiper = new Swiper('.swiper', {
-        // Configuración básica
+        // ConfiguraciÃ³n bÃ¡sica
         loop: true, // Permite bucle infinito
         autoplay: {
-        delay: 3000, // Cambia automáticamente cada 3 segundos
+        delay: 3000, // Cambia automÃ¡ticamente cada 3 segundos
         },
         navigation: {
         nextEl: '.swiper-button-next',
@@ -1024,7 +1024,7 @@
 
     document.addEventListener("keydown", function(e) {
         if (e.ctrlKey && (e.key === "s" || e.key === "S" || e.key === "u" || e.key === "U")) {
-            e.preventDefault(); // Bloquea Ctrl + S (Guardar) y Ctrl + U (Ver código fuente)
+            e.preventDefault(); // Bloquea Ctrl + S (Guardar) y Ctrl + U (Ver cÃ³digo fuente)
         }
     });
     
@@ -1060,7 +1060,7 @@
             streetViewControl: false,
             styles: [
                 {
-                    featureType: "transit", // Oculta las estaciones de transporte público
+                    featureType: "transit", // Oculta las estaciones de transporte pÃºblico
                     stylers: [{ visibility: "off" }]
                 }
             ]

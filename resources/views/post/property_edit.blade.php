@@ -1,6 +1,6 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Editar propiedad')
+@section('title', 'Kconecta - Editar propiedad')
 
 @section('heading')
     Editar propiedad

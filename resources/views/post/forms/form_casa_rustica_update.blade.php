@@ -1,4 +1,4 @@
-﻿@php
+@php
 if (!function_exists('base_url')) {
     function base_url(string $path = '') {
         $base = url('/');
@@ -16,7 +16,7 @@ if (!function_exists('site_url')) {
 @endphp
 @extends('layouts.backoffice')
 
-@section('title', 'Damelo Damelo - Actualizar Casa rustica')
+@section('title', 'Kconecta - Actualizar Casa rustica')
 
 @section('heading')
     Editar propiedad

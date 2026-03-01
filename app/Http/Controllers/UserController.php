@@ -200,7 +200,7 @@ class UserController extends Controller
             'isAdmin' => (int) $user->user_level_id === 1,
             'mapsKey' => config('services.google.maps_key'),
             'addressValidated' => $addressValidated,
-            'pageTitle' => 'Damelo Damelo - Mi perfil',
+            'pageTitle' => 'Kconecta - Mi perfil',
             'pageHeading' => 'Mi perfil',
             'pageSubheading' => 'Actualiza tus datos personales',
         ]);
@@ -231,7 +231,7 @@ class UserController extends Controller
             'isAdmin' => $isAdmin,
             'mapsKey' => config('services.google.maps_key'),
             'addressValidated' => $addressValidated,
-            'pageTitle' => 'Damelo Damelo - Editar usuario',
+            'pageTitle' => 'Kconecta - Editar usuario',
             'pageHeading' => 'Editar usuario',
             'pageSubheading' => 'Actualiza la informacion del usuario',
             'targetUserId' => $profileUser->id,
