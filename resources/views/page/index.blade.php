@@ -6,11 +6,11 @@
     <!-- seo -->
     <meta name="description" content="Plataforma inmobiliaria para publicar propiedades y servicios del hogar gratis y sin límite. Regístrate y gestiona inmuebles fácilmente, sin comisiones.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Dámelo Dámelo | Publica, alquila o vende tu propiedad fácil y rápido">
+    <meta property="og:title" content="Kconecta | Publica, alquila o vende tu propiedad fácil y rápido">
     <meta property="og:description" content="Descubre las mejores propiedades y servicios para el hogar en un solo lugar">
     <meta property="og:image" content="<?= base_url()."img/kconecta.webp" ?>">
     <meta property="og:url" content="https://kconecta.com">
-    <meta property="og:site_name" content="Dámelo Dámelo">
+    <meta property="og:site_name" content="Kconecta">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9259257545893744" crossorigin="anonymous"></script>
 
 @endsection
@@ -193,7 +193,7 @@
         <div class="container-properties">
             <div class="card-grid">
                 <?php foreach($property as $pr){ ?>
-                <a class="redirect-to-details-link" href="<?= site_url("result/".$pr["reference"]) ?>" aria-label="Propiedad Dámelo Dámelo">
+                <a class="redirect-to-details-link" href="<?= site_url("result/".$pr["reference"]) ?>" aria-label="Propiedad Kconecta">
                 <div class="card">
                     <div class="card-image">
                         <img src="<?= base_url()."img/uploads/".$pr["cover_image"]["url"] ?>" alt="kconecta">
