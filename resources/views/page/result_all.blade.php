@@ -36,7 +36,7 @@
                     if ($quantity === 0){
                         echo "<span>Sin resultados</span>";
                     }else if ($quantity === 1){
-                        echo "<span>Se encontrÃ³ 1 resultado</span>";
+                        echo "<span>Se encontró 1 resultado</span>";
                     }else{
                         echo "<span>Se encontraron ".$quantity." resultados</span>";
                     }
@@ -69,7 +69,7 @@
                     </div>
                     <div class="container-form-inputs">
                         <label for="">
-                            <span>CategorÃ­a</span>
+                            <span>Categoría</span>
                             <div class="select">
                                 <select name="ca" id="">
                                     <option value="">Indiferente</option>
@@ -84,7 +84,7 @@
                                 <select name="ty" id="">
                                     <option value="">Indiferente</option>
                                     <option value="1" <?= $type_id == 1 ? "selected" : "" ?>>Casa o chalet</option>
-                                    <option value="15" <?= $type_id == 15 ? "selected" : "" ?>>Casa rÃºstica</option>
+                                    <option value="15" <?= $type_id == 15 ? "selected" : "" ?>>Casa rústica</option>
                                     <option value="13" <?= $type_id == 13 ? "selected" : "" ?>>Piso</option>
                                     <option value="4" <?= $type_id == 4 ? "selected" : "" ?>>Local o nave</option>
                                     <option value="14" <?= $type_id == 14 ? "selected" : "" ?>>Garaje</option>
@@ -95,19 +95,19 @@
                         <label for="">
                             <span>Precio</span>
                             <div class="div-two-col">
-                                <input type="number" name="p_min" value="<?= $p_min ?>" class="input" placeholder="MÃ­nimo">
-                                <input type="number" name="p_max" value="<?= $p_max ?>" class="input" placeholder="MÃ¡ximo">
+                                <input type="number" name="p_min" value="<?= $p_min ?>" class="input" placeholder="Mínimo">
+                                <input type="number" name="p_max" value="<?= $p_max ?>" class="input" placeholder="Máximo">
                             </div>
                         </label>
                         <label for="">
                             <span>m<sup>2</sup> construidos</span>
                             <div class="div-two-col">
-                                <input type="number" name="built_min" value="<?= $built_min?>" class="input" placeholder="MÃ­nimo">
-                                <input type="number" name="built_max" value="<?= $built_max ?>" class="input" placeholder="MÃ¡ximo">
+                                <input type="number" name="built_min" value="<?= $built_min?>" class="input" placeholder="Mínimo">
+                                <input type="number" name="built_max" value="<?= $built_max ?>" class="input" placeholder="Máximo">
                             </div>
                         </label>
                         <label for="">
-                            <span>NÂ° de baÃ±os (min)</span>
+                            <span>N° de baños (min)</span>
                             <div class="container-controls-cont-ui">
                                 <span class="icon-ui is-left" id="n_bar_rest">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 16 16"><path fill="#ffffff" stroke="#ffffff" stroke-linecap="round" stroke-width="2" d="M3 8h10"/></svg>                      
@@ -119,7 +119,7 @@
                             </div>
                         </label>
                         <label for="">
-                            <span>NÂ° de dormitorios (min)</span>
+                            <span>N° de dormitorios (min)</span>
                             <div class="container-controls-cont-ui">
                                 <span class="icon-ui is-left" id="n_ber_rest">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 16 16"><path fill="#ffffff" stroke="#ffffff" stroke-linecap="round" stroke-width="2" d="M3 8h10"/></svg>                      
@@ -172,7 +172,7 @@
                             <span class="badge"><?= $pr["category_name"] ?></span>
                         </div>
                         <div class="ctn-detils-p-m">
-                            <span><span class="meters-span"><?= !empty($pr["meters_built"])? $pr["meters_built"] : $pr["land_size"] ?> </span> m<sup>2</sup> - <span class="price-span"><?= !empty($pr["sale_price"]) ? $pr["sale_price"] :  (!empty($pr["rental_price"]) ? $pr["rental_price"] : "") ?></span> â‚¬</span>
+                            <span><span class="meters-span"><?= !empty($pr["meters_built"])? $pr["meters_built"] : $pr["land_size"] ?> </span> m<sup>2</sup> - <span class="price-span"><?= !empty($pr["sale_price"]) ? $pr["sale_price"] :  (!empty($pr["rental_price"]) ? $pr["rental_price"] : "") ?></span> ?</span>
                         </div>
                         <div class="card-content">
                             <h3><?= $pr["title"] ?></h3>
@@ -210,7 +210,7 @@
                                 </div>
                                 <div>
                                     <?php if (!empty($pr["bathrooms"])){ ?>
-                                        <span>BaÃ±os</span>
+                                        <span>Baños</span>
                                         <div class="ctn-icons-row">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><g fill="none" stroke="#666666" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="#666666"><path d="M14.4 14c.972-.912 1.6-2.364 1.6-4c0-2.761-1.79-5-4-5s-4 2.239-4 5c0 1.636.628 3.088 1.6 4m-1.493 0h7.786c.586 0 1.107.414 1.107 1c0 1.51-.67 3.09-1.729 4.126c-.525.514-1.036 1.046-.4 1.743c.095.104.206.195.299.303c.328.376-.024.828-.447.828H9.277c-.423 0-.775-.452-.447-.828c.093-.108.204-.199.3-.303c.635-.697.123-1.23-.401-1.743C7.669 18.09 7 16.51 7 15c0-.586.521-1 1.107-1"/><path d="M18.29 12c.594 0 1.093-.43 1.152-.994l.367-3.504c.214-2.033.32-3.05-.076-3.818c-.987-1.912-3.3-1.675-5.139-1.675H9.406c-1.84 0-4.152-.237-5.139 1.675c-.396.768-.29 1.785-.077 3.818l.368 3.504c.06.564.558.994 1.153.994"/></g></svg>
                                             <span><?= $pr["bathrooms"] ?></span>
@@ -740,7 +740,7 @@
             document.getElementById("address").value = city + ", " + province;
             document.getElementById("city").value = city;
             document.getElementById("province").value = province;
-            obtenerCoordenadas(city, province, "EspaÃ±a");
+            obtenerCoordenadas(city, province, "España");
         })
     })
 
@@ -751,7 +751,7 @@
             document.getElementById("address").value = province;
             document.getElementById("city").value = "";
             document.getElementById("province").value = province;
-            obtenerCoordenadas("", province, "EspaÃ±a");
+            obtenerCoordenadas("", province, "España");
         });
     })
 

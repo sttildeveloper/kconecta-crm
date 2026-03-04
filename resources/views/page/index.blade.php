@@ -4,13 +4,13 @@
     <link rel="stylesheet" href="<?= base_url("css/page/index_review.css") ?>">
     <link rel="stylesheet" href="<?= base_url("css/libraries/swiper-bundle.min.css") ?>">
     <!-- seo -->
-    <meta name="description" content="Plataforma inmobiliaria para publicar propiedades y servicios del hogar gratis y sin lÃ­mite. RegÃ­strate y gestiona inmuebles fÃ¡cilmente, sin comisiones.">
+    <meta name="description" content="Plataforma inmobiliaria para publicar propiedades y servicios del hogar gratis y sin límite. Regístrate y gestiona inmuebles fácilmente, sin comisiones.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="DÃ¡melo DÃ¡melo | Publica, alquila o vende tu propiedad fÃ¡cil y rÃ¡pido">
+    <meta property="og:title" content="Dámelo Dámelo | Publica, alquila o vende tu propiedad fácil y rápido">
     <meta property="og:description" content="Descubre las mejores propiedades y servicios para el hogar en un solo lugar">
     <meta property="og:image" content="<?= base_url()."img/kconecta.webp" ?>">
     <meta property="og:url" content="https://kconecta.com">
-    <meta property="og:site_name" content="DÃ¡melo DÃ¡melo">
+    <meta property="og:site_name" content="Dámelo Dámelo">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9259257545893744" crossorigin="anonymous"></script>
 
 @endsection
@@ -24,7 +24,7 @@
         <section class="banner" >
             <div class="container-title-message">
                 <h1>Descubre las mejores <br> propiedades y servicios para el hogar en un solo lugar</h1>
-                <span>Maximiza tu presencia y sÃ© la portada destacada en nuestro portal lÃ­der de inmuebles.</span>
+                <span>Maximiza tu presencia y sé la portada destacada en nuestro portal líder de inmuebles.</span>
                 <div class="container-images">
                     <img src="<?= base_url()."img/background-image.webp" ?>" alt="kconecta">
                 </div>
@@ -32,7 +32,7 @@
             <div class="search-bar">
                 <div class="container-1">
                     <div class="container-title-card">
-                        <!-- <h2>Seleccione una opciÃ³n</h2> -->
+                        <!-- <h2>Seleccione una opción</h2> -->
                     </div>
                     <div class="container-btns-action-main-ctrl">
                         <button id="redirect-property" style="background-color: var(--color-main-1); color: white;">
@@ -62,7 +62,7 @@
                                 <select name="ty" id="type_property_id">
                                     <option value="" selected disabled>Seleccione</option>
                                     <option value="1">Casa o chalet</option>
-                                    <option value="15">Casa rÃºstica</option>
+                                    <option value="15">Casa rústica</option>
                                     <option value="13">Piso</option>
                                     <option value="4">Local o nave</option>
                                     <option value="14">Garaje</option>
@@ -72,7 +72,7 @@
                         </div>
                         <div class="container-btns">
                             <div class="control has-icons-left has-icons-right">
-                                <input class="input is-medium" type="text" name="address" placeholder="Escribe dÃ³nde buscas" id="input-search-address-property" />
+                                <input class="input is-medium" type="text" name="address" placeholder="Escribe dónde buscas" id="input-search-address-property" />
                                 <span class="icon is-medium is-left">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#666666" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0"/></svg>
                                 </span>
@@ -122,7 +122,7 @@
                         
                         <div class="container-btns">
                             <div class="control has-icons-left has-icons-right">
-                                <input class="input is-medium" type="text" name="address" placeholder="Escribe dÃ³nde buscas" id="input-search-address-service" />
+                                <input class="input is-medium" type="text" name="address" placeholder="Escribe dónde buscas" id="input-search-address-service" />
                                 <span class="icon is-medium is-left">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#666666" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0"/></svg>
                                 </span>
@@ -175,25 +175,25 @@
         </div>
         <div class="container-row-2">
             <div class="container-text">
-                <h1>Publica casas, terrenos o locales gratis. Gestiona inmuebles sin lÃ­mite.</h1>
-                <p>Encuentra servicios para el hogar: fontanerÃ­a, electricidad, reformas y mÃ¡s. RegÃ­strate gratis. Plataforma inmobiliaria 100% online. FÃ¡cil, rÃ¡pida y sin comisiones</p>
+                <h1>Publica casas, terrenos o locales gratis. Gestiona inmuebles sin límite.</h1>
+                <p>Encuentra servicios para el hogar: fontanería, electricidad, reformas y más. Regístrate gratis. Plataforma inmobiliaria 100% online. Fácil, rápida y sin comisiones</p>
             </div>
             <div class="container-image" style="background-image: url(<?= base_url()."img/spain-image.webp" ?>);">
                 <span class="text-1">14 Propiedades</span>
                 <div class="text-2">
-                    <h3>EspaÃ±a</h3>
+                    <h3>España</h3>
                     <a href="<?= base_url("result?ps=1&ca=&ty=&address=Barcelona&mode=1")?>" aria-label="Ver todos los listados">Ver todos los listados</a>
                 </div>
             </div>
             <div class="container-text">
-                <h2>SÃ© la portada en nuestro portal inmobiliario lÃ­der</h2>
-                <p>Tu portal de confianza para encontrar tu prÃ³ximo hogar o inversiÃ³n inmobiliaria.</p>
+                <h2>Sé la portada en nuestro portal inmobiliario líder</h2>
+                <p>Tu portal de confianza para encontrar tu próximo hogar o inversión inmobiliaria.</p>
             </div>
         </div>
         <div class="container-properties">
             <div class="card-grid">
                 <?php foreach($property as $pr){ ?>
-                <a class="redirect-to-details-link" href="<?= site_url("result/".$pr["reference"]) ?>" aria-label="Propiedad DÃ¡melo DÃ¡melo">
+                <a class="redirect-to-details-link" href="<?= site_url("result/".$pr["reference"]) ?>" aria-label="Propiedad Dámelo Dámelo">
                 <div class="card">
                     <div class="card-image">
                         <img src="<?= base_url()."img/uploads/".$pr["cover_image"]["url"] ?>" alt="kconecta">
@@ -203,7 +203,7 @@
                         <span class="badge"><?= $pr["category_name"] ?></span>
                     </div>
                     <div class="ctn-detils-p-m">
-                        <span><span class="meters-span"><?= !empty($pr["meters_built"])? $pr["meters_built"] : $pr["land_size"] ?></span> m<sup>2</sup> - <span class="price-span"><?= !empty($pr["sale_price"]) ? $pr["sale_price"] :  (!empty($pr["rental_price"]) ? $pr["rental_price"] : "") ?></span> â‚¬</span>
+                        <span><span class="meters-span"><?= !empty($pr["meters_built"])? $pr["meters_built"] : $pr["land_size"] ?></span> m<sup>2</sup> - <span class="price-span"><?= !empty($pr["sale_price"]) ? $pr["sale_price"] :  (!empty($pr["rental_price"]) ? $pr["rental_price"] : "") ?></span> ?</span>
                     </div>
                     <div class="card-content">
                         <h3><?= $pr["title"] ?></h3>
@@ -243,7 +243,7 @@
                             </div>
                             <div>
                                 <?php if (!empty($pr["bathrooms"])){ ?>
-                                    <span>BaÃ±os</span>
+                                    <span>Baños</span>
                                     <div class="ctn-icons-row">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><g fill="none" stroke="#666666" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="#666666"><path d="M14.4 14c.972-.912 1.6-2.364 1.6-4c0-2.761-1.79-5-4-5s-4 2.239-4 5c0 1.636.628 3.088 1.6 4m-1.493 0h7.786c.586 0 1.107.414 1.107 1c0 1.51-.67 3.09-1.729 4.126c-.525.514-1.036 1.046-.4 1.743c.095.104.206.195.299.303c.328.376-.024.828-.447.828H9.277c-.423 0-.775-.452-.447-.828c.093-.108.204-.199.3-.303c.635-.697.123-1.23-.401-1.743C7.669 18.09 7 16.51 7 15c0-.586.521-1 1.107-1"/><path d="M18.29 12c.594 0 1.093-.43 1.152-.994l.367-3.504c.214-2.033.32-3.05-.076-3.818c-.987-1.912-3.3-1.675-5.139-1.675H9.406c-1.84 0-4.152-.237-5.139 1.675c-.396.768-.29 1.785-.077 3.818l.368 3.504c.06.564.558.994 1.153.994"/></g></svg>
                                         <span><?= $pr["bathrooms"] ?></span>
@@ -326,8 +326,8 @@
             </div>
         </div>
         <div class="button-explore-more-property">
-            <a href="<?= base_url("result?ps=1&ca=&ty=&address=Barcelona&mode=1")?>" aria-label="Explorar mÃ¡s propiedades">
-                <button>Explora mÃ¡s propiedades</button>
+            <a href="<?= base_url("result?ps=1&ca=&ty=&address=Barcelona&mode=1")?>" aria-label="Explorar más propiedades">
+                <button>Explora más propiedades</button>
             </a>
         </div>
         <div class="container-video">
@@ -336,11 +336,11 @@
                 Tu navegador no soporta videos.
             </video> -->
             <div class="container-text">
-                <h2>El lugar de tus sueÃ±os estÃ¡ a solo un click de distancia. EncuÃ©ntralo ahora.</h2>
+                <h2>El lugar de tus sueños está a solo un click de distancia. Encuéntralo ahora.</h2>
                 <div class="container-col">
                     <div class="row-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><g fill="none" stroke="#ffffff" stroke-width="1.5"><path d="m18.18 8.04l.463-.464a1.966 1.966 0 1 1 2.781 2.78l-.463.464M18.18 8.04s.058.984.927 1.853s1.854.927 1.854.927M18.18 8.04l-4.26 4.26c-.29.288-.434.433-.558.592q-.22.282-.374.606c-.087.182-.151.375-.28.762l-.413 1.24l-.134.401m8.8-5.081l-4.26 4.26c-.29.29-.434.434-.593.558q-.282.22-.606.374c-.182.087-.375.151-.762.28l-1.24.413l-.401.134m0 0l-.401.134a.53.53 0 0 1-.67-.67l.133-.402m.938.938l-.938-.938"/><path stroke-linecap="round" d="M8 13h2.5M8 9h6.5M8 17h1.5M19.828 3.172C18.657 2 16.771 2 13 2h-2C7.229 2 5.343 2 4.172 3.172S3 6.229 3 10v4c0 3.771 0 5.657 1.172 6.828S7.229 22 11 22h2c3.771 0 5.657 0 6.828-1.172c.944-.943 1.127-2.348 1.163-4.828"/></g></svg>
-                        <span>RegÃ­strate y anÃºnciate</span>
+                        <span>Regístrate y anúnciate</span>
                     </div>
                     <div class="row-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 16 16"><path fill="#ffffff" fill-rule="evenodd" d="M12.5 12.618c.307-.275.5-.674.5-1.118V6.977a1.5 1.5 0 0 0-.585-1.189l-3.5-2.692a1.5 1.5 0 0 0-1.83 0l-3.5 2.692A1.5 1.5 0 0 0 3 6.978V11.5A1.496 1.496 0 0 0 4.493 13H5V9.5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2V13h.507c.381-.002.73-.146.993-.382m2-1.118a3 3 0 0 1-3 3h-7a3 3 0 0 1-3-3V6.977A3 3 0 0 1 2.67 4.6l3.5-2.692a3 3 0 0 1 3.66 0l3.5 2.692a3 3 0 0 1 1.17 2.378zm-5-2A.5.5 0 0 0 9 9H7a.5.5 0 0 0-.5.5V13h3z" clip-rule="evenodd"/></svg>
@@ -361,22 +361,22 @@
                         <img src="<?= base_url("img/data_reviews/ivana-square.jpg") ?>" alt="Oscar Cardona Casals">
                         <div class="review-content">
                             <h3>Oscar Cardona Casals</h3>
-                            <p>ðŸ“ Trav. de les Corts</p>
+                            <p>&#128205; Trav. de les Corts</p>
                             <p>"Gracias al equipo, pude vender mi casa sin complicaciones. Siempre estuvieron atentos a cada detalle."</p>
                             <div class="container-icon-p">
-                                <img src="<?= base_url("img/data_reviews/facebook-icon.png") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                                <img src="<?= base_url("img/data_reviews/facebook-icon.png") ?>" alt="José María Horcajada Barcenas">
                             </div>
                         </div>
                     </div>
 
                     <div class="swiper-slide review">
-                        <img src="<?= base_url("img/data_reviews/kal-visuals-square.jpg") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                        <img src="<?= base_url("img/data_reviews/kal-visuals-square.jpg") ?>" alt="José María Horcajada Barcenas">
                         <div class="review-content">
-                            <h3>JosÃ© MarÃ­a Horcajada Barcenas</h3>
-                            <p>ðŸ“ Rambla Volart</p>
-                            <p>"Un servicio excepcional. Me acompaÃ±aron en cada paso hasta cerrar la venta de mi piso de manera rÃ¡pida y segura."</p>
+                            <h3>José María Horcajada Barcenas</h3>
+                            <p>&#128205; Rambla Volart</p>
+                            <p>"Un servicio excepcional. Me acompañaron en cada paso hasta cerrar la venta de mi piso de manera rápida y segura."</p>
                             <div class="container-icon-p">
-                                <img src="<?= base_url("img/data_reviews/google-icon.png") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                                <img src="<?= base_url("img/data_reviews/google-icon.png") ?>" alt="José María Horcajada Barcenas">
                             </div>
                         </div>
                     </div>
@@ -385,10 +385,10 @@
                         <img src="<?= base_url("img/data_reviews/ivana-squares.jpg") ?>" alt="MARI BEL FERNANDEZ TORRENTE">
                         <div class="review-content">
                             <h3>MARI BEL FERNANDEZ TORRENTE</h3>
-                            <p>ðŸ“ Numancia</p>
-                            <p>"EncontrÃ© el hogar perfecto para mi familia gracias a su ayuda. Hicieron que todo el proceso fuera muy fÃ¡cil y claro."</p>
+                            <p>&#128205; Numancia</p>
+                            <p>"Encontré el hogar perfecto para mi familia gracias a su ayuda. Hicieron que todo el proceso fuera muy fácil y claro."</p>
                             <div class="container-icon-p">
-                                <img src="<?= base_url("img/data_reviews/google-icon.png") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                                <img src="<?= base_url("img/data_reviews/google-icon.png") ?>" alt="José María Horcajada Barcenas">
                             </div>
                         </div>
                     </div>
@@ -397,10 +397,10 @@
                         <img src="<?= base_url("img/data_reviews/marie.jpg") ?>" alt="MARIA DOLORES RUIZ">
                         <div class="review-content">
                             <h3>MARIA DOLORES RUIZ</h3>
-                            <p>ðŸ“ C/Ramon Berenguer III</p>
-                            <p>"Vender mi casa con su asesoramiento fue una gran decisiÃ³n. Son profesionales, cercanos y eficaces."</p>
+                            <p>&#128205; C/Ramon Berenguer III</p>
+                            <p>"Vender mi casa con su asesoramiento fue una gran decisión. Son profesionales, cercanos y eficaces."</p>
                             <div class="container-icon-p">
-                                <img src="<?= base_url("img/data_reviews/tiktok-icon.webp") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                                <img src="<?= base_url("img/data_reviews/tiktok-icon.webp") ?>" alt="José María Horcajada Barcenas">
                             </div>
                         </div>
                     </div>
@@ -409,17 +409,17 @@
                         <img src="<?= base_url("img/data_reviews/team-2.jpg") ?>" alt="Marc - Paul Ducrest">
                         <div class="review-content">
                             <h3>Marc - Paul Ducrest</h3>
-                            <p>"Gracias a su dedicaciÃ³n, encontrÃ© una casa que realmente se ajustaba a lo que buscaba. Muy recomendados."</p>
+                            <p>"Gracias a su dedicación, encontré una casa que realmente se ajustaba a lo que buscaba. Muy recomendados."</p>
                             <div class="container-icon-p">
-                                <img src="<?= base_url("img/data_reviews/facebook-icon.png") ?>" alt="JosÃ© MarÃ­a Horcajada Barcenas">
+                                <img src="<?= base_url("img/data_reviews/facebook-icon.png") ?>" alt="José María Horcajada Barcenas">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="block-text">
-                <h3>ConfÃ­a en nosotros</h3>
-                <p>Ãšnete a nuestro vibrante grupo inmobiliario y forma parte de una red de empresas ganadoras que colaboran en nuestra plataforma online, donde cada paso es una oportunidad para crecer, innovar y alcanzar el Ã©xito juntos en el emocionante mundo de los bienes raÃ­ces.</p>
+                <h3>Confía en nosotros</h3>
+                <p>Únete a nuestro vibrante grupo inmobiliario y forma parte de una red de empresas ganadoras que colaboran en nuestra plataforma online, donde cada paso es una oportunidad para crecer, innovar y alcanzar el éxito juntos en el emocionante mundo de los bienes raíces.</p>
             </div>
             <br>
             <br>
