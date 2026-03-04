@@ -11,6 +11,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - GitHub repo: `https://github.com/digitalbitsolutions/kconecta-crm`
 - Active remote: `origin` only
 - Main branch: `main`
+- Last operational update: `2026-03-04`
 
 ## Working Rules
 - Prefer minimal, testable changes.
@@ -29,15 +30,32 @@ Operate and evolve `kconecta-crm` with focus on:
 - `kconecta-mysql-1`
 - DB schema: `kconecta_schema`
 
-## Dokploy Execution Checklist
-- Connect Dokploy project to GitHub repo.
-- Set runtime env vars in Dokploy.
-- Configure remote MySQL and credentials.
-- Run migrations safely.
-- Configure domain + SSL.
-- Validate health checks and login flow.
+## Production Runtime Baseline
+- Platform: Dokploy (Hostinger)
+- App URL: `https://kconecta.com/`
+- App service pattern: `kconecta-kconectacrm-*`
+- DB service pattern: `kconecta-crm-*`
+- DB schema: `kconecta-mysql`
+
+## Recent Operations (2026-03-04)
+- Password reset applied for `user.id=1` (`info@sttil.com`) with bcrypt hash.
+- Password validation on server via Laravel `Hash::check(...)` returned `true`.
+- Migration state verified in production:
+- `php artisan migrate --force` => `Nothing to migrate`
+- Production data populated from local snapshot (`kconecta_schema` -> `kconecta-mysql`).
+- Safety backup created before sync in local machine path:
+- `D:\still\kconecta.com\backups\prod_kconecta_mysql_before_sync_20260304_180633.sql`
+- Imported snapshot stored in local machine path:
+- `D:\still\kconecta.com\backups\local_kconecta_schema_sync_20260304_180659.sql`
+
+## Next Operational Focus
+- Validate full browser login flow on production.
+- Rotate exposed or weak credentials and keys.
+- Remove legacy plaintext password fallback in auth flow.
+- Define recurring backup and restore drill for production DB.
 
 ## Known Risks
 - Legacy dumps may override expected Laravel schema.
 - Imported users may include plaintext passwords.
 - Existing fallback login logic accepts plaintext and rehashes on login.
+- Production data can drift from local if sync is repeated without controls.

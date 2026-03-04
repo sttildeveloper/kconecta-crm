@@ -1,6 +1,6 @@
 # Kconecta CRM - Tasks
 
-## Session Checkpoint (2026-03-01)
+## Session Checkpoint (2026-03-04)
 
 ### Done
 - [x] Proyecto migrado de DameloDamelo a Kconecta (branding y referencias principales).
@@ -17,22 +17,36 @@
 - [x] `https://github.com/digitalbitsolutions/kconecta-crm`
 - [x] `main` publicado.
 - [x] remoto final: `origin` (unico remoto).
+- [x] Acceso SSH al servidor Dokploy validado.
+- [x] Estado de migraciones en produccion validado.
+- [x] `php artisan migrate --force` en produccion sin pendientes (`Nothing to migrate`).
+- [x] Password actualizado para usuario admin:
+- [x] `user.id=1`
+- [x] `email=info@sttil.com`
+- [x] Password objetivo validado en servidor con `Hash::check(...)`.
+- [x] Produccion poblada desde snapshot local (`kconecta_schema` -> `kconecta-mysql`).
+- [x] Backup previo de produccion generado.
 
 ### Next - Dokploy (Hostinger)
-- [ ] Crear proyecto en Dokploy y conectar repo `digitalbitsolutions/kconecta-crm`.
-- [ ] Definir estrategia de deploy (build desde Dockerfile o compose).
-- [ ] Cargar variables de entorno de produccion.
-- [ ] Configurar base de datos de produccion.
-- [ ] Ejecutar migraciones en entorno remoto.
-- [ ] Configurar dominio, SSL y health checks.
-- [ ] Probar login, panel y rutas criticas en entorno remoto.
+- [x] Crear proyecto en Dokploy y conectar repo `digitalbitsolutions/kconecta-crm`.
+- [x] Definir estrategia de deploy (build desde Dockerfile o compose).
+- [x] Cargar variables de entorno de produccion.
+- [x] Configurar base de datos de produccion.
+- [x] Ejecutar migraciones en entorno remoto.
+- [x] Configurar dominio, SSL y health checks.
+- [ ] Probar login, panel y rutas criticas en entorno remoto (validacion manual UI end-to-end pendiente).
+- [ ] Definir politica de sync local->produccion para evitar sobreescrituras accidentales.
 
 ### Security Backlog
 - [ ] Rotar secretos actuales (`APP_KEY`, API keys, credenciales DB).
 - [ ] Forzar actualizacion de passwords por defecto.
 - [ ] Eliminar fallback de login legacy que acepta password en texto plano.
 - [ ] Verificar que no se suban secretos reales al repo.
+- [ ] Mover credenciales sensibles fuera de notas operativas y comandos historicos.
 
 ### Notes
 - Mantener este archivo como fuente de verdad para estado y proximos pasos.
 - No reimportar dumps legacy en produccion sin validacion de esquema.
+- Backups de la operacion del `2026-03-04`:
+- `D:\still\kconecta.com\backups\prod_kconecta_mysql_before_sync_20260304_180633.sql`
+- `D:\still\kconecta.com\backups\local_kconecta_schema_sync_20260304_180659.sql`
