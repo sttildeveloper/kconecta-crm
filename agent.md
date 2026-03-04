@@ -12,6 +12,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Active remote: `origin` only
 - Main branch: `main`
 - Last operational update: `2026-03-04`
+- GitHub reports repository move to: `https://github.com/sttildeveloper/kconecta-crm`
 
 ## Working Rules
 - Prefer minimal, testable changes.
@@ -43,6 +44,14 @@ Operate and evolve `kconecta-crm` with focus on:
 - Migration state verified in production:
 - `php artisan migrate --force` => `Nothing to migrate`
 - Production data populated from local snapshot (`kconecta_schema` -> `kconecta-mysql`).
+- Runtime incident fixed in production:
+- app service was crashing with SQL error on missing table `cache`.
+- created `cache`, `cache_locks` and `sessions` tables in production DB.
+- service recovered and web responded `HTTP 200` on home/login.
+- Branding cleanup completed in runtime:
+- favicon updated to `ico.png`.
+- dashboard logout button rendered full width.
+- legacy `Dámelo Dámelo` OG metadata replaced with `Kconecta`.
 - Safety backup created before sync in local machine path:
 - `D:\still\kconecta.com\backups\prod_kconecta_mysql_before_sync_20260304_180633.sql`
 - Imported snapshot stored in local machine path:

@@ -26,6 +26,17 @@
 - [x] Password objetivo validado en servidor con `Hash::check(...)`.
 - [x] Produccion poblada desde snapshot local (`kconecta_schema` -> `kconecta-mysql`).
 - [x] Backup previo de produccion generado.
+- [x] Incidente `500` en produccion diagnosticado y corregido:
+- [x] causa: tabla `cache` inexistente al ejecutar `cache:clear` en arranque.
+- [x] accion: creadas tablas runtime `cache`, `cache_locks` y `sessions`.
+- [x] servicio web estable en `1/1` y home/login respondiendo `HTTP 200`.
+- [x] Branding visual/SEO actualizado:
+- [x] favicon reemplazado por `public/img/ico.png` y referenciado en layouts.
+- [x] boton `Cerrar sesion` del dashboard ajustado a ancho completo.
+- [x] metadatos OG de home migrados de `Dámelo Dámelo` a `Kconecta`.
+- [x] labels visibles de tarjetas actualizados a `Propiedad Kconecta`.
+- [x] Verificacion en vivo:
+- [x] `https://kconecta.com/` devuelve `og:title` y `og:site_name` con `Kconecta`.
 
 ### Next - Dokploy (Hostinger)
 - [x] Crear proyecto en Dokploy y conectar repo `digitalbitsolutions/kconecta-crm`.
@@ -36,6 +47,7 @@
 - [x] Configurar dominio, SSL y health checks.
 - [ ] Probar login, panel y rutas criticas en entorno remoto (validacion manual UI end-to-end pendiente).
 - [ ] Definir politica de sync local->produccion para evitar sobreescrituras accidentales.
+- [ ] Configurar deploy automatizado con redeploy inmediato tras `push` para evitar drift entre repo y runtime.
 
 ### Security Backlog
 - [ ] Rotar secretos actuales (`APP_KEY`, API keys, credenciales DB).

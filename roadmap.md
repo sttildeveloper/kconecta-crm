@@ -4,11 +4,13 @@
 - Repository connected and deployed in Dokploy.
 - Production DB exists and is populated with current local snapshot.
 - Core schema migrations are up to date.
+- Public branding in home metadata is aligned with `Kconecta`.
 
 ## Phase 1 - Stabilize Production (Now)
 - Complete manual end-to-end login validation in browser.
 - Validate critical routes and admin actions with real user flow.
 - Add a simple release checklist per deploy (build, migrate, smoke test, rollback pointer).
+- Ensure deploy automation refreshes runtime immediately after `main` updates.
 
 ## Phase 2 - Security Hardening
 - Rotate production credentials and application secrets.

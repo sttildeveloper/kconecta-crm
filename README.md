@@ -4,6 +4,7 @@ CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 
 ## Repository
 - GitHub: `https://github.com/digitalbitsolutions/kconecta-crm`
+- Moved-to (reported by GitHub): `https://github.com/sttildeveloper/kconecta-crm`
 - Branch principal: `main`
 - Remote activo: `origin`
 
@@ -42,6 +43,10 @@ Se agrego una migracion para asegurar compatibilidad de hashes de password:
 - Migraciones en estado estable:
 - `php artisan migrate --force` => `Nothing to migrate`
 - Base de datos productiva poblada desde snapshot local validado.
+- Incidente 500 resuelto:
+- causa: faltaban tablas runtime (`cache`, `cache_locks`, `sessions`).
+- estado: servicio estable y rutas principales (`/`, `/login`) en `HTTP 200`.
+- Branding de home alineado a `Kconecta` en metadatos OG.
 - Conteos de referencia tras sync:
 - `user=5`
 - `user_level=5`
