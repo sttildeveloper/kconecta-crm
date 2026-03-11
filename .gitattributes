@@ -18,3 +18,5 @@ CHANGELOG.md export-ignore
 *.webm filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.mov filter=lfs diff=lfs merge=lfs -text
+public/img/damelo_damelo.webp filter=lfs diff=lfs merge=lfs -text
+damelo_damelo_icon.webp filter=lfs diff=lfs merge=lfs -text
