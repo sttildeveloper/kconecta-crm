@@ -18,10 +18,14 @@ class PropertyApiController extends Controller
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
-        $properties = Property::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('id')
-            ->paginate($perPage);
+        $isAdmin = (int) $user->user_level_id === 1;
+
+        $query = Property::query()->orderByDesc('id');
+        if (! $isAdmin) {
+            $query->where('user_id', $user->id);
+        }
+
+        $properties = $query->paginate($perPage);
 
         return response()->json([
             'data' => $properties->items(),
@@ -43,12 +47,14 @@ class PropertyApiController extends Controller
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
+        $isAdmin = (int) $user->user_level_id === 1;
+
         $property = Property::query()->find($id);
         if (! $property) {
             return response()->json(['message' => 'Propiedad no encontrada'], 404);
         }
 
-        if ((int) $property->user_id !== (int) $user->id) {
+        if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
