@@ -24,5 +24,6 @@ Route::get('/test-now', fn () => response()->json(['message' => 'API is working'
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::apiResource('/agent/properties', PropertyApiController::class);
 });
