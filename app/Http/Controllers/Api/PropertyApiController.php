@@ -5,12 +5,25 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\CoverImage;
+use App\Models\EmissionsRating;
+use App\Models\Equipment;
+use App\Models\Equipments;
+use App\Models\Feature;
+use App\Models\Features;
+use App\Models\HeatingFuel;
+use App\Models\LocationPremises;
 use App\Models\MoreImage;
+use App\Models\Plant;
+use App\Models\PowerConsumptionRating;
 use App\Models\Property;
 use App\Models\PropertyAddress;
+use App\Models\StateConservation;
 use App\Models\Type;
+use App\Models\TypeHeating;
 use App\Models\User;
 use App\Models\Video;
+use App\Models\VisibilityInPortals;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -106,9 +119,20 @@ class PropertyApiController extends Controller
         $coverImage = CoverImage::query()->where('property_id', (int) $property->id)->first();
         $moreImages = MoreImage::query()->where('property_id', (int) $property->id)->get();
         $videos = Video::query()->where('property_id', (int) $property->id)->get();
+        $detailContext = $this->buildDetailContext($property, $address, $owner);
 
         return response()->json(
-            $this->formatProperty($property, $typeMap, $categoryMap, $address, $owner, $coverImage, $moreImages->all(), $videos->all()),
+            $this->formatProperty(
+                $property,
+                $typeMap,
+                $categoryMap,
+                $address,
+                $owner,
+                $coverImage,
+                $moreImages->all(),
+                $videos->all(),
+                $detailContext
+            ),
             200
         );
     }
@@ -484,7 +508,8 @@ class PropertyApiController extends Controller
         ?User $owner = null,
         ?CoverImage $coverImage = null,
         array $moreImages = [],
-        array $videos = []
+        array $videos = [],
+        array $detailContext = []
     ): array {
         $item = $property->toArray();
         $item['type_name'] = $typeMap[(int) ($property->type_id ?? 0)] ?? null;
@@ -530,8 +555,129 @@ class PropertyApiController extends Controller
                 'property_id' => (int) $video->property_id,
             ];
         }, $videos);
+        $item['videos'] = $item['video'];
+
+        if (! empty($detailContext)) {
+            $item = array_merge($item, $detailContext);
+        }
 
         return $item;
+    }
+
+    private function buildDetailContext(Property $property, ?PropertyAddress $address = null, ?User $owner = null): array
+    {
+        $propertyId = (int) $property->id;
+
+        $stateConservation = $this->wrapSingle(StateConservation::query()->find($property->state_conservation_id));
+        $visibilityInPortals = $this->wrapSingle(VisibilityInPortals::query()->find($property->visibility_in_portals_id));
+        $locationPremises = $this->wrapSingle(LocationPremises::query()->find($property->location_premises_id));
+        $typeHeating = $this->wrapSingle(TypeHeating::query()->find($property->type_heating_id));
+        $heatingFuel = $this->wrapSingle(HeatingFuel::query()->find($property->heating_fuel_id));
+        $powerConsumptionRating = $this->wrapSingle(
+            PowerConsumptionRating::query()->find($property->power_consumption_rating_id)
+        );
+        $emissionsRating = $this->wrapSingle(EmissionsRating::query()->find($property->emissions_rating_id));
+        $plant = $this->wrapSingle(Plant::query()->find($property->plant_id));
+
+        return [
+            'updated_at_text' => $this->formatUpdatedAt($property->updated_at),
+            'property_address' => $address ? [$address->toArray()] : [],
+            'user' => $this->mapOwner($owner),
+            'state_conservation' => $stateConservation,
+            'state_conservation_label' => $stateConservation[0]['name'] ?? null,
+            'visibility_in_portals' => $visibilityInPortals,
+            'visibility_in_portals_label' => $visibilityInPortals[0]['name'] ?? null,
+            'location_premises' => $locationPremises,
+            'location_premises_label' => $locationPremises[0]['name'] ?? null,
+            'type_heating' => $typeHeating,
+            'type_heating_label' => $typeHeating[0]['name'] ?? null,
+            'heating_fuel' => $heatingFuel,
+            'heating_fuel_label' => $heatingFuel[0]['name'] ?? null,
+            'power_consumption_rating' => $powerConsumptionRating,
+            'power_consumption_rating_label' => $powerConsumptionRating[0]['name'] ?? null,
+            'emissions_rating' => $emissionsRating,
+            'emissions_rating_label' => $emissionsRating[0]['name'] ?? null,
+            'plant' => $plant,
+            'plant_label' => $plant[0]['name'] ?? null,
+            'features' => $this->mapLinkedItems(
+                $propertyId,
+                Features::class,
+                'feature_id',
+                Feature::class
+            ),
+            'equipments' => $this->mapLinkedItems(
+                $propertyId,
+                Equipments::class,
+                'equipment_id',
+                Equipment::class
+            ),
+        ];
+    }
+
+    private function mapOwner(?User $owner): array
+    {
+        if (! $owner) {
+            return [];
+        }
+
+        $fullName = trim((string) (($owner->first_name ?? '') . ' ' . ($owner->last_name ?? '')));
+        $displayName = $fullName !== '' ? $fullName : (string) ($owner->user_name ?? '');
+        $photoFile = trim((string) ($owner->photo ?? ''));
+        $photoUrl = $photoFile !== ''
+            ? $this->normalizeImageHost(asset('img/photo_profile/' . ltrim($photoFile, '/')))
+            : $this->normalizeImageHost(asset('img/default-avatar-profile-icon.webp'));
+
+        return [
+            'id' => (int) $owner->id,
+            'first_name' => $owner->first_name ?? null,
+            'last_name' => $owner->last_name ?? null,
+            'user_name' => $owner->user_name ?? null,
+            'display_name' => $displayName !== '' ? $displayName : null,
+            'email' => $owner->email ?? null,
+            'landline_phone' => $owner->landline_phone ?? null,
+            'photo' => $owner->photo ?? null,
+            'photo_url' => $photoUrl,
+        ];
+    }
+
+    private function mapLinkedItems(
+        int $propertyId,
+        string $pivotModelClass,
+        string $relatedIdColumn,
+        string $relatedModelClass
+    ): array {
+        $links = $pivotModelClass::query()->where('property_id', $propertyId)->get();
+
+        $items = [];
+        foreach ($links as $link) {
+            $relatedId = (int) ($link->{$relatedIdColumn} ?? 0);
+            if (! $relatedId) {
+                continue;
+            }
+
+            $related = $relatedModelClass::query()->find($relatedId);
+            if ($related) {
+                $items[] = $related->toArray();
+            }
+        }
+
+        return $items;
+    }
+
+    private function wrapSingle($model): array
+    {
+        return $model ? [$model->toArray()] : [];
+    }
+
+    private function formatUpdatedAt($value): string
+    {
+        if (! $value) {
+            return '';
+        }
+
+        Carbon::setLocale('es');
+
+        return Carbon::parse($value)->translatedFormat('d \\d\\e F \\d\\e Y');
     }
 
     private function extractCoverImageFile(?CoverImage $coverImage): ?string
