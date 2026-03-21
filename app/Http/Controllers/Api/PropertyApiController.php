@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\CoverImage;
+use App\Models\MoreImage;
 use App\Models\Property;
 use App\Models\PropertyAddress;
 use App\Models\Type;
 use App\Models\User;
+use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -102,8 +104,13 @@ class PropertyApiController extends Controller
         $address = PropertyAddress::query()->where('property_id', (int) $property->id)->first();
         $owner = User::query()->find((int) $property->user_id);
         $coverImage = CoverImage::query()->where('property_id', (int) $property->id)->first();
+        $moreImages = MoreImage::query()->where('property_id', (int) $property->id)->get();
+        $videos = Video::query()->where('property_id', (int) $property->id)->get();
 
-        return response()->json($this->formatProperty($property, $typeMap, $categoryMap, $address, $owner, $coverImage), 200);
+        return response()->json(
+            $this->formatProperty($property, $typeMap, $categoryMap, $address, $owner, $coverImage, $moreImages->all(), $videos->all()),
+            200
+        );
     }
 
     public function propertyTypes(Request $request)
@@ -327,6 +334,33 @@ class PropertyApiController extends Controller
         return response()->json(['message' => 'Propiedad eliminada'], 200);
     }
 
+    public function destroyMoreImage(Request $request, int $imageId)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+
+        $image = MoreImage::query()->find($imageId);
+        if (! $image) {
+            return response()->json(['message' => 'Imagen no encontrada'], 404);
+        }
+
+        $property = Property::query()->find((int) $image->property_id);
+        if (! $property) {
+            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+        }
+
+        $isAdmin = (int) $user->user_level_id === 1;
+        if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $image->delete();
+
+        return response()->json(['message' => 'Imagen eliminada'], 200);
+    }
+
     private function generateReference(): string
     {
         do {
@@ -448,7 +482,9 @@ class PropertyApiController extends Controller
         array $categoryMap = [],
         ?PropertyAddress $address = null,
         ?User $owner = null,
-        ?CoverImage $coverImage = null
+        ?CoverImage $coverImage = null,
+        array $moreImages = [],
+        array $videos = []
     ): array {
         $item = $property->toArray();
         $item['type_name'] = $typeMap[(int) ($property->type_id ?? 0)] ?? null;
@@ -480,6 +516,20 @@ class PropertyApiController extends Controller
         $item['cover_image_url'] = $coverImageUrl;
         $item['image'] = $coverImageUrl;
         $item['photo'] = $coverImageUrl;
+        $item['more_images'] = array_map(function (MoreImage $image) {
+            return [
+                'id' => (int) $image->id,
+                'url' => $image->url,
+                'property_id' => (int) $image->property_id,
+            ];
+        }, $moreImages);
+        $item['video'] = array_map(function (Video $video) {
+            return [
+                'id' => (int) $video->id,
+                'url' => $video->url,
+                'property_id' => (int) $video->property_id,
+            ];
+        }, $videos);
 
         return $item;
     }
