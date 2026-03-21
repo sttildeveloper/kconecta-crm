@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\CoverImage;
 use App\Models\Property;
 use App\Models\PropertyAddress;
 use App\Models\Type;
@@ -46,6 +47,9 @@ class PropertyApiController extends Controller
         $ownerMap = empty($ownerIds)
             ? []
             : User::query()->whereIn('id', $ownerIds)->get()->keyBy('id')->all();
+        $coverImageMap = empty($propertyIds)
+            ? []
+            : CoverImage::query()->whereIn('property_id', $propertyIds)->get()->keyBy('property_id')->all();
 
         $data = $propertyItems->map(
             fn (Property $property) => $this->formatProperty(
@@ -53,7 +57,8 @@ class PropertyApiController extends Controller
                 $typeMap,
                 $categoryMap,
                 $addressMap[(int) $property->id] ?? null,
-                $ownerMap[(int) $property->user_id] ?? null
+                $ownerMap[(int) $property->user_id] ?? null,
+                $coverImageMap[(int) $property->id] ?? null
             )
         )->values()->all();
 
@@ -96,8 +101,9 @@ class PropertyApiController extends Controller
             : [];
         $address = PropertyAddress::query()->where('property_id', (int) $property->id)->first();
         $owner = User::query()->find((int) $property->user_id);
+        $coverImage = CoverImage::query()->where('property_id', (int) $property->id)->first();
 
-        return response()->json($this->formatProperty($property, $typeMap, $categoryMap, $address, $owner), 200);
+        return response()->json($this->formatProperty($property, $typeMap, $categoryMap, $address, $owner, $coverImage), 200);
     }
 
     public function propertyTypes(Request $request)
@@ -441,7 +447,8 @@ class PropertyApiController extends Controller
         array $typeMap = [],
         array $categoryMap = [],
         ?PropertyAddress $address = null,
-        ?User $owner = null
+        ?User $owner = null,
+        ?CoverImage $coverImage = null
     ): array {
         $item = $property->toArray();
         $item['type_name'] = $typeMap[(int) ($property->type_id ?? 0)] ?? null;
@@ -467,6 +474,43 @@ class PropertyApiController extends Controller
             $item['user_last_name'] = $owner->last_name ?? null;
         }
 
+        $coverImageFile = $this->extractCoverImageFile($coverImage);
+        $coverImageUrl = $coverImageFile ? $this->buildCoverImageUrl($coverImageFile) : null;
+        $item['cover_image'] = $coverImageFile;
+        $item['cover_image_url'] = $coverImageUrl;
+        $item['image'] = $coverImageUrl;
+        $item['photo'] = $coverImageUrl;
+
         return $item;
+    }
+
+    private function extractCoverImageFile(?CoverImage $coverImage): ?string
+    {
+        if (! $coverImage) {
+            return null;
+        }
+
+        $raw = trim((string) ($coverImage->url ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        return $raw;
+    }
+
+    private function buildCoverImageUrl(string $rawPath): string
+    {
+        $normalized = str_replace('\\', '/', trim($rawPath));
+
+        if (Str::startsWith($normalized, ['http://', 'https://'])) {
+            return $normalized;
+        }
+
+        $normalized = ltrim($normalized, '/');
+        if (Str::startsWith($normalized, ['img/', 'storage/'])) {
+            return asset($normalized);
+        }
+
+        return asset('img/uploads/' . $normalized);
     }
 }
