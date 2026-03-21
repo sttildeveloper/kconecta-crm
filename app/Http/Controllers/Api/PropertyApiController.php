@@ -503,7 +503,7 @@ class PropertyApiController extends Controller
         $normalized = str_replace('\\', '/', trim($rawPath));
 
         if (Str::startsWith($normalized, ['http://', 'https://'])) {
-            return $this->normalizeWebHost($normalized);
+            return $normalized;
         }
 
         $normalized = ltrim($normalized, '/');
@@ -511,26 +511,6 @@ class PropertyApiController extends Controller
             ? $normalized
             : 'img/uploads/' . $normalized;
 
-        return $this->normalizeWebHost(asset($relativePath));
-    }
-
-    private function normalizeWebHost(string $url): string
-    {
-        $parts = parse_url($url);
-        if (! is_array($parts) || ! isset($parts['host'])) {
-            return $url;
-        }
-
-        if (strtolower((string) $parts['host']) !== 'kconecta.com') {
-            return $url;
-        }
-
-        $scheme = $parts['scheme'] ?? 'https';
-        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
-        $path = $parts['path'] ?? '';
-        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
-        $fragment = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
-
-        return $scheme . '://www.kconecta.com' . $port . $path . $query . $fragment;
+        return asset($relativePath);
     }
 }
