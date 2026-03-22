@@ -530,15 +530,33 @@ class PropertyApiController extends Controller
         $imagePath = public_path('img/uploads');
         $videoPath = public_path('video/uploads');
 
-        if (! is_dir($imagePath)) {
-            @mkdir($imagePath, 0755, true);
-        }
-
-        if (! is_dir($videoPath)) {
-            @mkdir($videoPath, 0755, true);
-        }
+        $this->ensureWritableDirectory($imagePath);
+        $this->ensureWritableDirectory($videoPath);
 
         return [$imagePath, $videoPath];
+    }
+
+    private function ensureWritableDirectory(string $path): void
+    {
+        if (is_file($path)) {
+            throw new \RuntimeException('La ruta de subida no es un directorio: ' . $path);
+        }
+
+        if (! is_dir($path) && ! @mkdir($path, 0775, true) && ! is_dir($path)) {
+            throw new \RuntimeException('No se pudo crear el directorio de subida: ' . $path);
+        }
+
+        @chmod($path, 0775);
+        clearstatcache(true, $path);
+
+        if (! is_writable($path)) {
+            @chmod($path, 0777);
+            clearstatcache(true, $path);
+        }
+
+        if (! is_writable($path)) {
+            throw new \RuntimeException('No hay permisos de escritura en el directorio de subida: ' . $path);
+        }
     }
 
     private function persistImageAsWebp($file, string $imagePath): string
