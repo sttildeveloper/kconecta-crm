@@ -508,7 +508,16 @@ class PropertyApiController extends Controller
             return;
         }
 
-        [$imagePath, $videoPath] = $this->ensureMediaDirectories();
+        $imagePath = null;
+        if ($hasCoverImage || $hasMoreImages) {
+            $imagePath = $this->ensureWritableDirectory(public_path('img/uploads'));
+        }
+
+        $videoPath = null;
+        if ($hasVideo) {
+            $videoPath = $this->ensureWritableDirectory(public_path('video/uploads'));
+        }
+
         $propertyId = (int) $property->id;
 
         if ($coverImage && $coverImage->isValid()) {
@@ -540,18 +549,7 @@ class PropertyApiController extends Controller
         }
     }
 
-    private function ensureMediaDirectories(): array
-    {
-        $imagePath = public_path('img/uploads');
-        $videoPath = public_path('video/uploads');
-
-        $this->ensureWritableDirectory($imagePath);
-        $this->ensureWritableDirectory($videoPath);
-
-        return [$imagePath, $videoPath];
-    }
-
-    private function ensureWritableDirectory(string $path): void
+    private function ensureWritableDirectory(string $path): string
     {
         if (is_file($path)) {
             throw new \RuntimeException('La ruta de subida no es un directorio: ' . $path);
@@ -572,6 +570,8 @@ class PropertyApiController extends Controller
         if (! is_writable($path)) {
             throw new \RuntimeException('No hay permisos de escritura en el directorio de subida: ' . $path);
         }
+
+        return $path;
     }
 
     private function persistImageAsWebp($file, string $imagePath): string
