@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\PropertyFormCatalogsService;
 use App\Models\Category;
 use App\Models\CoverImage;
 use App\Models\EmissionsRating;
@@ -180,6 +181,25 @@ class PropertyApiController extends Controller
         ], 200);
     }
 
+    public function propertyFormCatalogs(Request $request, PropertyFormCatalogsService $catalogsService)
+    {
+        if (! $request->user()) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+
+        $typeId = (int) $request->query('type_id');
+        if (! $catalogsService->supportsType($typeId)) {
+            return response()->json(['message' => 'type_id invalido'], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'type_id' => $typeId,
+                'catalogs' => $catalogsService->buildForType($typeId),
+            ],
+        ], 200);
+    }
+
     public function store(Request $request)
     {
         $user = $request->user();
@@ -196,6 +216,7 @@ class PropertyApiController extends Controller
             'sale_price' => 'nullable|numeric|min:0',
             'rental_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
+            'page_url' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -239,6 +260,7 @@ class PropertyApiController extends Controller
         ];
 
         $property = Property::create($this->cleanData($propertyData));
+        $this->syncAdvancedPropertyData($request, $property);
         $this->upsertAddress($request, (int) $property->id);
 
         return response()->json([
@@ -259,6 +281,8 @@ class PropertyApiController extends Controller
             return response()->json(['message' => 'Propiedad no encontrada'], 404);
         }
 
+        $typeChanged = $request->filled('type_id') && (int) $request->input('type_id') !== (int) $property->type_id;
+
         $isAdmin = (int) $user->user_level_id === 1;
         if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
             return response()->json(['message' => 'No autorizado'], 403);
@@ -273,6 +297,7 @@ class PropertyApiController extends Controller
             'sale_price' => 'nullable|numeric|min:0',
             'rental_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
+            'page_url' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -294,6 +319,14 @@ class PropertyApiController extends Controller
         }
         if ($request->filled('description')) {
             $payload['description'] = $request->input('description');
+        }
+        if ($request->exists('page_url')) {
+            $rawPageUrl = trim((string) $request->input('page_url', ''));
+            $payload['page_url'] = $rawPageUrl !== ''
+                ? Str::slug($rawPageUrl)
+                : (array_key_exists('title', $payload)
+                    ? Str::slug($payload['title'] . ' ' . ($property->reference ?: $this->generateReference()))
+                    : null);
         }
         if ($request->filled('type_id')) {
             $payload['type_id'] = (int) $request->input('type_id');
@@ -321,7 +354,7 @@ class PropertyApiController extends Controller
             $payload['user_id'] = (int) $request->input('user_id');
         }
 
-        if (array_key_exists('title', $payload)) {
+        if (! array_key_exists('page_url', $payload) && array_key_exists('title', $payload)) {
             $payload['page_url'] = Str::slug($payload['title'] . ' ' . ($property->reference ?: $this->generateReference()));
         }
 
@@ -329,6 +362,7 @@ class PropertyApiController extends Controller
             $property->update($this->cleanData($payload));
         }
 
+        $this->syncAdvancedPropertyData($request, $property, $typeChanged);
         $this->upsertAddress($request, (int) $property->id);
 
         return response()->json([
@@ -466,6 +500,208 @@ class PropertyApiController extends Controller
         }
 
         return [$salePrice, $rentalPrice];
+    }
+
+    private function syncAdvancedPropertyData(Request $request, Property $property, bool $clearTypeSpecific = false): void
+    {
+        $data = $this->buildAdvancedFieldPayload($request, $clearTypeSpecific);
+
+        if (! empty($data)) {
+            Property::query()->where('id', (int) $property->id)->update($data);
+        }
+
+        $this->syncPivotSelection($request, $property, 'type_floor', TypesFloors::class, 'type_floor_id', $clearTypeSpecific);
+        $this->syncPivotSelection($request, $property, 'orientation', Orientations::class, 'orientation_id', $clearTypeSpecific);
+        $this->syncPivotSelection($request, $property, 'feature', Features::class, 'feature_id', $clearTypeSpecific);
+        $this->syncPivotSelection($request, $property, 'equipment', Equipments::class, 'equipment_id', $clearTypeSpecific);
+    }
+
+    private function buildAdvancedFieldPayload(Request $request, bool $clearTypeSpecific = false): array
+    {
+        $data = $clearTypeSpecific ? $this->emptyTypeSpecificFieldPayload() : [];
+
+        $this->setNullableStringField($request, $data, 'locality');
+        $this->setNullableStringField($request, $data, 'esc_block');
+        $this->setNullableStringField($request, $data, 'door');
+        $this->setNullableStringField($request, $data, 'name_urbanization');
+
+        $this->setNullableIntegerField($request, $data, 'plant', 'plant_id');
+        $this->setNullableIntegerField($request, $data, 'visibility_in_portals', 'visibility_in_portals_id');
+        $this->setNullableIntegerField($request, $data, 'location_premises', 'location_premises_id');
+        $this->setNullableIntegerField($request, $data, 'rental_type', 'rental_type_id');
+        $this->setNullableIntegerField($request, $data, 'reason_for_sale', 'reason_for_sale_id');
+        $this->setNullableIntegerField($request, $data, 'typology', 'typology_id');
+        $this->setNullableIntegerField($request, $data, 'state_conservation', 'state_conservation_id');
+        $this->setNullableIntegerField($request, $data, 'facade', 'facade_id');
+        $this->setNullableIntegerField($request, $data, 'type_heating', 'type_heating_id');
+        $this->setNullableIntegerField($request, $data, 'heating_fuel', 'heating_fuel_id');
+        $this->setNullableIntegerField($request, $data, 'energy_class', 'energy_class_id');
+        $this->setNullableIntegerField($request, $data, 'power_consumption_rating', 'power_consumption_rating_id');
+        $this->setNullableIntegerField($request, $data, 'emissions_rating', 'emissions_rating_id');
+        $this->setNullableIntegerField($request, $data, 'plaza_capacity', 'plaza_capacity_id');
+        $this->setNullableIntegerField($request, $data, 'type_of_terrain', 'type_of_terrain_id');
+        $this->setNullableIntegerField($request, $data, 'wheeled_access', 'wheeled_access_id');
+        $this->setNullableIntegerField(
+            $request,
+            $data,
+            'nearest_municipality_distance',
+            'nearest_municipality_distance_id'
+        );
+
+        $this->setNullableNumericField($request, $data, 'guarantee');
+        $this->setNullableNumericField($request, $data, 'community_expenses');
+        $this->setNullableNumericField($request, $data, 'ibi');
+        $this->setNullableNumericField($request, $data, 'mortgage_rate');
+        $this->setNullableNumericField($request, $data, 'meters_built');
+        $this->setNullableNumericField($request, $data, 'useful_meters');
+        $this->setNullableNumericField($request, $data, 'plot_meters');
+        $this->setNullableNumericField($request, $data, 'linear_meters_of_facade');
+        $this->setNullableNumericField($request, $data, 'energy_consumption');
+        $this->setNullableNumericField($request, $data, 'emissions_consumption');
+        $this->setNullableNumericField($request, $data, 'land_size');
+        $this->setNullableNumericField($request, $data, 'm_long');
+        $this->setNullableNumericField($request, $data, 'm_wide');
+
+        $this->setNullableIntegerField($request, $data, 'has_tenants');
+        $this->setNullableIntegerField($request, $data, 'bedrooms');
+        $this->setNullableIntegerField($request, $data, 'bathrooms');
+        $this->setNullableIntegerField($request, $data, 'number_of_shop_windows');
+        $this->setNullableIntegerField($request, $data, 'number_of_plants');
+        $this->setNullableIntegerField($request, $data, 'rooms');
+        $this->setNullableIntegerField($request, $data, 'stays');
+        $this->setNullableIntegerField($request, $data, 'year_of_construction');
+        $this->setBooleanIntegerField($request, $data, 'bank_owned_property');
+        $this->setBooleanIntegerField($request, $data, 'elevator');
+        $this->setBooleanIntegerField($request, $data, 'wheelchair_accessible_elevator');
+        $this->setBooleanIntegerField($request, $data, 'appropriate_for_children');
+        $this->setBooleanIntegerField($request, $data, 'pet_friendly');
+        $this->setBooleanIntegerField($request, $data, 'outdoor_wheelchair');
+        $this->setBooleanIntegerField($request, $data, 'interior_wheelchair');
+        $this->setNullableIntegerField($request, $data, 'max_num_tenants');
+
+        return $data;
+    }
+
+    private function emptyTypeSpecificFieldPayload(): array
+    {
+        return [
+            'visibility_in_portals_id' => null,
+            'location_premises_id' => null,
+            'rental_type_id' => null,
+            'reason_for_sale_id' => null,
+            'typology_id' => null,
+            'facade_id' => null,
+            'type_heating_id' => null,
+            'heating_fuel_id' => null,
+            'energy_class_id' => null,
+            'power_consumption_rating_id' => null,
+            'emissions_rating_id' => null,
+            'plaza_capacity_id' => null,
+            'type_of_terrain_id' => null,
+            'wheeled_access_id' => null,
+            'nearest_municipality_distance_id' => null,
+            'guarantee' => null,
+            'community_expenses' => null,
+            'ibi' => null,
+            'mortgage_rate' => null,
+            'plot_meters' => null,
+            'linear_meters_of_facade' => null,
+            'number_of_shop_windows' => null,
+            'number_of_plants' => null,
+            'energy_consumption' => null,
+            'emissions_consumption' => null,
+            'land_size' => null,
+            'm_long' => null,
+            'm_wide' => null,
+            'rooms' => null,
+            'stays' => null,
+            'elevator' => null,
+            'wheelchair_accessible_elevator' => null,
+            'appropriate_for_children' => null,
+            'pet_friendly' => null,
+            'max_num_tenants' => null,
+            'outdoor_wheelchair' => null,
+            'interior_wheelchair' => null,
+        ];
+    }
+
+    private function setNullableStringField(Request $request, array &$data, string $input, ?string $column = null): void
+    {
+        if (! $request->exists($input)) {
+            return;
+        }
+
+        $value = trim((string) $request->input($input, ''));
+        $data[$column ?? $input] = $value !== '' ? $value : null;
+    }
+
+    private function setNullableIntegerField(Request $request, array &$data, string $input, ?string $column = null): void
+    {
+        if (! $request->exists($input)) {
+            return;
+        }
+
+        $value = trim((string) $request->input($input, ''));
+        $data[$column ?? $input] = $value !== '' ? (int) $value : null;
+    }
+
+    private function setBooleanIntegerField(Request $request, array &$data, string $input, ?string $column = null): void
+    {
+        if (! $request->exists($input)) {
+            return;
+        }
+
+        $data[$column ?? $input] = $this->truthy($request->input($input)) ? 1 : 0;
+    }
+
+    private function setNullableNumericField(Request $request, array &$data, string $input, ?string $column = null): void
+    {
+        if (! $request->exists($input)) {
+            return;
+        }
+
+        $value = $this->numeric($request->input($input));
+        $data[$column ?? $input] = $value;
+    }
+
+    private function syncPivotSelection(
+        Request $request,
+        Property $property,
+        string $input,
+        string $pivotModelClass,
+        string $relatedIdColumn,
+        bool $forceClear = false
+    ): void {
+        if (! $forceClear && ! $request->exists($input)) {
+            return;
+        }
+
+        $propertyId = (int) $property->id;
+        $values = collect($request->input($input, []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0)
+            ->unique()
+            ->values();
+
+        $pivotModelClass::query()->where('property_id', $propertyId)->delete();
+
+        foreach ($values as $value) {
+            $pivotModelClass::query()->create([
+                'property_id' => $propertyId,
+                $relatedIdColumn => $value,
+            ]);
+        }
+    }
+
+    private function truthy(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'si', 'yes', 'on'], true);
     }
 
     private function numeric(mixed $value): ?float

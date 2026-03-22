@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
+    Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::delete('/agent/property-images/{imageId}', [PropertyApiController::class, 'destroyMoreImage']);
     Route::apiResource('/agent/properties', PropertyApiController::class);
 });
