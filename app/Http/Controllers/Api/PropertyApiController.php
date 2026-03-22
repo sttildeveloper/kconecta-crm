@@ -483,7 +483,8 @@ class PropertyApiController extends Controller
             }
 
             $videoMimeType = strtolower(trim((string) $video->getMimeType()));
-            if (! $this->isSupportedVideoMime($videoMimeType)) {
+            $videoExtension = strtolower(trim((string) $video->getClientOriginalExtension()));
+            if (! $this->isSupportedVideoMime($videoMimeType) && ! $this->isSupportedVideoExtension($videoExtension)) {
                 return $videoMimeType !== ''
                     ? 'Formato de video no soportado: ' . $videoMimeType
                     : 'El video no es valido.';
@@ -664,6 +665,15 @@ class PropertyApiController extends Controller
         return in_array(
             strtolower(trim((string) $mimeType)),
             ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi', 'video/mpeg', 'video/x-matroska'],
+            true
+        );
+    }
+
+    private function isSupportedVideoExtension(?string $extension): bool
+    {
+        return in_array(
+            strtolower(trim((string) $extension)),
+            ['mp4', 'webm', 'mov', 'avi', 'mpeg', 'mpg', 'mkv', 'm4v'],
             true
         );
     }
