@@ -14,9 +14,11 @@ use App\Models\Features;
 use App\Models\HeatingFuel;
 use App\Models\LocationPremises;
 use App\Models\MoreImage;
+use App\Models\NearestMunicipalityDistance;
 use App\Models\Orientation;
 use App\Models\Orientations;
 use App\Models\Plant;
+use App\Models\PlazaCapacity;
 use App\Models\PowerConsumptionRating;
 use App\Models\Property;
 use App\Models\PropertyAddress;
@@ -24,11 +26,15 @@ use App\Models\ReasonForSale;
 use App\Models\RentalType;
 use App\Models\StateConservation;
 use App\Models\Type;
+use App\Models\TypeFloor;
 use App\Models\TypeHeating;
+use App\Models\TypeOfTerrain;
+use App\Models\TypesFloors;
 use App\Models\Typology;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
+use App\Models\WheeledAccess;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -583,11 +589,23 @@ class PropertyApiController extends Controller
         $typology = $this->wrapSingle(Typology::query()->find($property->typology_id));
         $rentalType = $this->wrapSingle(RentalType::query()->find($property->rental_type_id));
         $reasonForSale = $this->wrapSingle(ReasonForSale::query()->find($property->reason_for_sale_id));
+        $plazaCapacity = $this->wrapSingle(PlazaCapacity::query()->find($property->plaza_capacity_id));
+        $typeOfTerrain = $this->wrapSingle(TypeOfTerrain::query()->find($property->type_of_terrain_id));
+        $wheeledAccess = $this->wrapSingle(WheeledAccess::query()->find($property->wheeled_access_id));
+        $nearestMunicipalityDistance = $this->wrapSingle(
+            NearestMunicipalityDistance::query()->find($property->nearest_municipality_distance_id)
+        );
         $powerConsumptionRating = $this->wrapSingle(
             PowerConsumptionRating::query()->find($property->power_consumption_rating_id)
         );
         $emissionsRating = $this->wrapSingle(EmissionsRating::query()->find($property->emissions_rating_id));
         $plant = $this->wrapSingle(Plant::query()->find($property->plant_id));
+        $typesFloors = $this->mapLinkedItems(
+            $propertyId,
+            TypesFloors::class,
+            'type_floor_id',
+            TypeFloor::class
+        );
         $orientations = $this->mapLinkedItems(
             $propertyId,
             Orientations::class,
@@ -617,12 +635,21 @@ class PropertyApiController extends Controller
             'rental_type_label' => $rentalType[0]['name'] ?? null,
             'reason_for_sale' => $reasonForSale,
             'reason_for_sale_label' => $reasonForSale[0]['name'] ?? null,
+            'plaza_capacity' => $plazaCapacity,
+            'plaza_capacity_label' => $plazaCapacity[0]['name'] ?? null,
+            'type_of_terrain' => $typeOfTerrain,
+            'type_of_terrain_label' => $typeOfTerrain[0]['name'] ?? null,
+            'wheeled_access' => $wheeledAccess,
+            'wheeled_access_label' => $wheeledAccess[0]['name'] ?? null,
+            'nearest_municipality_distance' => $nearestMunicipalityDistance,
+            'nearest_municipality_distance_label' => $nearestMunicipalityDistance[0]['name'] ?? null,
             'power_consumption_rating' => $powerConsumptionRating,
             'power_consumption_rating_label' => $powerConsumptionRating[0]['name'] ?? null,
             'emissions_rating' => $emissionsRating,
             'emissions_rating_label' => $emissionsRating[0]['name'] ?? null,
             'plant' => $plant,
             'plant_label' => $plant[0]['name'] ?? null,
+            'types_floors' => $typesFloors,
             'orientations' => $orientations,
             'features' => $this->mapLinkedItems(
                 $propertyId,
