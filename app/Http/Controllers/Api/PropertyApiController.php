@@ -8,18 +8,24 @@ use App\Models\CoverImage;
 use App\Models\EmissionsRating;
 use App\Models\Equipment;
 use App\Models\Equipments;
+use App\Models\Facade;
 use App\Models\Feature;
 use App\Models\Features;
 use App\Models\HeatingFuel;
 use App\Models\LocationPremises;
 use App\Models\MoreImage;
+use App\Models\Orientation;
+use App\Models\Orientations;
 use App\Models\Plant;
 use App\Models\PowerConsumptionRating;
 use App\Models\Property;
 use App\Models\PropertyAddress;
+use App\Models\ReasonForSale;
+use App\Models\RentalType;
 use App\Models\StateConservation;
 use App\Models\Type;
 use App\Models\TypeHeating;
+use App\Models\Typology;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
@@ -573,11 +579,21 @@ class PropertyApiController extends Controller
         $locationPremises = $this->wrapSingle(LocationPremises::query()->find($property->location_premises_id));
         $typeHeating = $this->wrapSingle(TypeHeating::query()->find($property->type_heating_id));
         $heatingFuel = $this->wrapSingle(HeatingFuel::query()->find($property->heating_fuel_id));
+        $facade = $this->wrapSingle(Facade::query()->find($property->facade_id));
+        $typology = $this->wrapSingle(Typology::query()->find($property->typology_id));
+        $rentalType = $this->wrapSingle(RentalType::query()->find($property->rental_type_id));
+        $reasonForSale = $this->wrapSingle(ReasonForSale::query()->find($property->reason_for_sale_id));
         $powerConsumptionRating = $this->wrapSingle(
             PowerConsumptionRating::query()->find($property->power_consumption_rating_id)
         );
         $emissionsRating = $this->wrapSingle(EmissionsRating::query()->find($property->emissions_rating_id));
         $plant = $this->wrapSingle(Plant::query()->find($property->plant_id));
+        $orientations = $this->mapLinkedItems(
+            $propertyId,
+            Orientations::class,
+            'orientation_id',
+            Orientation::class
+        );
 
         return [
             'updated_at_text' => $this->formatUpdatedAt($property->updated_at),
@@ -593,12 +609,21 @@ class PropertyApiController extends Controller
             'type_heating_label' => $typeHeating[0]['name'] ?? null,
             'heating_fuel' => $heatingFuel,
             'heating_fuel_label' => $heatingFuel[0]['name'] ?? null,
+            'facade' => $facade,
+            'facade_label' => $facade[0]['name'] ?? null,
+            'typology' => $typology,
+            'typology_label' => $typology[0]['name'] ?? null,
+            'rental_type' => $rentalType,
+            'rental_type_label' => $rentalType[0]['name'] ?? null,
+            'reason_for_sale' => $reasonForSale,
+            'reason_for_sale_label' => $reasonForSale[0]['name'] ?? null,
             'power_consumption_rating' => $powerConsumptionRating,
             'power_consumption_rating_label' => $powerConsumptionRating[0]['name'] ?? null,
             'emissions_rating' => $emissionsRating,
             'emissions_rating_label' => $emissionsRating[0]['name'] ?? null,
             'plant' => $plant,
             'plant_label' => $plant[0]['name'] ?? null,
+            'orientations' => $orientations,
             'features' => $this->mapLinkedItems(
                 $propertyId,
                 Features::class,
