@@ -1,5 +1,28 @@
 # Kconecta CRM - Roadmap
 
+## Status Update (2026-05-06)
+- Bloque de valoraciones de proveedores implementado en local con flujo completo:
+- codigos de trabajo para proveedores
+- rating por cliente final verificado (solo estrellas, sin texto)
+- resumen de rating por proveedor con promedio, conteo y `my_stars`
+- UI lista en:
+- detalle publico de servicio (`details_service`)
+- backoffice proveedor (`/post/services`, seccion `Codigos de trabajo`)
+- dashboard de cliente final (`/home`) con experiencia enfocada en valorar servicios (entrada por codigo + estrellas)
+- Registro refinado para `Cliente final`:
+- `Nombre` o `Razon social` obligatorios (al menos uno)
+- `Apellido`, telefono fijo, WhatsApp y direccion como opcionales para este perfil
+- Validacion local completada:
+- `ServiceRatingsApiTest` PASS
+- `RegistrationTest` PASS
+
+## Status Update (2026-05-05)
+- Nuevo plan definido: valoraciones de proveedores con estrellas (1-5), sin texto, habilitadas solo para `Cliente final` con email verificado y codigo de trabajo emitido por proveedor.
+- Restricciones cerradas:
+- 1 valoracion por cliente/proveedor (editable).
+- elegibilidad obligatoria por codigo valido/no usado.
+- sin impacto funcional en roles actuales de proveedor/agente/admin.
+
 ## Status Update (2026-04-29)
 - Calculadora catastral operativa en produccion (`kconecta.com`) con flujo completo:
 - validacion de direccion por Google en home
@@ -166,3 +189,25 @@
 - CSV `precios_m2_catalunya_detallado.csv` importado en produccion.
 - Flujo online validado: home -> calculo base -> tasacion avanzada con valor estimado.
 - Pendiente recomendado: ejecutar backup post-deploy y guardar ruta en `tasks.md`.
+
+## Sub-plan: Valoraciones de Proveedores (Estrellas + Codigo de Trabajo)
+- Modelo de usuario:
+- agregar nivel `Cliente final` y habilitar su registro local con verificacion email.
+- Datos:
+- tabla `service_provider_ratings` con `provider_user_id`, `client_user_id`, `stars`, timestamps y `unique(provider_user_id, client_user_id)`.
+- tabla `service_work_codes` con `provider_user_id`, `code`, `is_used`, `used_by_user_id`, `used_at`, timestamps.
+- Integridad:
+- `stars` solo 1..5 enteras.
+- cliente y proveedor no pueden ser el mismo usuario.
+- Flujo/API:
+- `POST /api/service-ratings/work-codes` para generar codigo (proveedor).
+- `POST /api/service-ratings` para votar con `{ provider_user_id, work_code, stars }` (cliente final verificado).
+- `GET /api/service-ratings/provider/{provider_user_id}` para resumen `{ average_stars, ratings_count, my_stars? }`.
+- UI:
+- bloque de rating en `details_service` (promedio, votos, estrellas visuales).
+- formulario visible solo para cliente final verificado.
+- seccion de codigos en backoffice de proveedor.
+- Quality gates:
+- unit tests de rango, unicidad, auto-voto y ciclo de codigo.
+- integration/API tests de elegibilidad, consumo de codigo, upsert de voto y resumen agregado.
+- functional UI checks de proveedor (generar codigo) y cliente (votar).

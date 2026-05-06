@@ -16,6 +16,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Last operational update: `2026-04-21` (post pushes `703ae94`, `105c0b3`, `9cd087e`)
 - Context checkpoint updated: `2026-04-27` (provider registration/profile/service flows aligned to JM first-stage rules)
 - Context checkpoint updated: `2026-04-29` (cadastral calculator backend + production import validated online)
+- Context checkpoint updated: `2026-05-06` (ratings with work-codes implemented locally + client registration rules refined)
 
 ## Working Rules
 - Prefer minimal, testable changes.
@@ -187,6 +188,11 @@ Operate and evolve `kconecta-crm` with focus on:
 - Production media persistence is now considered validated for both restored and newly uploaded files.
 
 ## Next Operational Focus
+- Complete manual local QA cycle with business user:
+- provider generates work code in `/post/services`
+- final client registers and verifies email
+- final client submits rating in public `result_service/{id}`
+- Promote ratings module from local validated state to production plan when business gives go.
 - Update context files and operational notes after major production validations.
 - Complete online business validation cycle by Gala and JM on latest provider/profile/service behavior.
 - Decide whether to normalize or migrate legacy `type_of_terrain` values in production later, once it is safe to remove compatibility leftovers.

@@ -1,5 +1,72 @@
 # Kconecta CRM - Tasks
 
+## Session Update (2026-05-06) - Valoraciones proveedor (implementacion + QA local)
+- [x] Esquema de datos implementado:
+- [x] tabla `service_provider_ratings` creada en local
+- [x] tabla `service_work_codes` creada en local
+- [x] migracion de `user_level` para `Cliente final` (id `6`) agregada
+- [x] Nota operativa local: por esquema legacy de `migrations`, se requirio registro/ajuste manual para completar consistencia.
+- [x] Backend/API implementado:
+- [x] generacion de codigo de trabajo (proveedor)
+- [x] envio de valoracion por cliente final verificado con `work_code`
+- [x] resumen por proveedor (`average_stars`, `ratings_count`, `my_stars`)
+- [x] consumo atomico de codigo + update/create de valoracion en transaccion
+- [x] Registro actualizado para nuevo perfil `Cliente final`:
+- [x] disponible en selector de tipo de usuario
+- [x] verificacion por email habilitada para este perfil
+- [x] reglas refinadas (peticion de hoy):
+- [x] `Nombre` o `Razon social` obligatorios (al menos uno)
+- [x] `Apellido` opcional
+- [x] `Movil (WhatsApp)` opcional para `Cliente final`
+- [x] `Movil (WhatsApp)` obligatorio para `Proveedor` y `Agente`
+- [x] `Telefono fijo` opcional
+- [x] `Direccion` opcional
+- [x] UI implementada:
+- [x] `details_service` con bloque de rating (promedio, votos, estrellas)
+- [x] formulario de valoracion visible para cliente final verificado
+- [x] `/post/services` (vista proveedor) con seccion `Codigos de trabajo` (generar + copiar)
+- [x] dashboard de `Cliente final` refinado:
+- [x] vista orientada a valoraciones (sin metricas inmobiliarias de propiedad)
+- [x] card `Realizar valoracion` con `codigo de trabajo` + `calidad del servicio` (estrellas clicables) + `Guardar`
+- [x] input de codigo con icono tipo ticket y layout visual adaptado a referencia UX
+- [x] ajuste de rutas para sesion web:
+- [x] endpoints web `/service-ratings/*` para evitar `Unauthenticated` en backoffice
+- [x] payload UI corregido para leer `data` anidado en respuestas API
+- [x] QA local ejecutado:
+- [x] `php artisan test --filter=ServiceRatingsApiTest` -> PASS (4 tests, 19 assertions)
+- [x] `php artisan test --filter=RegistrationTest` -> PASS (2 tests, 4 assertions)
+
+## Session Update (2026-05-05) - Plan Valoraciones con Estrellas (Proveedor)
+- [ ] Implementar valoraciones de estrellas (1-5 enteras) para proveedores con elegibilidad por codigo de trabajo.
+- [ ] Crear perfil `Cliente final` en `user_level`, habilitado para registro local con verificacion por email.
+- [ ] Crear tabla `service_provider_ratings`:
+- [ ] campos: `provider_user_id`, `client_user_id`, `stars`, timestamps
+- [ ] `unique(provider_user_id, client_user_id)`
+- [ ] indices en `provider_user_id` y `client_user_id`
+- [ ] regla: `stars` entre 1 y 5
+- [ ] regla: no auto-valoracion (`client_user_id != provider_user_id`)
+- [ ] Crear tabla `service_work_codes`:
+- [ ] campos: `provider_user_id`, `code`, `is_used`, `used_by_user_id`, `used_at`, timestamps
+- [ ] indice en `provider_user_id`
+- [ ] Endpoints API:
+- [ ] `POST /api/service-ratings/work-codes` (proveedor autenticado) -> generar codigo
+- [ ] `POST /api/service-ratings` (cliente final autenticado/verificado) -> `{ provider_user_id, work_code, stars }`
+- [ ] `GET /api/service-ratings/provider/{provider_user_id}` -> `{ average_stars, ratings_count, my_stars? }`
+- [ ] Reglas de flujo:
+- [ ] validar codigo existente, del proveedor correcto y no usado
+- [ ] marcar codigo como usado por cliente (`used_by_user_id`, `used_at`)
+- [ ] crear/actualizar valoracion (1 por cliente/proveedor, editable)
+- [ ] UI:
+- [ ] `details_service`: mostrar promedio, total de votos y estrellas visuales
+- [ ] cliente final verificado: mostrar formulario de estrellas + codigo de trabajo
+- [ ] backoffice proveedor: seccion para generar/copiar codigos de trabajo
+- [ ] sin comentarios de texto en vistas ni API
+- [ ] Errores API claros: no verificado, codigo invalido/usado, stars fuera de rango, rol no permitido.
+- [ ] Plan de pruebas:
+- [ ] unitarias: rango stars, unicidad, no auto-valoracion, ciclo de codigo
+- [ ] integracion/API: bloqueos por no verificado, voto OK con codigo valido, update sin duplicado, resumen correcto
+- [ ] funcional UI: detalle con rating agregado, proveedor genera codigo, cliente vota con elegibilidad
+
 ## Session Update (2026-04-29) - Cadastral Production Go-Live
 - [x] Fix backend desplegado a `main`:
 - [x] `fix(cadastral): harden API errors and guard migration for existing table` (`6a082b3`)
