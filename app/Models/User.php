@@ -18,6 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public const LEVEL_PREMIUM = 3;
     public const LEVEL_SERVICE_PROVIDER = 4;
     public const LEVEL_AGENT = 5;
+    public const LEVEL_FINAL_CLIENT = 6;
 
     protected $table = 'user';
 

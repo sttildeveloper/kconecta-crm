@@ -14,6 +14,7 @@ Route::get('/result/services', [PageController::class, 'resultAllServices']);
 Route::get('/result_maps', [PageController::class, 'resultMaps']);
 Route::get('/result/{reference}', [PageController::class, 'result']);
 Route::get('/result_service/{id}', [PageController::class, 'resultService']);
+Route::get('/service-ratings/provider/{providerUserId}', [\App\Http\Controllers\ApiController::class, 'providerServiceRatingSummary']);
 Route::get('/calculadora-avanzada', [PageController::class, 'advancedCalculator']);
 Route::post('/signup', [PageController::class, 'signup']);
 Route::get('/validate_account', [PageController::class, 'validateAccountPage']);
@@ -63,6 +64,12 @@ Route::middleware(['auth', 'provider_or_agent_verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/service-ratings/work-codes', [\App\Http\Controllers\ApiController::class, 'createServiceWorkCode']);
+    Route::post('/service-ratings', [\App\Http\Controllers\ApiController::class, 'storeServiceRating']);
+    Route::post('/service-ratings/by-code', [\App\Http\Controllers\ApiController::class, 'storeServiceRatingByCode']);
 });
 
 require __DIR__.'/auth.php';

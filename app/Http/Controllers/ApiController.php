@@ -21,13 +21,194 @@ use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserFree;
+use App\Http\Requests\StoreServiceRatingByCodeRequest;
+use App\Http\Requests\StoreServiceRatingRequest;
+use App\Http\Requests\StoreServiceWorkCodeRequest;
 use App\Services\EmailService;
+use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class ApiController extends Controller
 {
+    public function createServiceWorkCode(StoreServiceWorkCodeRequest $request, ServiceRatingService $serviceRatingService)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'UNAUTHENTICATED',
+                'message' => 'Debes iniciar sesion.',
+            ], 401);
+        }
+
+        if ((int) $user->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
+            return response()->json([
+                'success' => false,
+                'error' => 'ROLE_NOT_ALLOWED',
+                'message' => 'Solo un proveedor puede generar codigos de trabajo.',
+            ], 403);
+        }
+
+        $code = $serviceRatingService->createWorkCode((int) $user->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'code' => $code,
+            ],
+        ], 201);
+    }
+
+    public function storeServiceRating(StoreServiceRatingRequest $request, ServiceRatingService $serviceRatingService)
+    {
+        $client = $request->user();
+
+        if (! $client) {
+            return response()->json([
+                'success' => false,
+                'error' => 'UNAUTHENTICATED',
+                'message' => 'Debes iniciar sesion.',
+            ], 401);
+        }
+
+        if (! $serviceRatingService->isFinalClient($client)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'ROLE_NOT_ALLOWED',
+                'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
+            ], 403);
+        }
+
+        if (! $client->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'EMAIL_NOT_VERIFIED',
+                'message' => 'Debes verificar tu email para valorar.',
+            ], 403);
+        }
+
+        $providerUserId = (int) $request->integer('provider_user_id');
+        $stars = (int) $request->integer('stars');
+        $workCode = trim((string) $request->input('work_code'));
+
+        try {
+            $serviceRatingService->submitRating($client, $providerUserId, $workCode, $stars);
+        } catch (\DomainException $e) {
+            $errorCode = $e->getMessage();
+            $status = 422;
+            $message = 'No se pudo registrar la valoracion.';
+
+            if ($errorCode === 'PROVIDER_NOT_ALLOWED') {
+                $message = 'El proveedor indicado no es valido.';
+            } elseif ($errorCode === 'SELF_RATING_NOT_ALLOWED') {
+                $message = 'No puedes valorarte a ti mismo.';
+            } elseif ($errorCode === 'WORK_CODE_INVALID') {
+                $message = 'El codigo de trabajo es invalido para este proveedor.';
+            } elseif ($errorCode === 'WORK_CODE_USED') {
+                $message = 'El codigo de trabajo ya fue usado.';
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => $errorCode,
+                'message' => $message,
+            ], $status);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Valoracion registrada correctamente.',
+            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
+        ]);
+    }
+
+    public function storeServiceRatingByCode(StoreServiceRatingByCodeRequest $request, ServiceRatingService $serviceRatingService)
+    {
+        $client = $request->user();
+
+        if (! $client) {
+            return response()->json([
+                'success' => false,
+                'error' => 'UNAUTHENTICATED',
+                'message' => 'Debes iniciar sesion.',
+            ], 401);
+        }
+
+        if (! $serviceRatingService->isFinalClient($client)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'ROLE_NOT_ALLOWED',
+                'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
+            ], 403);
+        }
+
+        if (! $client->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'EMAIL_NOT_VERIFIED',
+                'message' => 'Debes verificar tu email para valorar.',
+            ], 403);
+        }
+
+        $stars = (int) $request->integer('stars');
+        $workCode = trim((string) $request->input('work_code'));
+
+        try {
+            $providerUserId = $serviceRatingService->submitRatingByWorkCode($client, $workCode, $stars);
+        } catch (\DomainException $e) {
+            $errorCode = $e->getMessage();
+            $message = 'No se pudo registrar la valoracion.';
+
+            if ($errorCode === 'PROVIDER_NOT_ALLOWED') {
+                $message = 'El proveedor del codigo no es valido.';
+            } elseif ($errorCode === 'SELF_RATING_NOT_ALLOWED') {
+                $message = 'No puedes valorarte a ti mismo.';
+            } elseif ($errorCode === 'WORK_CODE_INVALID') {
+                $message = 'El codigo de trabajo es invalido.';
+            } elseif ($errorCode === 'WORK_CODE_USED') {
+                $message = 'El codigo de trabajo ya fue usado.';
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => $errorCode,
+                'message' => $message,
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Valoracion registrada correctamente.',
+            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
+        ]);
+    }
+
+    public function providerServiceRatingSummary(Request $request, int $providerUserId, ServiceRatingService $serviceRatingService)
+    {
+        $provider = DB::table('user')
+            ->where('id', $providerUserId)
+            ->first(['id', 'user_level_id']);
+
+        if (! $provider || (int) $provider->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
+            return response()->json([
+                'success' => false,
+                'error' => 'PROVIDER_NOT_ALLOWED',
+                'message' => 'El proveedor indicado no es valido.',
+            ], 404);
+        }
+
+        $authUser = $request->user() ?: $request->user('sanctum');
+
+        return response()->json([
+            'success' => true,
+            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $authUser),
+        ]);
+    }
+
     public function searchProperties(Request $request)
     {
         $text = trim((string) $request->query('text', ''));

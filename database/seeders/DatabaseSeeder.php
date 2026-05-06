@@ -65,6 +65,7 @@ class DatabaseSeeder extends Seeder
             ['id' => User::LEVEL_PREMIUM, 'name' => 'Premium'],
             ['id' => User::LEVEL_SERVICE_PROVIDER, 'name' => 'Service Provider'],
             ['id' => User::LEVEL_AGENT, 'name' => 'Agent'],
+            ['id' => User::LEVEL_FINAL_CLIENT, 'name' => 'Cliente final'],
         ], ['name']);
 
         $this->upsertRows('state', [

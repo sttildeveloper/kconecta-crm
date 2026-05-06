@@ -18,6 +18,7 @@ Route::post('/google/user/verify_token_google', [ApiController::class, 'verifyTo
 Route::post('/send/message/email_to_provider', [ApiController::class, 'sendEmailContactUser']);
 Route::get('/send/message/email_share', [ApiController::class, 'sendEmailShare']);
 Route::post('/property_stats/register', [ApiController::class, 'propertyStatsConfig']);
+Route::get('/service-ratings/provider/{providerUserId}', [ApiController::class, 'providerServiceRatingSummary']);
 
 Route::get('/cadastral/estimate', [CadastralController::class, 'estimate']);
 Route::post('/cadastral/advanced-estimate', [CadastralController::class, 'advancedEstimate']);
@@ -39,4 +40,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::delete('/agent/property-images/{imageId}', [PropertyApiController::class, 'destroyMoreImage']);
     Route::apiResource('/agent/properties', PropertyApiController::class);
+    Route::post('/service-ratings/work-codes', [ApiController::class, 'createServiceWorkCode']);
+    Route::post('/service-ratings', [ApiController::class, 'storeServiceRating']);
 });
