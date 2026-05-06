@@ -24,7 +24,7 @@ class RegisteredUserController extends Controller
         return view('auth.auth', [
             'mode' => 'register',
             'userLevels' => UserLevel::query()
-                ->whereIn('id', [User::LEVEL_SERVICE_PROVIDER, User::LEVEL_AGENT])
+                ->whereIn('id', [User::LEVEL_SERVICE_PROVIDER, User::LEVEL_AGENT, User::LEVEL_FINAL_CLIENT])
                 ->orderBy('id')
                 ->get(),
             'documentTypes' => $this->documentTypes(),
@@ -40,13 +40,13 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $rules = [
-            'user_level_id' => 'required|integer|in:' . User::LEVEL_SERVICE_PROVIDER . ',' . User::LEVEL_AGENT,
+            'user_level_id' => 'required|integer|in:' . User::LEVEL_SERVICE_PROVIDER . ',' . User::LEVEL_AGENT . ',' . User::LEVEL_FINAL_CLIENT,
             'document_type' => 'nullable|string|max:25',
             'document_number' => 'nullable|string|max:25',
             'first_name' => 'nullable|required_without:company_name|string|max:50',
             'last_name' => 'nullable|string|max:50',
             'company_name' => 'nullable|required_without:first_name|string|max:100',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'landline_phone' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:255',
             'address_floor' => 'nullable|string|max:50',
@@ -94,6 +94,7 @@ class RegisteredUserController extends Controller
 
         $validator = Validator::make($request->all(), $rules, $messages, $attributes);
         $validator->after(function ($validator) use ($request) {
+            $userLevelId = (int) $request->input('user_level_id');
             $email = mb_strtolower(trim((string) $request->input('email')));
             $companyName = $this->normalizeCompanyName((string) $request->input('company_name'));
             $phone = $this->normalizePhone((string) $request->input('phone'));
@@ -148,6 +149,13 @@ class RegisteredUserController extends Controller
             if ($firstName === '' && $companyNameValue === '') {
                 $validator->errors()->add('first_name', 'Completa Nombre o Razon social.');
                 $validator->errors()->add('company_name', 'Completa Nombre o Razon social.');
+            }
+
+            if (
+                in_array($userLevelId, [User::LEVEL_SERVICE_PROVIDER, User::LEVEL_AGENT], true)
+                && $phone === ''
+            ) {
+                $validator->errors()->add('phone', 'El campo movil (WhatsApp) es obligatorio.');
             }
         });
         $validator->validate();
@@ -380,6 +388,7 @@ class RegisteredUserController extends Controller
         return in_array((int) $user->user_level_id, [
             User::LEVEL_SERVICE_PROVIDER,
             User::LEVEL_AGENT,
+            User::LEVEL_FINAL_CLIENT,
         ], true);
     }
 }

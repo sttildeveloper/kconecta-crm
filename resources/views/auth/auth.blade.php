@@ -38,11 +38,19 @@
 
                     <label>
                         <span>Tipo de usuario *</span>
-                        <select name="user_level_id" required>
+                        <select id="user_level_id" name="user_level_id" required>
                             <option value="">Seleccione</option>
                             @foreach ($userLevels as $level)
                                 <option value="{{ $level->id }}" {{ (string) old('user_level_id') === (string) $level->id ? 'selected' : '' }}>
-                                    {{ (int) $level->id === \App\Models\User::LEVEL_SERVICE_PROVIDER ? 'Proveedor de servicios' : $level->name }}
+                                    {{
+                                        (int) $level->id === \App\Models\User::LEVEL_SERVICE_PROVIDER
+                                            ? 'Proveedor de servicios'
+                                            : ((int) $level->id === \App\Models\User::LEVEL_AGENT
+                                                ? 'Agente inmobiliario'
+                                                : ((int) $level->id === \App\Models\User::LEVEL_FINAL_CLIENT
+                                                    ? 'Cliente final'
+                                                    : $level->name))
+                                    }}
                                 </option>
                             @endforeach
                         </select>
@@ -71,8 +79,8 @@
 
                     <div class="container-two-col">
                         <label>
-                            <span>M&oacute;vil (WhatsApp) *</span>
-                            <input type="text" name="phone" value="{{ old('phone') }}" required>
+                            <span id="phone_label">M&oacute;vil (WhatsApp) *</span>
+                            <input type="text" id="phone_input" name="phone" value="{{ old('phone') }}" required>
                         </label>
                         <label>
                             <span>Tel&eacute;fono fijo</span>
@@ -223,9 +231,12 @@
             (() => {
                 const companyRow = document.getElementById('company_name_row');
                 const personRow = document.getElementById('person_name_row');
+                const userLevelSelect = document.getElementById('user_level_id');
                 const companyName = document.getElementById('company_name');
                 const firstName = document.getElementById('first_name');
                 const lastName = document.getElementById('last_name');
+                const phoneInput = document.getElementById('phone_input');
+                const phoneLabel = document.getElementById('phone_label');
                 const passwordInput = document.getElementById('password');
                 const passwordConfirmationInput = document.getElementById('password_confirmation');
                 const addressInput = document.getElementById('address_input');
@@ -258,9 +269,20 @@
                     if (lastName) {
                         lastName.required = false;
                     }
+
+                    const selectedLevel = Number(userLevelSelect?.value || 0);
+                    const isProviderOrAgent = selectedLevel === {{ \App\Models\User::LEVEL_SERVICE_PROVIDER }} || selectedLevel === {{ \App\Models\User::LEVEL_AGENT }};
+
+                    if (phoneInput) {
+                        phoneInput.required = isProviderOrAgent;
+                    }
+                    if (phoneLabel) {
+                        phoneLabel.innerHTML = isProviderOrAgent ? 'M&oacute;vil (WhatsApp) *' : 'M&oacute;vil (WhatsApp)';
+                    }
                 };
 
                 syncDocumentTypeFields();
+                userLevelSelect?.addEventListener('change', syncDocumentTypeFields);
 
                 const createSecurePassword = (length = 14) => {
                     const lower = 'abcdefghijkmnopqrstuvwxyz';

@@ -18,6 +18,8 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserLevel;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
 {
@@ -28,6 +30,7 @@ class HomeController extends Controller
         $userLevelName = $user ? (UserLevel::find($user->user_level_id)?->name ?? 'Usuario') : 'Usuario';
         $canManageProperties = $user ? $user->canManageProperties() : false;
         $canManageServices = $user ? $user->canManageServices() : false;
+        $isFinalClient = $user && (int) $user->user_level_id === User::LEVEL_FINAL_CLIENT;
 
         $propertyBase = Property::query()->where('state_id', 4);
         $serviceBase = Service::query();
@@ -213,10 +216,57 @@ class HomeController extends Controller
                 : 'Aun no tienes servicios publicados.';
         }
 
+        $finalClientStats = [
+            'ratingsCount' => 0,
+            'providersRatedCount' => 0,
+            'averageStars' => 0.0,
+            'recentRatings' => [],
+        ];
+
+        if ($isFinalClient && Schema::hasTable('service_provider_ratings')) {
+            $ratingsQuery = DB::table('service_provider_ratings')
+                ->where('client_user_id', (int) $user->id);
+
+            $finalClientStats['ratingsCount'] = (int) (clone $ratingsQuery)->count();
+            $finalClientStats['providersRatedCount'] = (int) (clone $ratingsQuery)
+                ->distinct('provider_user_id')
+                ->count('provider_user_id');
+
+            $avg = (clone $ratingsQuery)->avg('stars');
+            $finalClientStats['averageStars'] = $avg !== null ? round((float) $avg, 2) : 0.0;
+
+            $recentRatings = DB::table('service_provider_ratings as r')
+                ->join('user as u', 'u.id', '=', 'r.provider_user_id')
+                ->where('r.client_user_id', (int) $user->id)
+                ->orderByDesc('r.updated_at')
+                ->limit(5)
+                ->get([
+                    'r.stars',
+                    'r.updated_at',
+                    'u.user_name',
+                    'u.first_name',
+                    'u.last_name',
+                ]);
+
+            $finalClientStats['recentRatings'] = $recentRatings->map(function ($row) {
+                $fullName = trim((string) ($row->first_name ?? '') . ' ' . (string) ($row->last_name ?? ''));
+                $providerName = trim((string) ($row->user_name ?? '')) !== ''
+                    ? (string) $row->user_name
+                    : ($fullName !== '' ? $fullName : 'Proveedor');
+
+                return [
+                    'provider' => $providerName,
+                    'stars' => (int) $row->stars,
+                    'updated_at' => $row->updated_at ? date('d/m/Y H:i', strtotime((string) $row->updated_at)) : null,
+                ];
+            })->all();
+        }
+
         return view('dashboard', [
             'user' => $user,
             'userLevelName' => $userLevelName,
             'isAdmin' => $isAdmin,
+            'isFinalClient' => $isFinalClient,
             'canManageProperties' => $canManageProperties,
             'canManageServices' => $canManageServices,
             'activeNav' => 'dashboard',
@@ -234,6 +284,7 @@ class HomeController extends Controller
             'recentProperties' => $recentPropertiesData,
             'recentServices' => $recentServicesData,
             'alerts' => $alerts,
+            'finalClientStats' => $finalClientStats,
         ]);
     }
 }

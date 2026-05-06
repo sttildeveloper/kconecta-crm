@@ -12,6 +12,18 @@
     <script src="<?= base_url()."js/libraries/swiper-bundle.min.js" ?>"></script>
     <script src="<?= base_url()."js/libraries/bulma.modal.min.js" ?>"></script>
     <link rel="stylesheet" href="<?= base_url()."css/page/details.css" ?>">
+    <style>
+        .service-rating-card { border: 1px solid #e8ecf3; border-radius: 14px; padding: 16px; margin: 14px 0 6px; background: #fff; }
+        .service-rating-stars { font-size: 1.35rem; letter-spacing: 1px; color: #d1d5db; }
+        .service-rating-stars .filled { color: #f59e0b; }
+        .service-rating-caption { color: #6b7280; font-size: .93rem; }
+        .service-rating-inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+        .service-rating-inline .input { max-width: 240px; }
+        .service-rating-inline .select { min-width: 116px; }
+        .service-rating-feedback { margin-top: 10px; font-size: .92rem; display: none; }
+        .service-rating-feedback.success { color: #15803d; display: block; }
+        .service-rating-feedback.error { color: #b91c1c; display: block; }
+    </style>
 @endsection
 
 @section('content')
@@ -97,6 +109,41 @@
                 $text_with_html_breaks = nl2br($text_with_breaks);
                 echo $text_with_html_breaks;
             ?></p>
+        </div>
+        <?php
+            $providerUserId = (int) ($property["user_id"] ?? ($property["user"]["id"] ?? 0));
+            $authUser = auth()->user();
+            $canRateServiceProvider = $authUser
+                && (int) ($authUser->user_level_id ?? 0) === \App\Models\User::LEVEL_FINAL_CLIENT
+                && method_exists($authUser, 'hasVerifiedEmail')
+                && $authUser->hasVerifiedEmail();
+        ?>
+        <div class="service-rating-card" id="service-rating-card" data-provider-id="<?= $providerUserId ?>">
+            <h3 style="font-weight: 700; margin-bottom: 8px;">Valoraciones del proveedor</h3>
+            <div class="service-rating-stars" id="service-rating-stars-summary" aria-label="Valoracion promedio"></div>
+            <div class="service-rating-caption" id="service-rating-caption">Cargando valoraciones...</div>
+
+            <?php if ($canRateServiceProvider){ ?>
+                <form id="service-rating-form" class="service-rating-inline">
+                    <div class="select is-small">
+                        <select id="service-rating-stars-input" name="stars" required>
+                            <option value="">Puntuacion</option>
+                            <option value="1">1 estrella</option>
+                            <option value="2">2 estrellas</option>
+                            <option value="3">3 estrellas</option>
+                            <option value="4">4 estrellas</option>
+                            <option value="5">5 estrellas</option>
+                        </select>
+                    </div>
+                    <input class="input is-small" type="text" id="service-rating-work-code" name="work_code" maxlength="120" placeholder="Codigo de trabajo" required>
+                    <button class="button is-small is-link" type="submit" id="service-rating-submit">Enviar valoracion</button>
+                </form>
+                <p class="service-rating-feedback" id="service-rating-feedback"></p>
+            <?php }else{ ?>
+                <p class="service-rating-caption" style="margin-top: 8px;">
+                    Solo clientes finales con email verificado pueden valorar con codigo de trabajo.
+                </p>
+            <?php } ?>
         </div>
         <div class="container-more-data">
             <?php 
@@ -233,6 +280,116 @@
         thumbs: {
             swiper: thumbsSwiper,
         },
+    });
+</script>
+<script>
+    function renderStarsValue(value) {
+        const safeValue = Math.max(0, Math.min(5, Number(value) || 0));
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            html += i <= Math.round(safeValue) ? '<span class="filled">&#9733;</span>' : '<span>&#9733;</span>';
+        }
+        return html;
+    }
+
+    async function loadServiceProviderRatingSummary() {
+        const card = document.getElementById('service-rating-card');
+        const starsEl = document.getElementById('service-rating-stars-summary');
+        const captionEl = document.getElementById('service-rating-caption');
+        if (!card || !starsEl || !captionEl) return;
+
+        const providerUserId = card.dataset.providerId;
+        if (!providerUserId) {
+            captionEl.textContent = 'No se pudo identificar el proveedor.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/service-ratings/provider/' + providerUserId, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                const message = payload && payload.message ? payload.message : 'No se pudo cargar el resumen de valoraciones.';
+                throw new Error(message);
+            }
+
+            const data = payload?.data ?? {};
+            const average = Number(data.average_stars || 0);
+            const count = Number(data.ratings_count || 0);
+            starsEl.innerHTML = renderStarsValue(average);
+            captionEl.textContent = average.toFixed(1) + ' / 5 (' + count + ' votos)';
+
+            const myStarsInput = document.getElementById('service-rating-stars-input');
+            if (myStarsInput && data.my_stars) {
+                myStarsInput.value = String(data.my_stars);
+            }
+        } catch (error) {
+            starsEl.innerHTML = renderStarsValue(0);
+            captionEl.textContent = error.message || 'Error al cargar valoraciones.';
+        }
+    }
+
+    async function submitServiceProviderRating(event) {
+        event.preventDefault();
+
+        const submitBtn = document.getElementById('service-rating-submit');
+        const feedbackEl = document.getElementById('service-rating-feedback');
+        const starsInput = document.getElementById('service-rating-stars-input');
+        const workCodeInput = document.getElementById('service-rating-work-code');
+        const card = document.getElementById('service-rating-card');
+        if (!submitBtn || !feedbackEl || !starsInput || !workCodeInput || !card) return;
+
+        const providerUserId = Number(card.dataset.providerId || 0);
+        const stars = Number(starsInput.value || 0);
+        const workCode = (workCodeInput.value || '').trim();
+
+        feedbackEl.className = 'service-rating-feedback';
+        feedbackEl.textContent = '';
+        submitBtn.setAttribute('disabled', 'disabled');
+        submitBtn.textContent = 'Enviando...';
+
+        try {
+            const response = await fetch('/service-ratings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '<?= csrf_token() ?>'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    provider_user_id: providerUserId,
+                    work_code: workCode,
+                    stars: stars
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                const message = payload && payload.message ? payload.message : 'No se pudo enviar la valoracion.';
+                throw new Error(message);
+            }
+
+            feedbackEl.className = 'service-rating-feedback success';
+            feedbackEl.textContent = 'Valoracion enviada correctamente.';
+            await loadServiceProviderRatingSummary();
+        } catch (error) {
+            feedbackEl.className = 'service-rating-feedback error';
+            feedbackEl.textContent = error.message || 'Error al enviar la valoracion.';
+        } finally {
+            submitBtn.removeAttribute('disabled');
+            submitBtn.textContent = 'Enviar valoracion';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadServiceProviderRatingSummary();
+        const ratingForm = document.getElementById('service-rating-form');
+        if (ratingForm) {
+            ratingForm.addEventListener('submit', submitServiceProviderRating);
+        }
     });
 </script>
 <script>

@@ -97,6 +97,7 @@ class AuthenticatedSessionController extends Controller
         return in_array((int) $user->user_level_id, [
             User::LEVEL_SERVICE_PROVIDER,
             User::LEVEL_AGENT,
+            User::LEVEL_FINAL_CLIENT,
         ], true);
     }
 

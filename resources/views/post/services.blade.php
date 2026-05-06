@@ -22,6 +22,65 @@
     @endif
 @endsection
 
+@section('styles')
+    <style>
+        .work-code-actions {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .work-code-generate {
+            border: 0;
+            border-radius: 10px;
+            padding: 0.6rem 0.95rem;
+            background: #1f6feb;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .work-code-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .work-code-output {
+            margin-top: 0.75rem;
+            padding: 0.7rem 0.8rem;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: rgba(148, 163, 184, 0.1);
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .work-code-value {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: #0f172a;
+            word-break: break-all;
+        }
+        .work-code-copy {
+            border: 0;
+            border-radius: 8px;
+            padding: 0.45rem 0.75rem;
+            background: #0f172a;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.86rem;
+        }
+        .work-code-feedback {
+            margin-top: 0.55rem;
+            font-size: 0.86rem;
+            color: #334155;
+            min-height: 1.2em;
+        }
+    </style>
+@endsection
+
 @section('content')
     @if ($isProviderView ?? false)
         @php
@@ -228,6 +287,21 @@
                                 <div class="service-map-placeholder">Mapa no disponible</div>
                             @endif
                         </div>
+                    </div>
+                    <div class="card service-work-codes-card" data-work-codes-card>
+                        <h3>Codigos de trabajo</h3>
+                        <p>Genera un codigo y compartelo con tu cliente para habilitar su valoracion.</p>
+                        <input type="hidden" id="work-code-csrf-token" value="{{ csrf_token() }}">
+                        <div class="work-code-actions">
+                            <button type="button" class="work-code-generate" data-generate-work-code>
+                                Generar codigo
+                            </button>
+                        </div>
+                        <div class="work-code-output" data-work-code-output hidden>
+                            <span class="work-code-value" data-work-code-value></span>
+                            <button type="button" class="work-code-copy" data-copy-work-code>Copiar</button>
+                        </div>
+                        <p class="work-code-feedback" data-work-code-feedback></p>
                     </div>
                 </aside>
 
@@ -457,6 +531,82 @@
                     }
                 });
             });
+
+            const workCodeCard = document.querySelector('[data-work-codes-card]');
+            if (workCodeCard) {
+                const generateButton = workCodeCard.querySelector('[data-generate-work-code]');
+                const codeOutput = workCodeCard.querySelector('[data-work-code-output]');
+                const codeValue = workCodeCard.querySelector('[data-work-code-value]');
+                const copyButton = workCodeCard.querySelector('[data-copy-work-code]');
+                const feedback = workCodeCard.querySelector('[data-work-code-feedback]');
+                const csrfToken = document.getElementById('work-code-csrf-token')?.value ?? '';
+
+                const setFeedback = (text) => {
+                    if (feedback) {
+                        feedback.textContent = text;
+                    }
+                };
+
+                generateButton?.addEventListener('click', async () => {
+                    generateButton.disabled = true;
+                    setFeedback('Generando codigo...');
+
+                    try {
+                        const response = await fetch('/service-ratings/work-codes', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify({}),
+                            credentials: 'same-origin',
+                        });
+
+                        const payload = await response.json().catch(() => ({}));
+                        const data = payload?.data ?? {};
+                        const generatedCode = data?.code ?? data?.work_code ?? '';
+
+                        if (response.ok && generatedCode) {
+                            codeValue.textContent = generatedCode;
+                            codeOutput.hidden = false;
+                            setFeedback('Codigo generado correctamente.');
+                            return;
+                        }
+
+                        setFeedback(payload?.message ?? 'No se pudo generar el codigo.');
+                    } catch (error) {
+                        setFeedback('Error de conexion al generar el codigo.');
+                    } finally {
+                        generateButton.disabled = false;
+                    }
+                });
+
+                copyButton?.addEventListener('click', async () => {
+                    const value = codeValue?.textContent?.trim() ?? '';
+                    if (!value) {
+                        setFeedback('Primero genera un codigo.');
+                        return;
+                    }
+
+                    try {
+                        if (navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(value);
+                        } else {
+                            const tempInput = document.createElement('input');
+                            tempInput.value = value;
+                            document.body.appendChild(tempInput);
+                            tempInput.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(tempInput);
+                        }
+                        setFeedback('Codigo copiado al portapapeles.');
+                    } catch (error) {
+                        setFeedback('No se pudo copiar automaticamente.');
+                    }
+                });
+            }
         })();
     </script>
 @endsection
