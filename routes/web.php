@@ -21,6 +21,7 @@ Route::get('/validate_account', [PageController::class, 'validateAccountPage']);
 Route::post('/validate_code', [PageController::class, 'validateAccount']);
 Route::get('/policy_and_privacy', [PageController::class, 'policyAndPrivacy']);
 Route::get('/login/close_session', [PageController::class, 'logout']);
+Route::get('/logout', [PageController::class, 'logout']);
 
 Route::get('/blogs', [BlogController::class, 'showAll']);
 Route::get('/blogs/{slug}', [BlogController::class, 'showArticle']);

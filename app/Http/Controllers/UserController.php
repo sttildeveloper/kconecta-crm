@@ -314,10 +314,6 @@ class UserController extends Controller
         $isServiceProvider = (int) $user->user_level_id === User::LEVEL_SERVICE_PROVIDER;
         $addressRequired = ! $isServiceProvider;
 
-        if (! $addressRequired && $placeId === '') {
-            $addressInput = '';
-        }
-
         if ($addressRequired && $addressInput !== '' && $addressInput !== $currentAddress && $placeId === '') {
             return back()
                 ->withErrors(['address' => 'Selecciona una direccion sugerida por Google.'])
@@ -356,17 +352,28 @@ class UserController extends Controller
 
         $user->save();
 
+        $addressChanged = $addressInput !== $currentAddress;
         $addressRecord->address = $addressInput !== '' ? $addressInput : null;
-        $addressRecord->street_name = $placeId !== '' ? ($validated['address_street_name'] ?? null) : null;
-        $addressRecord->street_number = $placeId !== '' ? ($validated['address_street_number'] ?? null) : null;
-        $addressRecord->neighborhood = $placeId !== '' ? ($validated['address_neighborhood'] ?? null) : null;
-        $addressRecord->city = $placeId !== '' ? ($validated['address_city'] ?? null) : null;
-        $addressRecord->province = $placeId !== '' ? ($validated['address_province'] ?? null) : null;
-        $addressRecord->state = $placeId !== '' ? ($validated['address_state'] ?? null) : null;
-        $addressRecord->postal_code = $placeId !== '' ? ($validated['address_postal_code'] ?? null) : null;
-        $addressRecord->country = $placeId !== '' ? ($validated['address_country'] ?? null) : null;
-        $addressRecord->latitude = $placeId !== '' ? ($validated['address_lat'] ?? null) : null;
-        $addressRecord->longitude = $placeId !== '' ? ($validated['address_lng'] ?? null) : null;
+
+        // Keep previously validated coordinates for providers when address wasn't changed
+        // and no new Google place was selected in this submit.
+        $keepExistingGeoData = ! $addressRequired
+            && $placeId === ''
+            && ! $addressChanged
+            && $addressRecord->exists;
+
+        if (! $keepExistingGeoData) {
+            $addressRecord->street_name = $placeId !== '' ? ($validated['address_street_name'] ?? null) : null;
+            $addressRecord->street_number = $placeId !== '' ? ($validated['address_street_number'] ?? null) : null;
+            $addressRecord->neighborhood = $placeId !== '' ? ($validated['address_neighborhood'] ?? null) : null;
+            $addressRecord->city = $placeId !== '' ? ($validated['address_city'] ?? null) : null;
+            $addressRecord->province = $placeId !== '' ? ($validated['address_province'] ?? null) : null;
+            $addressRecord->state = $placeId !== '' ? ($validated['address_state'] ?? null) : null;
+            $addressRecord->postal_code = $placeId !== '' ? ($validated['address_postal_code'] ?? null) : null;
+            $addressRecord->country = $placeId !== '' ? ($validated['address_country'] ?? null) : null;
+            $addressRecord->latitude = $placeId !== '' ? ($validated['address_lat'] ?? null) : null;
+            $addressRecord->longitude = $placeId !== '' ? ($validated['address_lng'] ?? null) : null;
+        }
 
         $hasAddressData = $addressRecord->address !== null
             || $addressRecord->latitude !== null

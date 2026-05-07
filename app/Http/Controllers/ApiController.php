@@ -17,6 +17,7 @@ use App\Models\PsViewsDetail;
 use App\Models\PsViewsSearch;
 use App\Models\PsWhatsappClicks;
 use App\Models\Service;
+use App\Models\ServiceAddress;
 use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -473,36 +474,64 @@ class ApiController extends Controller
                 ->all();
         }
 
-        $addressQuery = UserAddress::query()
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '');
-        if (! empty($city) || ! empty($province)) {
-            if (! empty($province) && empty($city)) {
-                $addressQuery->where('province', trim($province));
-            } elseif (! empty($city)) {
-                $addressQuery->where('city', trim($city));
-            }
-            $addresses = $addressQuery->get();
-        } elseif (! empty($address)) {
-            $addressParts = explode(',', $address);
-            $addressSeed = trim($addressParts[0]);
-            $addressQuery->where('address', 'like', '%' . trim($address) . '%')
-                ->orWhere('address', 'like', '%' . $addressSeed . '%')
-                ->orWhere('province', 'like', '%' . $addressSeed . '%')
-                ->orWhere('city', 'like', '%' . $addressSeed . '%');
-            $addresses = $addressQuery->get();
-        } else {
-            $addresses = collect();
+        $servicesQuery = Service::query();
+        if (! empty($serviceTypeIds)) {
+            $servicesQuery->whereIn('id', $serviceTypeIds);
+        }
+        $services = $servicesQuery->get(['id', 'user_id']);
+
+        $addressFilter = trim($address);
+        $addressSeed = '';
+        if ($addressFilter !== '') {
+            $parts = explode(',', $addressFilter);
+            $addressSeed = trim($parts[0] ?? '');
         }
 
         $dataProperties = [];
-        foreach ($addresses as $row) {
-            $userId = $row->user_id;
+        foreach ($services as $service) {
+            $serviceAddress = ServiceAddress::query()
+                ->where('service_id', (int) $service->id)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->where('latitude', '<>', '')
+                ->where('longitude', '<>', '')
+                ->first();
+
+            $userAddress = UserAddress::query()
+                ->where('user_id', (int) $service->user_id)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->where('latitude', '<>', '')
+                ->where('longitude', '<>', '')
+                ->first();
+
+            $resolved = $serviceAddress ?: $userAddress;
+            if (! $resolved) {
+                continue;
+            }
+
+            $resolvedCity = trim((string) ($resolved->city ?? ''));
+            $resolvedProvince = trim((string) ($resolved->province ?? ''));
+            $resolvedAddress = trim((string) ($resolved->address ?? ''));
+
+            if (! empty($city) && strcasecmp($resolvedCity, trim((string) $city)) !== 0) {
+                continue;
+            }
+            if (! empty($province) && strcasecmp($resolvedProvince, trim((string) $province)) !== 0) {
+                continue;
+            }
+            if ($addressFilter !== '') {
+                $haystack = mb_strtolower($resolvedAddress . ' ' . $resolvedCity . ' ' . $resolvedProvince);
+                $needleA = mb_strtolower($addressFilter);
+                $needleB = mb_strtolower($addressSeed);
+                if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
+                    continue;
+                }
+            }
+
             $userName = '';
             $userLogoUrl = '';
-            $user = User::find($userId);
+            $user = User::find((int) $service->user_id);
             if ($user) {
                 $userName = $user->first_name;
                 if (! empty($user->last_name)) {
@@ -513,21 +542,13 @@ class ApiController extends Controller
                 }
             }
 
-            $serviceQuery = Service::query();
-            if (! empty($serviceTypeIds)) {
-                $serviceQuery->whereIn('id', $serviceTypeIds);
-            }
-
-            $service = $serviceQuery->where('user_id', $userId)->first();
-            if ($service) {
-                $dataProperties[] = [
-                    'id' => $service->id,
-                    'title' => $userName,
-                    'logo_url' => $userLogoUrl,
-                    'lat' => $row->latitude,
-                    'lng' => $row->longitude,
-                ];
-            }
+            $dataProperties[] = [
+                'id' => $service->id,
+                'title' => $userName,
+                'logo_url' => $userLogoUrl,
+                'lat' => $resolved->latitude,
+                'lng' => $resolved->longitude,
+            ];
         }
 
         return response()->json(['status' => 200, 'data' => $dataProperties]);
