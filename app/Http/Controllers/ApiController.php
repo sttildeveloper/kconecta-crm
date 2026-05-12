@@ -479,6 +479,23 @@ class ApiController extends Controller
             $servicesQuery->whereIn('id', $serviceTypeIds);
         }
         $services = $servicesQuery->get(['id', 'user_id']);
+        $providerIds = $services->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $ratingsSummaryByProvider = [];
+        if (! empty($providerIds)) {
+            $ratingsSummaryByProvider = DB::table('service_provider_ratings')
+                ->selectRaw('provider_user_id, AVG(stars) as average_stars, COUNT(*) as ratings_count')
+                ->whereIn('provider_user_id', $providerIds)
+                ->groupBy('provider_user_id')
+                ->get()
+                ->keyBy('provider_user_id')
+                ->map(function ($row) {
+                    return [
+                        'average_stars' => round((float) ($row->average_stars ?? 0), 2),
+                        'ratings_count' => (int) ($row->ratings_count ?? 0),
+                    ];
+                })
+                ->all();
+        }
 
         $addressFilter = trim($address);
         $addressSeed = '';
@@ -546,6 +563,8 @@ class ApiController extends Controller
                 'id' => $service->id,
                 'title' => $userName,
                 'logo_url' => $userLogoUrl,
+                'average_stars' => $ratingsSummaryByProvider[(int) $service->user_id]['average_stars'] ?? 0.0,
+                'ratings_count' => $ratingsSummaryByProvider[(int) $service->user_id]['ratings_count'] ?? 0,
                 'lat' => $resolved->latitude,
                 'lng' => $resolved->longitude,
             ];

@@ -17,6 +17,31 @@ Operate and evolve `kconecta-crm` with focus on:
 - Context checkpoint updated: `2026-04-27` (provider registration/profile/service flows aligned to JM first-stage rules)
 - Context checkpoint updated: `2026-04-29` (cadastral calculator backend + production import validated online)
 - Context checkpoint updated: `2026-05-06` (ratings with work-codes implemented locally + client registration rules refined)
+- Context checkpoint updated: `2026-05-07` (services map/local search fixes + details view split into partials, local validated)
+- Context checkpoint updated: `2026-05-12` (ratings release deployed in production + final client registration visibility restored)
+
+## Session Update (2026-05-12)
+- Production deploy completed from `main` at commit `07c3aae`.
+- Pre-release production backup created and validated (`db_production.sql.gz`) under `/root/kconecta_backups/*_pre_ratings_release`.
+- Dokploy manual redeploy executed after autodeploy did not refresh app container.
+- Post-deploy health checks validated:
+- `GET /` -> `200`
+- `GET /register` -> `200`
+- `GET /post/services` -> `302` to `/login` (expected for guest user)
+- Production runtime validated with new details partials present:
+- `resources/views/page/partials/details/more_data.blade.php`
+- `resources/views/page/partials/details/share_login_modal.blade.php`
+- Operational fix applied in production data:
+- `user_level.id=6` (`Cliente final`) was missing in DB catalog and was restored via `updateOrInsert`.
+- Registration selector now correctly includes `Cliente final` online.
+
+## Session Update (2026-05-07)
+- Local-only updates completed (no host push):
+- commit `0c95828`: services map/search fixes + provider geolocation persistence guard + generic search CTA + GET logout fallback.
+- commit `07c3aae`: refactor of `page/details` into partials (`more_data`, `share_login_modal`).
+- Result:
+- provider/services search map now resolves markers from `service_address` or `user_address`.
+- provider profile update no longer drops existing `lat/lng` when address is unchanged and no new Google place is selected.
 
 ## Working Rules
 - Prefer minimal, testable changes.

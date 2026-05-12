@@ -43,9 +43,9 @@
 
             <div class="container-row-form-col-1 box">
                 <div class="div-col-1">
-                    <label>
+                    <label class="service-description-textarea">
                         <span class="title-label">Descripci&oacute;n *</span>
-                        <textarea class="textarea" name="description" required></textarea>
+                        <textarea class="textarea" name="description" rows="8" required></textarea>
                     </label>
                 </div>
             </div>

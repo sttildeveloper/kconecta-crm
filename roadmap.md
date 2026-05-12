@@ -1,5 +1,27 @@
 # Kconecta CRM - Roadmap
 
+## Status Update (2026-05-12)
+- Ratings/client-final release deployed to production from `main` (`07c3aae`).
+- Backup pre-deploy executed and validated in VPS (`/root/kconecta_backups/*_pre_ratings_release/db_production.sql.gz`).
+- Autodeploy did not rotate app container immediately; manual Dokploy redeploy completed.
+- Production health checks validated:
+- `/` -> `200`
+- `/register` -> `200`
+- `/post/services` -> `302` guest redirect to `/login` (expected)
+- Data parity fix applied in production:
+- `user_level.id=6` (`Cliente final`) restored in DB catalog.
+- Result:
+- online register now shows `Cliente final`, enabling the rating flow entrypoint for final clients.
+
+## Status Update (2026-05-07)
+- Local stability pass completed for provider/services discovery map:
+- service markers now resolve from `service_address` with fallback to `user_address`.
+- provider profile save flow now preserves previous geolocation when address is unchanged.
+- public services search CTA normalized to generic `Buscar`.
+- detail page refactor isolated into dedicated commit:
+- `details.blade.php` split into partials for maintainability (`more_data`, `share_login_modal`).
+- All changes remain local at this stage (no host push yet).
+
 ## Status Update (2026-05-06)
 - Bloque de valoraciones de proveedores implementado en local con flujo completo:
 - codigos de trabajo para proveedores

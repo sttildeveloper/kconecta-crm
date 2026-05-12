@@ -61,58 +61,32 @@
 
                     <div id="company_name_row" class="full-width-row">
                         <label>
-                            <span>Raz&oacute;n social</span>
+                            <span>Raz&oacute;n social (Opcional)</span>
                             <input type="text" id="company_name" name="company_name" value="{{ old('company_name') }}">
                         </label>
                     </div>
 
                     <div class="container-two-col" id="person_name_row">
                         <label>
-                            <span>Nombre</span>
+                            <span>Nombre (Opcional)</span>
                             <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}">
                         </label>
                         <label>
-                            <span>Apellido</span>
+                            <span>Apellido (Opcional)</span>
                             <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}">
                         </label>
                     </div>
 
                     <div class="container-two-col">
                         <label>
-                            <span id="phone_label">M&oacute;vil (WhatsApp) *</span>
-                            <input type="text" id="phone_input" name="phone" value="{{ old('phone') }}" required>
+                            <span id="phone_label">M&oacute;vil (WhatsApp) (Opcional)</span>
+                            <input type="text" id="phone_input" name="phone" value="{{ old('phone') }}">
                         </label>
                         <label>
-                            <span>Tel&eacute;fono fijo</span>
+                            <span>Tel&eacute;fono fijo (Opcional)</span>
                             <input type="text" name="landline_phone" value="{{ old('landline_phone') }}">
                         </label>
                     </div>
-
-                    <label>
-                        <span>Direcci&oacute;n</span>
-                        <input type="text" id="address_input" name="address" value="{{ old('address') }}" autocomplete="off">
-                    </label>
-                    <div class="container-two-col">
-                        <label>
-                            <span>Piso</span>
-                            <input type="text" name="address_floor" value="{{ old('address_floor') }}" placeholder="Ej: Bajos, 1, 2">
-                        </label>
-                        <label>
-                            <span>Puerta</span>
-                            <input type="text" name="address_door" value="{{ old('address_door') }}" placeholder="Ej: 5, A, B">
-                        </label>
-                    </div>
-                    <input type="hidden" id="address_place_id" name="address_place_id" value="{{ old('address_place_id') }}">
-                    <input type="hidden" id="address_street_name" name="address_street_name" value="{{ old('address_street_name') }}">
-                    <input type="hidden" id="address_street_number" name="address_street_number" value="{{ old('address_street_number') }}">
-                    <input type="hidden" id="address_neighborhood" name="address_neighborhood" value="{{ old('address_neighborhood') }}">
-                    <input type="hidden" id="address_city" name="address_city" value="{{ old('address_city') }}">
-                    <input type="hidden" id="address_province" name="address_province" value="{{ old('address_province') }}">
-                    <input type="hidden" id="address_state" name="address_state" value="{{ old('address_state') }}">
-                    <input type="hidden" id="address_postal_code" name="address_postal_code" value="{{ old('address_postal_code') }}">
-                    <input type="hidden" id="address_country" name="address_country" value="{{ old('address_country') }}">
-                    <input type="hidden" id="address_lat" name="address_lat" value="{{ old('address_lat') }}">
-                    <input type="hidden" id="address_lng" name="address_lng" value="{{ old('address_lng') }}">
 
                     <label>
                         <span>E-mail *</span>
@@ -239,18 +213,6 @@
                 const phoneLabel = document.getElementById('phone_label');
                 const passwordInput = document.getElementById('password');
                 const passwordConfirmationInput = document.getElementById('password_confirmation');
-                const addressInput = document.getElementById('address_input');
-                const addressPlaceIdInput = document.getElementById('address_place_id');
-                const addressStreetNameInput = document.getElementById('address_street_name');
-                const addressStreetNumberInput = document.getElementById('address_street_number');
-                const addressNeighborhoodInput = document.getElementById('address_neighborhood');
-                const addressCityInput = document.getElementById('address_city');
-                const addressProvinceInput = document.getElementById('address_province');
-                const addressStateInput = document.getElementById('address_state');
-                const addressPostalCodeInput = document.getElementById('address_postal_code');
-                const addressCountryInput = document.getElementById('address_country');
-                const addressLatInput = document.getElementById('address_lat');
-                const addressLngInput = document.getElementById('address_lng');
 
                 const syncDocumentTypeFields = () => {
                     if (companyRow) {
@@ -270,14 +232,11 @@
                         lastName.required = false;
                     }
 
-                    const selectedLevel = Number(userLevelSelect?.value || 0);
-                    const isProviderOrAgent = selectedLevel === {{ \App\Models\User::LEVEL_SERVICE_PROVIDER }} || selectedLevel === {{ \App\Models\User::LEVEL_AGENT }};
-
                     if (phoneInput) {
-                        phoneInput.required = isProviderOrAgent;
+                        phoneInput.required = false;
                     }
                     if (phoneLabel) {
-                        phoneLabel.innerHTML = isProviderOrAgent ? 'M&oacute;vil (WhatsApp) *' : 'M&oacute;vil (WhatsApp)';
+                        phoneLabel.innerHTML = 'M&oacute;vil (WhatsApp) (Opcional)';
                     }
                 };
 
@@ -340,101 +299,6 @@
                     button.addEventListener('click', applyGeneratedPassword);
                 });
 
-                const initAddressAutocomplete = () => {
-                    if (!addressInput || !window.google || !google.maps || !google.maps.places) {
-                        return;
-                    }
-
-                    const resetAddressMetadata = () => {
-                        if (addressPlaceIdInput) addressPlaceIdInput.value = '';
-                        if (addressStreetNameInput) addressStreetNameInput.value = '';
-                        if (addressStreetNumberInput) addressStreetNumberInput.value = '';
-                        if (addressNeighborhoodInput) addressNeighborhoodInput.value = '';
-                        if (addressCityInput) addressCityInput.value = '';
-                        if (addressProvinceInput) addressProvinceInput.value = '';
-                        if (addressStateInput) addressStateInput.value = '';
-                        if (addressPostalCodeInput) addressPostalCodeInput.value = '';
-                        if (addressCountryInput) addressCountryInput.value = '';
-                        if (addressLatInput) addressLatInput.value = '';
-                        if (addressLngInput) addressLngInput.value = '';
-                    };
-
-                    const setAddressComponent = (types, value) => {
-                        if (!value) {
-                            return;
-                        }
-                        if (types.includes('route') && addressStreetNameInput) {
-                            addressStreetNameInput.value = value;
-                        }
-                        if (types.includes('street_number') && addressStreetNumberInput) {
-                            addressStreetNumberInput.value = value;
-                        }
-                        if (types.includes('sublocality') && addressNeighborhoodInput) {
-                            addressNeighborhoodInput.value = value;
-                        }
-                        if (types.includes('locality') && addressCityInput) {
-                            addressCityInput.value = value;
-                        }
-                        if (types.includes('administrative_area_level_2') && addressProvinceInput && !addressProvinceInput.value) {
-                            addressProvinceInput.value = value;
-                        }
-                        if (types.includes('administrative_area_level_1') && addressStateInput) {
-                            addressStateInput.value = value;
-                            if (addressProvinceInput && !addressProvinceInput.value) {
-                                addressProvinceInput.value = value;
-                            }
-                        }
-                        if (types.includes('postal_code') && addressPostalCodeInput) {
-                            addressPostalCodeInput.value = value;
-                        }
-                        if (types.includes('country') && addressCountryInput) {
-                            addressCountryInput.value = value;
-                        }
-                    };
-
-                    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-                        types: ['address'],
-                        componentRestrictions: { country: 'es' },
-                        fields: ['place_id', 'formatted_address', 'geometry', 'address_components'],
-                    });
-
-                    autocomplete.addListener('place_changed', () => {
-                        const place = autocomplete.getPlace();
-                        resetAddressMetadata();
-                        if (!place) {
-                            return;
-                        }
-
-                        if (place.formatted_address) {
-                            addressInput.value = place.formatted_address;
-                        }
-
-                        if (addressPlaceIdInput) {
-                            addressPlaceIdInput.value = place.place_id ?? '';
-                        }
-
-                        if (place.address_components && Array.isArray(place.address_components)) {
-                            place.address_components.forEach((component) => {
-                                setAddressComponent(component.types ?? [], component.long_name ?? '');
-                            });
-                        }
-
-                        if (place.geometry && place.geometry.location) {
-                            if (addressLatInput) {
-                                addressLatInput.value = String(place.geometry.location.lat());
-                            }
-                            if (addressLngInput) {
-                                addressLngInput.value = String(place.geometry.location.lng());
-                            }
-                        }
-                    });
-
-                    addressInput.addEventListener('input', () => {
-                        resetAddressMetadata();
-                    });
-                };
-
-                initAddressAutocomplete();
             })();
         </script>
     </body>

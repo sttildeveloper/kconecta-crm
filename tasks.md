@@ -1,5 +1,69 @@
 # Kconecta CRM - Tasks
 
+## Nueva tarea UX Registro (2026-05-12) - Reducir friccion en alta
+- [ ] Objetivo:
+- [ ] simplificar formulario de registro para aumentar conversion y reducir intimidacion del usuario.
+- [ ] Reglas funcionales solicitadas:
+- [ ] mantener obligatorios solo:
+- [ ] `email`
+- [ ] `password` + `password_confirmation`
+- [ ] mantener validacion de identidad minima:
+- [ ] `first_name` y/o `company_name` (al menos uno obligatorio).
+- [ ] marcar explicitamente como `Opcional` todos los campos no obligatorios visibles en UI.
+- [ ] eliminar del formulario de registro los campos de direccion:
+- [ ] `address`
+- [ ] `address_floor`
+- [ ] `address_door`
+- [ ] y metadatos asociados (`place_id`, ciudad, provincia, cp, lat, lng, etc.).
+- [ ] Persistencia/compatibilidad:
+- [ ] todo campo ocultado/eliminado del formulario debe guardarse como `null` en backend para no romper flujos existentes.
+- [ ] Alcance tecnico:
+- [ ] actualizar vista `resources/views/auth/auth.blade.php` (labels, visibilidad, required).
+- [ ] actualizar validaciones en `app/Http/Controllers/Auth/RegisteredUserController.php`.
+- [ ] asegurar que la creacion de `user` y `user_address` persista `null` cuando no haya datos.
+- [ ] QA esperado:
+- [ ] alta `Cliente final` con solo nombre/razon social + email + password.
+- [ ] alta `Proveedor` y `Agente` sin bloqueo por campos marcados como opcionales (salvo reglas explicitamente obligatorias vigentes).
+- [ ] no errores por campos de direccion ausentes.
+
+## Session Update (2026-05-12) - Deploy ratings/client-final en produccion
+- [x] Verificado estado Git local/remoto: `main` alineado con `origin/main` en `07c3aae`.
+- [x] Backup pre-release ejecutado en VPS y validado:
+- [x] `/root/kconecta_backups/*_pre_ratings_release/db_production.sql.gz`
+- [x] Push a `origin/main` completado para los commits del bloque ratings + fixes asociados.
+- [x] Redeploy manual en Dokploy ejecutado (autodeploy no refresco contenedor app en primer intento).
+- [x] Migraciones en produccion revisadas:
+- [x] `php artisan migrate --force` -> `Nothing to migrate`.
+- [x] Limpieza de cache aplicada:
+- [x] `php artisan optimize:clear`.
+- [x] Smoke checks productivos validados:
+- [x] `https://kconecta.com/` -> `200`
+- [x] `https://kconecta.com/register` -> `200`
+- [x] `https://kconecta.com/post/services` -> `302` a `/login` (esperado)
+- [x] Verificacion de artefactos del refactor de detalle en produccion:
+- [x] presentes `more_data.blade.php` y `share_login_modal.blade.php`.
+- [x] Hallazgo operativo en produccion:
+- [x] faltaba `user_level.id=6` (`Cliente final`) en catalogo DB.
+- [x] Fix aplicado con `updateOrInsert` en produccion.
+- [x] Resultado: selector de registro online ahora muestra `Cliente final`.
+- [ ] Pendiente inmediato:
+- [ ] QA online funcional completo del flujo: registro cliente final -> verificacion email -> valoracion a proveedor con codigo.
+
+## Session Update (2026-05-07) - Mapa servicios + refactor detalles (local)
+- [x] Corregido `GET /logout` web para evitar `419` en flujo de cierre de sesion por navegacion directa.
+- [x] Corregido endpoint `dataServicesForMap` para resolver ubicacion desde `service_address` o fallback `user_address`.
+- [x] Ajustado CTA en `result_all_service` a etiqueta generica `Buscar`.
+- [x] Corregida persistencia de direccion de proveedor en perfil:
+- [x] ya no se limpian `lat/lng` existentes cuando la direccion no cambia y no se selecciona nuevo place.
+- [x] Refactor separado de `details.blade.php` a parciales:
+- [x] `resources/views/page/partials/details/more_data.blade.php`
+- [x] `resources/views/page/partials/details/share_login_modal.blade.php`
+- [x] Commits locales creados:
+- [x] `0c95828` - `Fix services map search and preserve provider geolocation`
+- [x] `07c3aae` - `Refactor property details view into partials`
+- [ ] Pendiente inmediato:
+- [ ] smoke QA local post-refactor de detalle publico (`/result/{reference}`) antes de cualquier push.
+
 ## Session Update (2026-05-06) - Valoraciones proveedor (implementacion + QA local)
 - [x] Esquema de datos implementado:
 - [x] tabla `service_provider_ratings` creada en local

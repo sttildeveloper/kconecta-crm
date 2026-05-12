@@ -48,20 +48,6 @@ class RegisteredUserController extends Controller
             'company_name' => 'nullable|required_without:first_name|string|max:100',
             'phone' => 'nullable|string|max:20',
             'landline_phone' => 'nullable|string|max:100',
-            'address' => 'nullable|string|max:255',
-            'address_floor' => 'nullable|string|max:50',
-            'address_door' => 'nullable|string|max:50',
-            'address_place_id' => 'nullable|string|max:255',
-            'address_street_name' => 'nullable|string|max:255',
-            'address_street_number' => 'nullable|string|max:50',
-            'address_neighborhood' => 'nullable|string|max:255',
-            'address_city' => 'nullable|string|max:255',
-            'address_province' => 'nullable|string|max:255',
-            'address_state' => 'nullable|string|max:255',
-            'address_postal_code' => 'nullable|string|max:20',
-            'address_country' => 'nullable|string|max:255',
-            'address_lat' => 'nullable|numeric',
-            'address_lng' => 'nullable|numeric',
             'email' => 'required|string|lowercase|email|max:50',
             'password' => ['required', 'confirmed', 'min:6'],
         ];
@@ -84,17 +70,12 @@ class RegisteredUserController extends Controller
             'company_name' => 'razon social',
             'phone' => 'movil (WhatsApp)',
             'landline_phone' => 'telefono fijo',
-            'address' => 'direccion',
-            'address_place_id' => 'direccion validada',
-            'address_lat' => 'coordenada de latitud',
-            'address_lng' => 'coordenada de longitud',
             'email' => 'e-mail',
             'password' => 'contrasena',
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages, $attributes);
         $validator->after(function ($validator) use ($request) {
-            $userLevelId = (int) $request->input('user_level_id');
             $email = mb_strtolower(trim((string) $request->input('email')));
             $companyName = $this->normalizeCompanyName((string) $request->input('company_name'));
             $phone = $this->normalizePhone((string) $request->input('phone'));
@@ -151,12 +132,6 @@ class RegisteredUserController extends Controller
                 $validator->errors()->add('company_name', 'Completa Nombre o Razon social.');
             }
 
-            if (
-                in_array($userLevelId, [User::LEVEL_SERVICE_PROVIDER, User::LEVEL_AGENT], true)
-                && $phone === ''
-            ) {
-                $validator->errors()->add('phone', 'El campo movil (WhatsApp) es obligatorio.');
-            }
         });
         $validator->validate();
 
@@ -170,16 +145,7 @@ class RegisteredUserController extends Controller
         $phone = trim((string) $request->input('phone'));
         $landlinePhone = trim((string) $request->input('landline_phone'));
 
-        $addressPlaceId = trim((string) $request->input('address_place_id'));
         $addressValue = null;
-        if ($addressPlaceId !== '') {
-            $addressValue = $this->composeRegistrationAddress(
-                (string) $request->input('address'),
-                (string) $request->input('address_floor'),
-                (string) $request->input('address_door')
-            );
-            $addressValue = trim((string) $addressValue) !== '' ? $addressValue : null;
-        }
 
         $user = User::create([
             'first_name' => $firstName,
@@ -197,21 +163,18 @@ class RegisteredUserController extends Controller
 
         UserAddress::create([
             'user_id' => $user->id,
-            'address' => $addressValue,
-            'street_name' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_street_name', '')) : null,
-            'street_number' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_street_number', '')) : null,
-            'neighborhood' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_neighborhood', '')) : null,
-            'city' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_city', '')) : null,
-            'province' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_province', '')) : null,
-            'postal_code' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_postal_code', '')) : null,
-            'state' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_state', '')) : null,
-            'country' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_country', '')) : null,
-            'latitude' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_lat', '')) : null,
-            'longitude' => $addressPlaceId !== '' ? $this->nullableTrim((string) $request->input('address_lng', '')) : null,
-            'additional_info' => trim(implode(', ', array_filter([
-                trim((string) $request->input('address_floor', '')) !== '' ? 'Piso: ' . trim((string) $request->input('address_floor', '')) : null,
-                trim((string) $request->input('address_door', '')) !== '' ? 'Puerta: ' . trim((string) $request->input('address_door', '')) : null,
-            ]))) ?: null,
+            'address' => null,
+            'street_name' => null,
+            'street_number' => null,
+            'neighborhood' => null,
+            'city' => null,
+            'province' => null,
+            'postal_code' => null,
+            'state' => null,
+            'country' => null,
+            'latitude' => null,
+            'longitude' => null,
+            'additional_info' => null,
         ]);
 
         event(new Registered($user));

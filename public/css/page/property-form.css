@@ -115,6 +115,20 @@ body {
   resize: vertical;
 }
 
+.container-main .service-description-textarea {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.container-main .service-description-textarea .textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  line-height: 1.45;
+}
+
 @media (max-width: 960px) {
   .container-title-page,
   .container-main {
