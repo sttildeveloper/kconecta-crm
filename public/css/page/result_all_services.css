@@ -161,6 +161,10 @@
     color: #1f2a44;
     line-height: 1.1;
 }
+.container-map-details-info-app-main .service-rating-star-icon{
+    color: #fbbc04;
+    font-weight: 900;
+}
 .container-map-details-info-app-main .service-rating-chip__count{
     font-size: .7rem;
     color: #5f6b83;
