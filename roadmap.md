@@ -178,6 +178,11 @@
 - metadatos superiores con `N/A` para datos faltantes.
 - jerarquia de cards ajustada (Fianza/Estado junto a M2 construidos).
 
+## Context update (2026-05-14)
+- API v1 proveedores para app movil cerrada end-to-end (etapas 1-5).
+- Suite final API ejecutada en Docker: `tests/Feature/Api` en verde.
+- Estado operativo actual: en espera de nuevas instrucciones de JM y Gala para continuar roadmap movil.
+
 ## Sub-plan: Backend Calculador Catastral (Precios M2)
 *Plan de implementación asíncrona para la importación y cálculo de precios por metro cuadrado.*
 

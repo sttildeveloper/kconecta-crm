@@ -313,3 +313,8 @@ Operate and evolve `kconecta-crm` with focus on:
 - bloque superior de metadatos ahora incluye fallback `N/A` en cards clave cuando no hay valor.
 - `Fianza` y `Estado de conservacion` movidos al grid superior junto a `M2 construidos`.
 - eliminada duplicidad visual de `Estado de conservacion` y `Fianza` en cards inferiores.
+
+- Context update `2026-05-14`:
+- API v1 proveedores completada por etapas con trazabilidad y commits locales por etapa.
+- Pruebas finales de API en verde (`tests/Feature/Api`).
+- Sin push realizado por riesgo de autodeploy; siguiente accion bloqueada hasta instrucciones de JM/Gala.

@@ -413,3 +413,8 @@
 - [x] Corregir cards vacias en `resources/views/page/details.blade.php` (garaje/nave).
 - [x] Reubicar `Fianza` y `Estado de conservacion` al bloque superior de cards pequenas.
 - [x] Aplicar fallback `N/A` en cards superiores cuando falten datos.
+
+- Context update `2026-05-14`:
+- [x] API v1 proveedores cerrada por etapas (1-5) con validacion final `tests/Feature/Api` en verde.
+- [x] Commits por etapa aplicados localmente, sin push (evitar autodeploy).
+- [ ] Esperar instrucciones de JM y Gala para siguiente bloque de desarrollo de app movil.
