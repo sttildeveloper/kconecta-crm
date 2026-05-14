@@ -12,6 +12,7 @@ Autenticacion: `Authorization: Bearer <token>` con `auth:sanctum`.
 - `multipart/form-data`.
 - Campos requeridos: `availability`, `description`, `service_type[]`, `cover_image`.
 - Campos opcionales: `title`, `page_url`, `document_number`, `more_images[]`, `video`, `address`, `city`, `province`, `postal_code`, `country`, `latitude`, `longitude`.
+- Limites media v1: `cover_image` y `more_images[]` max `5MB` c/u; `video` max `50MB`.
 
 3. `GET /api/agent/services/{id}`
 - Devuelve detalle de un servicio propio.
@@ -57,6 +58,10 @@ Errores:
 - `404` Servicio no encontrado o no pertenece al proveedor
 - `422` Validacion fallida
 
+### Politica 403 vs 404
+- `403`: usuario autenticado sin rol `Proveedor de servicios`.
+- `404`: usuario proveedor intenta operar un servicio inexistente o que no le pertenece (ownership estricto).
+
 ### Ejemplo rapido mobile
 1. Login:
 - `POST /api/login`
@@ -82,4 +87,3 @@ curl -X PATCH https://kconecta.com/api/agent/services/123 \
   -F "description=Atencion 24h" \
   -F "video=@promo.mp4"
 ```
-

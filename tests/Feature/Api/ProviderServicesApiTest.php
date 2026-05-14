@@ -179,6 +179,55 @@ class ProviderServicesApiTest extends TestCase
             ]);
     }
 
+    public function test_create_rejects_cover_image_over_size_limit(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-size-cover@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Mudanzas']);
+
+        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
+            'availability' => 'Lun-Vie',
+            'description' => 'Servicio de mudanzas',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->image('cover.jpg')->size(6000),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['cover_image'],
+            ]);
+    }
+
+    public function test_create_rejects_video_over_size_limit(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-size-video@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Carpinteria']);
+
+        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
+            'availability' => 'Lun-Vie',
+            'description' => 'Servicio de carpinteria',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
+            'video' => UploadedFile::fake()->create('video.mp4', 60000, 'video/mp4'),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['video'],
+            ]);
+    }
+
     public function test_provider_can_update_and_delete_own_service(): void
     {
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-c@test.dev');

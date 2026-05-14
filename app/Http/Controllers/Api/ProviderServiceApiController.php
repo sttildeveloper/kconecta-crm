@@ -18,6 +18,9 @@ use Illuminate\Support\Str;
 
 class ProviderServiceApiController extends Controller
 {
+    private const MAX_IMAGE_KB = 5120; // 5 MB
+    private const MAX_VIDEO_KB = 51200; // 50 MB
+
     private const ALLOWED_IMAGE_MIME_TYPES = [
         'image/jpeg',
         'image/png',
@@ -117,10 +120,10 @@ class ProviderServiceApiController extends Controller
             'document_number' => 'nullable|string|max:100',
             'service_type' => 'required|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
-            'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp',
+            'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
             'more_images' => 'nullable|array',
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp',
-            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg',
+            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
+            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:' . self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -220,10 +223,10 @@ class ProviderServiceApiController extends Controller
             'document_number' => 'sometimes|nullable|string|max:100',
             'service_type' => 'sometimes|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
-            'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp',
+            'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
             'more_images' => 'nullable|array',
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp',
-            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg',
+            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
+            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:' . self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -606,4 +609,3 @@ class ProviderServiceApiController extends Controller
         }
     }
 }
-
