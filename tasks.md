@@ -376,6 +376,7 @@
 - [x] Pruebas feature base agregadas para auth, permisos por rol, ownership y CRUD proveedor.
 - [x] Cobertura de login/token mobile completada: `POST /api/login` retorna Bearer token utilizable para `GET /api/me` (`AuthApiTest`, 2026-05-14).
 - [x] Regresion minima API validada (2026-05-14): `ServiceRatingsApiTest` PASS + smoke `200` en `/api/services` y `/api/services_for_map`.
+- [x] Etapa 2 iniciada (2026-05-14): cobertura extendida en `ProviderServicesApiTest` para matriz de acceso (`403/404`) y validaciones `422` con contrato de errores.
 
 ### Security Backlog
 - [ ] Rotar secretos actuales (`APP_KEY`, API keys, credenciales DB).

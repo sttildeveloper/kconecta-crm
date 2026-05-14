@@ -37,6 +37,35 @@ class ProviderServicesApiTest extends TestCase
         $response->assertStatus(403)->assertJsonPath('success', false);
     }
 
+    public function test_non_provider_cannot_access_provider_crud_endpoints(): void
+    {
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-ops@test.dev');
+
+        $service = Service::query()->create([
+            'title' => 'Servicio proveedor',
+            'description' => 'Privado',
+            'availability' => 'Siempre',
+            'user_id' => (int) $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'owner@test.dev')->id,
+        ]);
+
+        $this->actingAs($client, 'sanctum')
+            ->getJson('/api/agent/services')
+            ->assertStatus(403)
+            ->assertJsonPath('success', false);
+
+        $this->actingAs($client, 'sanctum')
+            ->getJson('/api/agent/services/' . $service->id)
+            ->assertStatus(403);
+
+        $this->actingAs($client, 'sanctum')
+            ->patch('/api/agent/services/' . $service->id, ['title' => 'No permitido'])
+            ->assertStatus(403);
+
+        $this->actingAs($client, 'sanctum')
+            ->deleteJson('/api/agent/services/' . $service->id)
+            ->assertStatus(403);
+    }
+
     public function test_provider_can_create_and_list_only_own_services(): void
     {
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider@test.dev');
@@ -85,6 +114,69 @@ class ProviderServicesApiTest extends TestCase
         $this->actingAs($provider, 'sanctum')
             ->getJson('/api/agent/services/' . $service->id)
             ->assertStatus(404);
+    }
+
+    public function test_provider_gets_404_for_nonexistent_service_on_show_update_and_delete(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-missing@test.dev');
+        $missingId = 999999;
+
+        $this->actingAs($provider, 'sanctum')
+            ->getJson('/api/agent/services/' . $missingId)
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
+
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/services/' . $missingId, ['title' => 'No existe'])
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
+
+        $this->actingAs($provider, 'sanctum')
+            ->deleteJson('/api/agent/services/' . $missingId)
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_create_validations_return_422_with_error_details(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-validation@test.dev');
+
+        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', []);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['availability', 'description', 'service_type', 'cover_image'],
+            ]);
+    }
+
+    public function test_create_rejects_invalid_cover_image_type(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-invalid-media@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Limpieza']);
+
+        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
+            'availability' => 'Lun-Vie',
+            'description' => 'Servicio de limpieza',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->create('cover.pdf', 32, 'application/pdf'),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['cover_image'],
+            ]);
     }
 
     public function test_provider_can_update_and_delete_own_service(): void
@@ -145,4 +237,3 @@ class ProviderServicesApiTest extends TestCase
         ]);
     }
 }
-
