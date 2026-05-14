@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\CoverImage;
+use App\Models\MoreImage;
 use App\Models\Service;
 use App\Models\ServiceType;
 use App\Models\ServiceTypeLink;
@@ -270,6 +271,66 @@ class ProviderServicesApiTest extends TestCase
             ->assertJsonPath('success', true);
 
         $this->assertDatabaseMissing('service', ['id' => (int) $service->id]);
+    }
+
+    public function test_update_can_replace_cover_and_video_and_delete_selected_more_images(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-media-update@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Jardineria']);
+
+        $createResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
+            'title' => 'Servicio media',
+            'availability' => 'Lun-Vie',
+            'description' => 'Inicial',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->image('cover-initial.jpg'),
+            'more_images' => [
+                UploadedFile::fake()->image('more-a.jpg'),
+                UploadedFile::fake()->image('more-b.jpg'),
+            ],
+            'video' => UploadedFile::fake()->create('intro.mp4', 512, 'video/mp4'),
+        ])->assertStatus(201);
+
+        $serviceId = (int) $createResponse->json('data.id');
+        $oldCover = (string) $createResponse->json('data.cover_image');
+        $oldVideo = (string) $createResponse->json('data.video');
+        $moreImages = $createResponse->json('data.more_images');
+        $this->assertCount(2, $moreImages);
+
+        $deleteId = (int) $moreImages[0]['id'];
+
+        $updateResponse = $this->actingAs($provider, 'sanctum')->patch('/api/agent/services/' . $serviceId, [
+            'cover_image' => UploadedFile::fake()->image('cover-new.jpg'),
+            'video' => UploadedFile::fake()->create('promo.mp4', 768, 'video/mp4'),
+            'more_images' => [UploadedFile::fake()->image('more-c.jpg')],
+            'delete_more_images' => [$deleteId],
+        ]);
+
+        $updateResponse->assertOk()
+            ->assertJsonPath('success', true);
+
+        $newCover = (string) $updateResponse->json('data.cover_image');
+        $newVideo = (string) $updateResponse->json('data.video');
+        $this->assertNotSame('', $newCover);
+        $this->assertNotSame('', $newVideo);
+        $this->assertNotSame($oldCover, $newCover);
+        $this->assertNotSame($oldVideo, $newVideo);
+        $this->assertNotNull($updateResponse->json('data.cover_image_url'));
+        $this->assertNotNull($updateResponse->json('data.video_url'));
+
+        $this->assertDatabaseMissing('more_images', ['id' => $deleteId]);
+
+        $remainingMoreImages = MoreImage::query()->where('service_id', $serviceId)->count();
+        $this->assertSame(2, $remainingMoreImages);
+
+        $this->assertDatabaseHas('cover_image', [
+            'service_id' => $serviceId,
+            'url' => $newCover,
+        ]);
+        $this->assertDatabaseHas('video', [
+            'service_id' => $serviceId,
+            'url' => $newVideo,
+        ]);
     }
 
     public function test_success_responses_follow_contract_shape_across_crud(): void
