@@ -272,6 +272,66 @@ class ProviderServicesApiTest extends TestCase
         $this->assertDatabaseMissing('service', ['id' => (int) $service->id]);
     }
 
+    public function test_success_responses_follow_contract_shape_across_crud(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-contract@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Cerrajeria']);
+
+        $createResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
+            'title' => 'Contrato API',
+            'availability' => 'Lun-Sab',
+            'description' => 'Prueba contrato',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
+        ]);
+        $createResponse->assertStatus(201);
+        $this->assertJsonContract($createResponse->json());
+
+        $serviceId = (int) $createResponse->json('data.id');
+
+        $listResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services');
+        $listResponse->assertOk();
+        $this->assertJsonContract($listResponse->json());
+
+        $showResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/' . $serviceId);
+        $showResponse->assertOk();
+        $this->assertJsonContract($showResponse->json());
+
+        $updateResponse = $this->actingAs($provider, 'sanctum')->patch('/api/agent/services/' . $serviceId, [
+            'title' => 'Contrato API v2',
+        ]);
+        $updateResponse->assertOk();
+        $this->assertJsonContract($updateResponse->json());
+
+        $deleteResponse = $this->actingAs($provider, 'sanctum')->deleteJson('/api/agent/services/' . $serviceId);
+        $deleteResponse->assertOk();
+        $this->assertJsonContract($deleteResponse->json());
+    }
+
+    public function test_error_responses_follow_contract_shape(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-contract-error@test.dev');
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-contract-client@test.dev');
+        $serviceType = ServiceType::query()->create(['name' => 'Albanileria']);
+
+        $forbiddenResponse = $this->actingAs($client, 'sanctum')->post('/api/agent/services', [
+            'availability' => 'Lun-Vie',
+            'description' => 'Sin permisos',
+            'service_type' => [(int) $serviceType->id],
+            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
+        ]);
+        $forbiddenResponse->assertStatus(403);
+        $this->assertJsonContract($forbiddenResponse->json(), false);
+
+        $notFoundResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/999999');
+        $notFoundResponse->assertStatus(404);
+        $this->assertJsonContract($notFoundResponse->json(), false);
+
+        $validationResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', []);
+        $validationResponse->assertStatus(422);
+        $this->assertJsonContract($validationResponse->json(), false);
+    }
+
     private function makeUser(int $levelId, string $email): User
     {
         return User::query()->create([
@@ -284,5 +344,15 @@ class ProviderServicesApiTest extends TestCase
             'user_level_id' => $levelId,
             'email_verified_at' => now(),
         ]);
+    }
+
+    private function assertJsonContract(array $payload, bool $expectSuccess = true): void
+    {
+        $this->assertArrayHasKey('success', $payload);
+        $this->assertArrayHasKey('data', $payload);
+        $this->assertArrayHasKey('meta', $payload);
+        $this->assertArrayHasKey('message', $payload);
+        $this->assertArrayHasKey('errors', $payload);
+        $this->assertSame($expectSuccess, (bool) $payload['success']);
     }
 }
