@@ -370,6 +370,12 @@
 
 ### Closed
 - [x] Bloque de trabajo de `Terreno` dado por cerrado tras validacion online y documentacion operativa.
+- [x] API v1 proveedores (`/api/agent/services`) implementada con `auth:sanctum`, ownership estricto y CRUD completo.
+- [x] Soporte `multipart` en create/update para `cover_image`, `more_images` y `video` en API v1 proveedores.
+- [x] Contrato JSON unificado para API v1 proveedores (`success`, `data`, `meta`, `message`, `errors`).
+- [x] Pruebas feature base agregadas para auth, permisos por rol, ownership y CRUD proveedor.
+- [x] Cobertura de login/token mobile completada: `POST /api/login` retorna Bearer token utilizable para `GET /api/me` (`AuthApiTest`, 2026-05-14).
+- [x] Regresion minima API validada (2026-05-14): `ServiceRatingsApiTest` PASS + smoke `200` en `/api/services` y `/api/services_for_map`.
 
 ### Security Backlog
 - [ ] Rotar secretos actuales (`APP_KEY`, API keys, credenciales DB).

@@ -1,0 +1,62 @@
+## API v1 Proveedores - Implementación para App Nativa
+
+### Resumen
+Definir y entregar una API v1 enfocada en proveedores con autenticación `Sanctum Bearer`, alcance `CRUD + listados`, y subida de media por `multipart` en los mismos endpoints de creación/edición.  
+Objetivo: que la app nativa pueda operar el ciclo completo de servicios sin depender de rutas web.
+
+### Cambios Clave de Implementación
+1. **Nuevo bloque API de servicios de proveedor (`/api/agent/services`)**
+- `GET /api/agent/services`: listado paginado de servicios del proveedor autenticado.
+- `POST /api/agent/services`: alta de servicio (campos funcionales + media multipart).
+- `GET /api/agent/services/{id}`: detalle de servicio propio.
+- `PUT/PATCH /api/agent/services/{id}`: edición de servicio propio (incluye reemplazo/alta de media).
+- `DELETE /api/agent/services/{id}`: baja lógica/física según comportamiento actual del sistema.
+
+2. **Autorización y reglas de acceso**
+- Requiere `auth:sanctum` en todo el bloque.
+- Solo `Proveedor de servicios` puede crear/editar/eliminar sus servicios.
+- Acceso por ownership estricto: un proveedor no puede operar servicios de otro.
+- Respuestas de error estandarizadas (`401`, `403`, `404`, `422`).
+
+3. **Contrato de datos v1 (estable para mobile)**
+- Unificar payload/response JSON de servicios con estructura consistente (`success`, `data`, `meta`, `message`, `errors`).
+- Mantener compatibilidad con catálogos y descubrimiento existentes (`/api/services`, `/api/services_for_map`) sin breaking changes.
+- Definir validaciones mínimas de v1 para alta/edición (campos obligatorios, tipos, límites de media).
+
+4. **Media multipart en create/update**
+- Soportar subida de imagen/logo/video en `POST/PUT/PATCH`.
+- Reusar validaciones backend existentes de tamaño/formato.
+- Incluir en respuesta URLs canónicas para consumo directo de la app.
+
+5. **Documentación y trazabilidad**
+- Publicar especificación funcional (tabla de endpoints, request/response, códigos de error).
+- Agregar ejemplos de requests mobile-ready (login + create/update service).
+- Registrar checklist de QA en `tasks.md` para cierre de entrega.
+
+### Plan de Pruebas
+1. **Autenticación y acceso**
+- Login válido retorna token usable.
+- Requests sin token fallan `401`.
+- Rol no proveedor falla `403` en create/update/delete.
+
+2. **CRUD servicios proveedor**
+- Crear servicio válido retorna `201` + payload normalizado.
+- Listado solo incluye servicios del usuario autenticado.
+- Ver/editar/eliminar servicio propio funciona.
+- Ver/editar/eliminar servicio ajeno falla `403/404` según política elegida.
+
+3. **Validaciones y errores**
+- Campos requeridos faltantes retornan `422` con detalle.
+- Media inválida (tipo/tamaño) retorna `422`.
+- IDs inexistentes retornan `404`.
+
+4. **Regresión sobre endpoints existentes**
+- `/api/services` y `/api/services_for_map` siguen operativos.
+- Endpoints de ratings actuales no se rompen.
+
+### Supuestos y Decisiones Cerradas
+- Auth v1: **Sanctum Bearer** (sin JWT paralelo).
+- Alcance v1: **CRUD + listados** de servicios de proveedor (sin analytics extra).
+- Media v1: **multipart directo** en create/update.
+- No se elimina de momento la capa web existente; se agrega capa API dedicada para mobile.
+- Cualquier endpoint legacy inseguro/heterogéneo fuera de este alcance se audita en una fase v1.1 de hardening.

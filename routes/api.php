@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Internal\OrchestratorController;
 use App\Http\Controllers\Api\PropertyApiController;
 use App\Http\Controllers\Api\CadastralController;
+use App\Http\Controllers\Api\ProviderServiceApiController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::delete('/agent/property-images/{imageId}', [PropertyApiController::class, 'destroyMoreImage']);
     Route::apiResource('/agent/properties', PropertyApiController::class);
+    Route::apiResource('/agent/services', ProviderServiceApiController::class);
     Route::post('/service-ratings/work-codes', [ApiController::class, 'createServiceWorkCode']);
     Route::post('/service-ratings', [ApiController::class, 'storeServiceRating']);
 });
