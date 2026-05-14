@@ -1,22 +1,36 @@
-﻿### Estado
+### Estado
 - Etapa 1 (Autenticacion y acceso): **CERRADA** el 2026-05-14.
 - Evidencia automatizada:
 - Tests\Feature\Api\AuthApiTest: login valido retorna Bearer token usable contra endpoint protegido (/api/me).
 - Tests\Feature\Api\ProviderServicesApiTest: cobertura de 401 sin token y 403 para rol no proveedor, ademas de ownership en acceso a servicios.
+- Etapa 2 (validaciones y matriz 403/404): **CERRADA** el 2026-05-14.
+- Etapa 3 (contrato JSON v1 uniforme): **CERRADA** el 2026-05-14.
+- Etapa 4 (media multipart create/update): **CERRADA** el 2026-05-14.
+- Etapa 5 (documentacion + trazabilidad QA): **CERRADA** el 2026-05-14.
+
+### Checklist QA de Cierre (2026-05-14)
+- [x] Auth login/token usable validado (AuthApiTest).
+- [x] 401 sin token validado para rutas protegidas.
+- [x] 403 por rol no proveedor validado en CRUD.
+- [x] Ownership estricto y 404 por recurso inexistente/ajeno validado.
+- [x] 422 por validacion de campos, tipo y tamano de media validado.
+- [x] Contrato JSON v1 (success, data, meta, message, errors) validado en respuestas de exito y error del controlador.
+- [x] Reemplazo de cover_image y video, alta y borrado selectivo de more_images validado.
+- [x] Regresion minima endpoints legacy: /api/services, /api/services_for_map, y ratings en verde.
 
 ### Resumen
-Definir y entregar una API v1 enfocada en proveedores con autenticación `Sanctum Bearer`, alcance `CRUD + listados`, y subida de media por `multipart` en los mismos endpoints de creación/edición.  
+Definir y entregar una API v1 enfocada en proveedores con autenticacion `Sanctum Bearer`, alcance `CRUD + listados`, y subida de media por `multipart` en los mismos endpoints de creacion/edicion.
 Objetivo: que la app nativa pueda operar el ciclo completo de servicios sin depender de rutas web.
 
-### Cambios Clave de Implementación
+### Cambios Clave de Implementacion
 1. **Nuevo bloque API de servicios de proveedor (`/api/agent/services`)**
 - `GET /api/agent/services`: listado paginado de servicios del proveedor autenticado.
 - `POST /api/agent/services`: alta de servicio (campos funcionales + media multipart).
 - `GET /api/agent/services/{id}`: detalle de servicio propio.
-- `PUT/PATCH /api/agent/services/{id}`: edición de servicio propio (incluye reemplazo/alta de media).
-- `DELETE /api/agent/services/{id}`: baja lógica/física según comportamiento actual del sistema.
+- `PUT/PATCH /api/agent/services/{id}`: edicion de servicio propio (incluye reemplazo/alta de media).
+- `DELETE /api/agent/services/{id}`: baja logica/fisica segun comportamiento actual del sistema.
 
-2. **Autorización y reglas de acceso**
+2. **Autorizacion y reglas de acceso**
 - Requiere `auth:sanctum` en todo el bloque.
 - Solo `Proveedor de servicios` puede crear/editar/eliminar sus servicios.
 - Acceso por ownership estricto: un proveedor no puede operar servicios de otro.
@@ -24,44 +38,15 @@ Objetivo: que la app nativa pueda operar el ciclo completo de servicios sin depe
 
 3. **Contrato de datos v1 (estable para mobile)**
 - Unificar payload/response JSON de servicios con estructura consistente (`success`, `data`, `meta`, `message`, `errors`).
-- Mantener compatibilidad con catálogos y descubrimiento existentes (`/api/services`, `/api/services_for_map`) sin breaking changes.
-- Definir validaciones mínimas de v1 para alta/edición (campos obligatorios, tipos, límites de media).
+- Mantener compatibilidad con catalogos y descubrimiento existentes (`/api/services`, `/api/services_for_map`) sin breaking changes.
+- Definir validaciones minimas de v1 para alta/edicion (campos obligatorios, tipos, limites de media).
 
 4. **Media multipart en create/update**
 - Soportar subida de imagen/logo/video en `POST/PUT/PATCH`.
-- Reusar validaciones backend existentes de tamaño/formato.
-- Incluir en respuesta URLs canónicas para consumo directo de la app.
+- Reusar validaciones backend existentes de tamano/formato.
+- Incluir en respuesta URLs canonicas para consumo directo de la app.
 
-5. **Documentación y trazabilidad**
-- Publicar especificación funcional (tabla de endpoints, request/response, códigos de error).
+5. **Documentacion y trazabilidad**
+- Publicar especificacion funcional (tabla de endpoints, request/response, codigos de error).
 - Agregar ejemplos de requests mobile-ready (login + create/update service).
 - Registrar checklist de QA en `tasks.md` para cierre de entrega.
-
-### Plan de Pruebas
-1. **Autenticación y acceso**
-- Login válido retorna token usable.
-- Requests sin token fallan `401`.
-- Rol no proveedor falla `403` en create/update/delete.
-
-2. **CRUD servicios proveedor**
-- Crear servicio válido retorna `201` + payload normalizado.
-- Listado solo incluye servicios del usuario autenticado.
-- Ver/editar/eliminar servicio propio funciona.
-- Ver/editar/eliminar servicio ajeno falla `403/404` según política elegida.
-
-3. **Validaciones y errores**
-- Campos requeridos faltantes retornan `422` con detalle.
-- Media inválida (tipo/tamaño) retorna `422`.
-- IDs inexistentes retornan `404`.
-
-4. **Regresión sobre endpoints existentes**
-- `/api/services` y `/api/services_for_map` siguen operativos.
-- Endpoints de ratings actuales no se rompen.
-
-### Supuestos y Decisiones Cerradas
-- Auth v1: **Sanctum Bearer** (sin JWT paralelo).
-- Alcance v1: **CRUD + listados** de servicios de proveedor (sin analytics extra).
-- Media v1: **multipart directo** en create/update.
-- No se elimina de momento la capa web existente; se agrega capa API dedicada para mobile.
-- Cualquier endpoint legacy inseguro/heterogéneo fuera de este alcance se audita en una fase v1.1 de hardening.
-

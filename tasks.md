@@ -378,6 +378,9 @@
 - [x] Regresion minima API validada (2026-05-14): `ServiceRatingsApiTest` PASS + smoke `200` en `/api/services` y `/api/services_for_map`.
 - [x] Etapa 2 iniciada (2026-05-14): cobertura extendida en `ProviderServicesApiTest` para matriz de acceso (`403/404`) y validaciones `422` con contrato de errores.
 - [x] Etapa 2 completada (2026-05-14): limites de media aplicados en API v1 proveedores (`5MB` imagen, `50MB` video), politica `403/404` documentada y tests de tamano `422` en verde.
+- [x] Etapa 3 completada (2026-05-14): contrato JSON v1 validado en respuestas de exito y error del CRUD proveedor.
+- [x] Etapa 4 completada (2026-05-14): lifecycle de media multipart validado en update (replace cover/video + delete selectivo de `more_images`).
+- [x] Etapa 5 completada (2026-05-14): plan/documentacion y checklist QA final consolidados para release readiness.
 
 ### Security Backlog
 - [ ] Rotar secretos actuales (`APP_KEY`, API keys, credenciales DB).
