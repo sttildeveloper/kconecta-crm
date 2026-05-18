@@ -26,6 +26,18 @@ class EnsureProviderOrAgentEmailIsVerified
         ], true);
 
         if ($isProviderOrAgent && ! $user->hasVerifiedEmail()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'meta' => null,
+                    'message' => 'Tu cuenta requiere verificacion de email.',
+                    'errors' => [
+                        'code' => 'EMAIL_NOT_VERIFIED',
+                    ],
+                ], 403);
+            }
+
             return redirect()->route('verification.notice');
         }
 
