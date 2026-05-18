@@ -41,16 +41,22 @@ class ApiController extends Controller
         if (! $user) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'UNAUTHENTICATED',
                 'message' => 'Debes iniciar sesion.',
+                'errors' => null,
             ], 401);
         }
 
         if ((int) $user->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'ROLE_NOT_ALLOWED',
                 'message' => 'Solo un proveedor puede generar codigos de trabajo.',
+                'errors' => null,
             ], 403);
         }
 
@@ -61,6 +67,9 @@ class ApiController extends Controller
             'data' => [
                 'code' => $code,
             ],
+            'meta' => null,
+            'message' => 'Codigo generado correctamente.',
+            'errors' => null,
         ], 201);
     }
 
@@ -71,24 +80,33 @@ class ApiController extends Controller
         if (! $client) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'UNAUTHENTICATED',
                 'message' => 'Debes iniciar sesion.',
+                'errors' => null,
             ], 401);
         }
 
         if (! $serviceRatingService->isFinalClient($client)) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'ROLE_NOT_ALLOWED',
                 'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
+                'errors' => null,
             ], 403);
         }
 
         if (! $client->hasVerifiedEmail()) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'EMAIL_NOT_VERIFIED',
                 'message' => 'Debes verificar tu email para valorar.',
+                'errors' => null,
             ], 403);
         }
 
@@ -115,8 +133,11 @@ class ApiController extends Controller
 
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => $errorCode,
                 'message' => $message,
+                'errors' => null,
             ], $status);
         }
 
@@ -124,6 +145,8 @@ class ApiController extends Controller
             'success' => true,
             'message' => 'Valoracion registrada correctamente.',
             'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
+            'meta' => null,
+            'errors' => null,
         ]);
     }
 
@@ -134,24 +157,33 @@ class ApiController extends Controller
         if (! $client) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'UNAUTHENTICATED',
                 'message' => 'Debes iniciar sesion.',
+                'errors' => null,
             ], 401);
         }
 
         if (! $serviceRatingService->isFinalClient($client)) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'ROLE_NOT_ALLOWED',
                 'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
+                'errors' => null,
             ], 403);
         }
 
         if (! $client->hasVerifiedEmail()) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'EMAIL_NOT_VERIFIED',
                 'message' => 'Debes verificar tu email para valorar.',
+                'errors' => null,
             ], 403);
         }
 
@@ -176,8 +208,11 @@ class ApiController extends Controller
 
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => $errorCode,
                 'message' => $message,
+                'errors' => null,
             ], 422);
         }
 
@@ -185,6 +220,8 @@ class ApiController extends Controller
             'success' => true,
             'message' => 'Valoracion registrada correctamente.',
             'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
+            'meta' => null,
+            'errors' => null,
         ]);
     }
 
@@ -197,8 +234,11 @@ class ApiController extends Controller
         if (! $provider || (int) $provider->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
             return response()->json([
                 'success' => false,
+                'data' => null,
+                'meta' => null,
                 'error' => 'PROVIDER_NOT_ALLOWED',
                 'message' => 'El proveedor indicado no es valido.',
+                'errors' => null,
             ], 404);
         }
 
@@ -207,6 +247,9 @@ class ApiController extends Controller
         return response()->json([
             'success' => true,
             'data' => $serviceRatingService->providerRatingSummary($providerUserId, $authUser),
+            'meta' => null,
+            'message' => null,
+            'errors' => null,
         ]);
     }
 

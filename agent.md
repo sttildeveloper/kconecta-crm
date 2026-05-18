@@ -318,3 +318,11 @@ Operate and evolve `kconecta-crm` with focus on:
 - API v1 proveedores completada por etapas con trazabilidad y commits locales por etapa.
 - Pruebas finales de API en verde (`tests/Feature/Api`).
 - Sin push realizado por riesgo de autodeploy; siguiente accion bloqueada hasta instrucciones de JM/Gala.
+
+- Context update `2026-05-18`:
+- Auditoria API para app movil de proveedores ejecutada y gaps cerrados en local Docker.
+- Nuevo endpoint de catalogo para mobile: `GET /api/agent/service-types`.
+- Contrato JSON v1 unificado en auth, ratings y modulo `agent/properties`.
+- Endpoint legacy `GET /api/delete_more_image` retirado con `410`.
+- Fallback legacy de password en texto plano eliminado del login API.
+- Validacion final: `tests/Feature/Api` en verde.

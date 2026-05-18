@@ -183,6 +183,15 @@
 - Suite final API ejecutada en Docker: `tests/Feature/Api` en verde.
 - Estado operativo actual: en espera de nuevas instrucciones de JM y Gala para continuar roadmap movil.
 
+## Context update (2026-05-18)
+- Auditoria de readiness para app nativa completada.
+- Gaps tecnicos de API cerrados en entorno local Docker:
+- contrato JSON v1 reforzado en auth/ratings/agent-properties.
+- endpoint de catalogo `service_type` agregado para app movil.
+- endpoint legacy inseguro `delete_more_image` retirado (410).
+- fallback legacy de password en texto plano removido del login API.
+- suite `tests/Feature/Api` validada en verde.
+
 ## Sub-plan: Backend Calculador Catastral (Precios M2)
 *Plan de implementación asíncrona para la importación y cálculo de precios por metro cuadrado.*
 

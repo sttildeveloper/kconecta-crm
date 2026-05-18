@@ -31,6 +31,7 @@ class AuthApiTest extends TestCase
 
         $loginResponse->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.token_type', 'Bearer')
             ->assertJsonPath('token_type', 'Bearer');
 
         $token = $loginResponse->json('token');
@@ -45,4 +46,3 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('user.email', $user->email);
     }
 }
-

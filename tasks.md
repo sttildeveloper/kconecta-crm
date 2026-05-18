@@ -418,3 +418,12 @@
 - [x] API v1 proveedores cerrada por etapas (1-5) con validacion final `tests/Feature/Api` en verde.
 - [x] Commits por etapa aplicados localmente, sin push (evitar autodeploy).
 - [ ] Esperar instrucciones de JM y Gala para siguiente bloque de desarrollo de app movil.
+
+- Context update `2026-05-18`:
+- [x] Gaps de auditoria mobile cerrados en backend local Docker:
+- [x] catalogo API para `service_type` agregado: `GET /api/agent/service-types`.
+- [x] contrato JSON v1 reforzado en auth (`/api/login`, `/api/me`, `/api/logout`) y ratings (`/api/service-ratings*`).
+- [x] endpoints API de propiedades `agent/*` alineados a contrato JSON v1 (`success`, `data`, `meta`, `message`, `errors`).
+- [x] endpoint legacy `GET /api/delete_more_image` retirado con respuesta `410` y ruta moderna documentada.
+- [x] fallback de password en texto plano eliminado del login API.
+- [x] validacion final API en Docker: `tests/Feature/Api` PASS (20 tests, 177 assertions).

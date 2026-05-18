@@ -65,7 +65,7 @@ class PropertyApiController extends Controller
         $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
 
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $isAdmin = (int) $user->user_level_id === 1;
@@ -105,16 +105,13 @@ class PropertyApiController extends Controller
             )
         )->values()->all();
 
-        return response()->json([
-            'data' => $data,
-            'meta' => [
-                'current_page' => $properties->currentPage(),
-                'total' => $properties->total(),
-                'per_page' => $properties->perPage(),
-                'next_page' => $properties->nextPageUrl(),
-                'prev_page' => $properties->previousPageUrl(),
-            ],
-        ], 200);
+        return $this->successResponse($data, [
+            'current_page' => $properties->currentPage(),
+            'total' => $properties->total(),
+            'per_page' => $properties->perPage(),
+            'next_page' => $properties->nextPageUrl(),
+            'prev_page' => $properties->previousPageUrl(),
+        ]);
     }
 
     public function show(Request $request, int $id)
@@ -122,18 +119,18 @@ class PropertyApiController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $isAdmin = (int) $user->user_level_id === 1;
 
         $property = Property::query()->find($id);
         if (! $property) {
-            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+            return $this->errorResponse('Propiedad no encontrada', 404);
         }
 
         if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->errorResponse('No autorizado', 403);
         }
 
         $typeMap = $property->type_id
@@ -149,7 +146,7 @@ class PropertyApiController extends Controller
         $videos = Video::query()->where('property_id', (int) $property->id)->get();
         $detailContext = $this->buildDetailContext($property, $address, $owner);
 
-        return response()->json(
+        return $this->successResponse(
             $this->formatProperty(
                 $property,
                 $typeMap,
@@ -160,15 +157,14 @@ class PropertyApiController extends Controller
                 $moreImages->all(),
                 $videos->all(),
                 $detailContext
-            ),
-            200
+            )
         );
     }
 
     public function propertyTypes(Request $request)
     {
         if (! $request->user()) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $featured = [
@@ -185,46 +181,44 @@ class PropertyApiController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return response()->json([
-            'data' => $types->map(function (Type $type) use ($featured) {
+        return $this->successResponse(
+            $types->map(function (Type $type) use ($featured) {
                 return [
                     'id' => (int) $type->id,
                     'name' => $type->name,
                     'description' => $featured[(int) $type->id] ?? null,
                 ];
-            })->values(),
-        ], 200);
+            })->values()
+        );
     }
 
     public function propertyFormCatalogs(Request $request, PropertyFormCatalogsService $catalogsService)
     {
         if (! $request->user()) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $typeId = (int) $request->query('type_id');
         if (! $catalogsService->supportsType($typeId)) {
-            return response()->json(['message' => 'type_id invalido'], 422);
+            return $this->errorResponse('type_id invalido', 422);
         }
 
-        return response()->json([
-            'data' => [
-                'type_id' => $typeId,
-                'catalogs' => $catalogsService->buildForType($typeId),
-            ],
-        ], 200);
+        return $this->successResponse([
+            'type_id' => $typeId,
+            'catalogs' => $catalogsService->buildForType($typeId),
+        ]);
     }
 
     public function store(Request $request)
     {
         $user = $request->user();
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $mediaValidationError = $this->validateMediaUploads($request);
         if ($mediaValidationError) {
-            return response()->json(['message' => $mediaValidationError], 422);
+            return $this->errorResponse($mediaValidationError, 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -249,7 +243,7 @@ class PropertyApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Datos invalidos', 'errors' => $validator->errors()], 422);
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors()->toArray());
         }
 
         $isAdmin = (int) $user->user_level_id === 1;
@@ -287,37 +281,34 @@ class PropertyApiController extends Controller
         } catch (\RuntimeException $error) {
             $this->deletePropertyGraph($property);
 
-            return response()->json(['message' => $error->getMessage()], 500);
+            return $this->errorResponse($error->getMessage(), 500);
         }
 
-        return response()->json([
-            'message' => 'Propiedad creada',
-            'data' => $property->fresh(),
-        ], 201);
+        return $this->successResponse($property->fresh(), null, 'Propiedad creada', 201);
     }
 
     public function update(Request $request, int $id)
     {
         $user = $request->user();
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $property = Property::query()->find($id);
         if (! $property) {
-            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+            return $this->errorResponse('Propiedad no encontrada', 404);
         }
 
         $typeChanged = $request->filled('type_id') && (int) $request->input('type_id') !== (int) $property->type_id;
 
         $isAdmin = (int) $user->user_level_id === 1;
         if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->errorResponse('No autorizado', 403);
         }
 
         $mediaValidationError = $this->validateMediaUploads($request);
         if ($mediaValidationError) {
-            return response()->json(['message' => $mediaValidationError], 422);
+            return $this->errorResponse($mediaValidationError, 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -342,7 +333,7 @@ class PropertyApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Datos invalidos', 'errors' => $validator->errors()], 422);
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors()->toArray());
         }
 
         $payload = [];
@@ -399,62 +390,59 @@ class PropertyApiController extends Controller
         try {
             $this->persistMediaUploads($request, $property);
         } catch (\RuntimeException $error) {
-            return response()->json(['message' => $error->getMessage()], 500);
+            return $this->errorResponse($error->getMessage(), 500);
         }
 
-        return response()->json([
-            'message' => 'Propiedad actualizada',
-            'data' => $property->fresh(),
-        ], 200);
+        return $this->successResponse($property->fresh(), null, 'Propiedad actualizada');
     }
 
     public function destroy(Request $request, int $id)
     {
         $user = $request->user();
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $property = Property::query()->find($id);
         if (! $property) {
-            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+            return $this->errorResponse('Propiedad no encontrada', 404);
         }
 
         $isAdmin = (int) $user->user_level_id === 1;
         if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->errorResponse('No autorizado', 403);
         }
 
         $this->deletePropertyGraph($property);
 
-        return response()->json(['message' => 'Propiedad eliminada'], 200);
+        return $this->successResponse(null, null, 'Propiedad eliminada');
     }
 
     public function destroyMoreImage(Request $request, int $imageId)
     {
         $user = $request->user();
         if (! $user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->errorResponse('No autenticado', 401);
         }
 
         $image = MoreImage::query()->find($imageId);
         if (! $image) {
-            return response()->json(['message' => 'Imagen no encontrada'], 404);
+            return $this->errorResponse('Imagen no encontrada', 404);
         }
 
         $property = Property::query()->find((int) $image->property_id);
         if (! $property) {
-            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+            return $this->errorResponse('Propiedad no encontrada', 404);
         }
 
         $isAdmin = (int) $user->user_level_id === 1;
         if (! $isAdmin && (int) $property->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->errorResponse('No autorizado', 403);
         }
 
         $image->delete();
 
-        return response()->json(['message' => 'Imagen eliminada'], 200);
+        return $this->successResponse(null, null, 'Imagen eliminada');
     }
 
     private function validateMediaUploads(Request $request): ?string
@@ -1294,6 +1282,28 @@ class PropertyApiController extends Controller
             : 'img/uploads/' . $normalized;
 
         return $this->normalizeImageHost(asset($relativePath));
+    }
+
+    private function successResponse(mixed $data, ?array $meta = null, ?string $message = null, int $status = 200)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => $meta,
+            'message' => $message,
+            'errors' => null,
+        ], $status);
+    }
+
+    private function errorResponse(string $message, int $status, ?array $errors = null)
+    {
+        return response()->json([
+            'success' => false,
+            'data' => null,
+            'meta' => null,
+            'message' => $message,
+            'errors' => $errors,
+        ], $status);
     }
 
     private function normalizeImageHost(string $url): string

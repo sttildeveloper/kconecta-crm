@@ -101,6 +101,30 @@ class ProviderServiceApiController extends Controller
         ]);
     }
 
+    public function serviceTypes(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        $types = ServiceType::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (ServiceType $type) => [
+                'id' => (int) $type->id,
+                'name' => $type->name,
+            ])
+            ->values()
+            ->all();
+
+        return $this->successResponse($types);
+    }
+
     public function store(Request $request)
     {
         $user = $request->user();

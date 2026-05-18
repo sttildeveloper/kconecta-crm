@@ -12,7 +12,13 @@ Route::get('/properties', [ApiController::class, 'searchProperties']);
 Route::get('/services', [ApiController::class, 'searchServices']);
 Route::get('/properties_for_map', [ApiController::class, 'dataPropertiesForMap']);
 Route::get('/services_for_map', [ApiController::class, 'dataServicesForMap']);
-Route::get('/delete_more_image', [ApiController::class, 'deleteMoreImage']);
+Route::get('/delete_more_image', fn () => response()->json([
+    'success' => false,
+    'data' => null,
+    'meta' => null,
+    'message' => 'Endpoint legacy retirado. Usa DELETE /api/agent/property-images/{imageId}.',
+    'errors' => null,
+], 410));
 Route::post('/visitor/save', [ApiController::class, 'visitorRegister']);
 Route::post('/visitor/contacted', [ApiController::class, 'visitorContactedUpdate']);
 Route::post('/google/user/verify_token_google', [ApiController::class, 'verifyTokenGoogleFloat']);
@@ -39,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
+    Route::get('/agent/service-types', [ProviderServiceApiController::class, 'serviceTypes']);
     Route::delete('/agent/property-images/{imageId}', [PropertyApiController::class, 'destroyMoreImage']);
     Route::apiResource('/agent/properties', PropertyApiController::class);
     Route::apiResource('/agent/services', ProviderServiceApiController::class);

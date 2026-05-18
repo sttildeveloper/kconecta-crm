@@ -65,6 +65,29 @@ class ProviderServicesApiTest extends TestCase
         $this->actingAs($client, 'sanctum')
             ->deleteJson('/api/agent/services/' . $service->id)
             ->assertStatus(403);
+
+        $this->actingAs($client, 'sanctum')
+            ->getJson('/api/agent/service-types')
+            ->assertStatus(403);
+    }
+
+    public function test_provider_can_list_service_types_for_mobile_catalog(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-catalog@test.dev');
+        ServiceType::query()->create(['name' => 'Pintura']);
+        ServiceType::query()->create(['name' => 'Fontaneria']);
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/service-types');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'data' => [['id', 'name']],
+                'meta',
+                'message',
+                'errors',
+            ]);
     }
 
     public function test_provider_can_create_and_list_only_own_services(): void

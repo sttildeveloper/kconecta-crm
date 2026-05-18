@@ -19,11 +19,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos de autenticacion invalidos.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->errorResponse('Datos de autenticacion invalidos.', 422, $validator->errors()->toArray());
         }
 
         $email = (string) $request->input('email');
@@ -31,17 +27,11 @@ class AuthController extends Controller
 
         $user = User::where('email', $email)->first();
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciales incorrectas',
-            ], 401);
+            return $this->errorResponse('Credenciales incorrectas', 401);
         }
 
         if (isset($user->is_active) && (int) $user->is_active === 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Usuario desactivado',
-            ], 403);
+            return $this->errorResponse('Usuario desactivado', 403);
         }
 
         $storedPassword = (string) $user->password;
@@ -50,20 +40,10 @@ class AuthController extends Controller
 
         if (! empty($hashInfo['algo'])) {
             $validPassword = Hash::check($password, $storedPassword);
-        } else {
-            $validPassword = hash_equals($storedPassword, $password);
-            if ($validPassword) {
-                // Auto-upgrade plain legacy password.
-                $user->password = Hash::make($password);
-                $user->save();
-            }
         }
 
         if (! $validPassword) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciales incorrectas',
-            ], 401);
+            return $this->errorResponse('Credenciales incorrectas', 401);
         }
 
         Auth::login($user);
@@ -72,6 +52,15 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
+            'data' => [
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user,
+            ],
+            'meta' => null,
+            'message' => 'Login exitoso',
+            'errors' => null,
+            // Backward compatibility (legacy mobile/web consumers)
             'token' => $token,
             'token_type' => 'Bearer',
             'user' => $user,
@@ -83,14 +72,18 @@ class AuthController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not authenticated',
-            ], 401);
+            return $this->errorResponse('User not authenticated', 401);
         }
 
         return response()->json([
             'success' => true,
+            'data' => [
+                'user' => $user,
+            ],
+            'meta' => null,
+            'message' => null,
+            'errors' => null,
+            // Backward compatibility
             'user' => $user,
         ]);
     }
@@ -100,10 +93,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not authenticated',
-            ], 401);
+            return $this->errorResponse('User not authenticated', 401);
         }
 
         if ($user->currentAccessToken()) {
@@ -112,7 +102,21 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
+            'data' => null,
+            'meta' => null,
             'message' => 'User logged out successfully',
+            'errors' => null,
         ]);
+    }
+
+    private function errorResponse(string $message, int $status, ?array $errors = null)
+    {
+        return response()->json([
+            'success' => false,
+            'data' => null,
+            'meta' => null,
+            'message' => $message,
+            'errors' => $errors,
+        ], $status);
     }
 }
