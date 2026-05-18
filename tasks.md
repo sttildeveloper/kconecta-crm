@@ -437,3 +437,10 @@
 - [x] Contrato `401` unificado para rutas API via manejador de excepciones (`bootstrap/app.php`).
 - [x] Ruta web legacy que colisionaba con `/api/delete_more_image` eliminada (`routes/web.php`).
 - [x] Cobertura `PropertyApiContractTest` agregada para contrato en `agent/properties` y deprecacion `410` legacy endpoint.
+
+- Context update `2026-05-18` - Cero deuda (Paso 3):
+- [x] Hardening auth API: `POST /api/login` con rate-limit (`throttle:10,1`).
+- [x] Logout API endurecido: revocacion robusta de token personal y cierre de sesion web.
+- [x] Endpoints utilitarios legacy (`visitor/*`, `property_stats/register`, `verify_token_google`, `send/message/*`) alineados a contrato JSON v1 con compatibilidad legacy.
+- [x] Cobertura `AuthApiTest` y nueva `LegacyUtilityApiContractTest` en verde.
+- [x] Suite API Docker validada: `tests/Feature/Api` PASS (30 tests, 267 assertions).

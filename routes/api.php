@@ -31,7 +31,7 @@ Route::get('/cadastral/estimate', [CadastralController::class, 'estimate']);
 Route::post('/cadastral/advanced-estimate', [CadastralController::class, 'advancedEstimate']);
 
 // Mobile app auth + agent endpoints
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::get('/test-now', fn () => response()->json(['message' => 'API is working']));
 
 Route::middleware('orchestrator.key')->prefix('orchestrate')->group(function () {

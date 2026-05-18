@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -96,8 +98,23 @@ class AuthController extends Controller
             return $this->errorResponse('User not authenticated', 401);
         }
 
-        if ($user->currentAccessToken()) {
-            $user->currentAccessToken()->delete();
+        $currentToken = $user->currentAccessToken();
+        if ($currentToken && ! ($currentToken instanceof TransientToken)) {
+            $currentToken->delete();
+        } else {
+            $rawBearerToken = (string) ($request->bearerToken() ?? '');
+            if ($rawBearerToken !== '') {
+                $accessToken = PersonalAccessToken::findToken($rawBearerToken);
+                if ($accessToken && (int) $accessToken->tokenable_id === (int) $user->id) {
+                    $accessToken->delete();
+                }
+            }
+        }
+
+        Auth::guard('web')->logout();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
         return response()->json([

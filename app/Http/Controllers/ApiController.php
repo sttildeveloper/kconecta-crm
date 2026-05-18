@@ -34,6 +34,28 @@ use Illuminate\Support\Facades\Http;
 
 class ApiController extends Controller
 {
+    private function successResponse(mixed $data = null, ?array $meta = null, ?string $message = null, int $status = 200, array $legacy = [])
+    {
+        return response()->json(array_merge([
+            'success' => true,
+            'data' => $data,
+            'meta' => $meta,
+            'message' => $message,
+            'errors' => null,
+        ], $legacy), $status);
+    }
+
+    private function errorResponse(string $message, int $status, ?array $errors = null, array $legacy = [])
+    {
+        return response()->json(array_merge([
+            'success' => false,
+            'data' => null,
+            'meta' => null,
+            'message' => $message,
+            'errors' => $errors,
+        ], $legacy), $status);
+    }
+
     public function createServiceWorkCode(StoreServiceWorkCodeRequest $request, ServiceRatingService $serviceRatingService)
     {
         $user = $request->user();
@@ -649,7 +671,7 @@ class ApiController extends Controller
     public function deleteMoreImage(Request $request)
     {
         if (! Auth::check()) {
-            return response()->json(['status' => 403], 403);
+            return $this->errorResponse('No autenticado', 403, null, ['status' => 403]);
         }
 
         $id = $request->query('id');
@@ -657,7 +679,7 @@ class ApiController extends Controller
             MoreImage::where('id', $id)->delete();
         }
 
-        return response()->json(['status' => 200]);
+        return $this->successResponse(null, null, 'Imagen eliminada', 200, ['status' => 200]);
     }
 
     public function visitorRegister(Request $request)
@@ -673,7 +695,7 @@ class ApiController extends Controller
             'contacted' => null,
         ]);
 
-        return response()->json(['status' => 200, 'id' => $postVisit->id]);
+        return $this->successResponse(['id' => $postVisit->id], null, 'Visita registrada', 200, ['status' => 200, 'id' => $postVisit->id]);
     }
 
     public function visitorContactedUpdate(Request $request)
@@ -681,17 +703,17 @@ class ApiController extends Controller
         $rowId = $request->post('row_id');
         if (! empty($rowId)) {
             PostVisit::where('id', $rowId)->update(['contacted' => 1]);
-            return response()->json(['status' => 200, 'post_id' => $rowId]);
+            return $this->successResponse(['post_id' => $rowId], null, 'Visita marcada como contactada', 200, ['status' => 200, 'post_id' => $rowId]);
         }
 
-        return response()->json(['status' => 503, 'post_id' => $rowId]);
+        return $this->errorResponse('No se pudo actualizar la visita', 503, null, ['status' => 503, 'post_id' => $rowId]);
     }
 
     public function verifyTokenGoogleFloat(Request $request)
     {
         $token = $request->post('credential');
         if (empty($token)) {
-            return response()->json(['success' => false, 'error' => 'Token missing'], 400);
+            return $this->errorResponse('Token missing', 400, null, ['error' => 'Token missing']);
         }
 
         $response = Http::get('https://oauth2.googleapis.com/tokeninfo', [
@@ -699,13 +721,13 @@ class ApiController extends Controller
         ]);
 
         if (! $response->ok()) {
-            return response()->json(['success' => false, 'error' => 'Token invalido'], 400);
+            return $this->errorResponse('Token invalido', 400, null, ['error' => 'Token invalido']);
         }
 
         $payload = $response->json();
         $clientId = config('services.google.client_id');
         if (! empty($clientId) && isset($payload['aud']) && $payload['aud'] !== $clientId) {
-            return response()->json(['success' => false, 'error' => 'Token invalido'], 400);
+            return $this->errorResponse('Token invalido', 400, null, ['error' => 'Token invalido']);
         }
 
         $userData = [
@@ -723,7 +745,7 @@ class ApiController extends Controller
             );
         }
 
-        return response()->json(['success' => true, 'user' => $userData]);
+        return $this->successResponse(['user' => $userData], null, null, 200, ['user' => $userData]);
     }
 
     public function sendEmailContactUser(Request $request)
@@ -767,7 +789,11 @@ class ApiController extends Controller
             }
         }
 
-        return response()->json(['status' => $sent ? 200 : 500]);
+        if (! $sent) {
+            return $this->errorResponse('No se pudo enviar el correo', 500, null, ['status' => 500]);
+        }
+
+        return $this->successResponse(null, null, 'Correo enviado', 200, ['status' => 200]);
     }
 
     public function sendEmailShare(Request $request)
@@ -799,7 +825,7 @@ class ApiController extends Controller
             $emailService->send($email, 'Mira este inmueble', $template);
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Emails sent successfully']);
+        return $this->successResponse(null, null, 'Emails sent successfully', 200, ['status' => 'success']);
     }
 
     public function propertyStatsConfig(Request $request)
@@ -838,6 +864,6 @@ class ApiController extends Controller
             }
         }
 
-        return response()->json(['status' => 200]);
+        return $this->successResponse(null, null, 'Estadistica registrada', 200, ['status' => 200]);
     }
 }
