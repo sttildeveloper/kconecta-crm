@@ -427,3 +427,8 @@
 - [x] endpoint legacy `GET /api/delete_more_image` retirado con respuesta `410` y ruta moderna documentada.
 - [x] fallback de password en texto plano eliminado del login API.
 - [x] validacion final API en Docker: `tests/Feature/Api` PASS (20 tests, 177 assertions).
+
+- Context update `2026-05-18` - Cero deuda (Paso 1):
+- [x] Endpoints publicos de discovery (`/api/properties`, `/api/services`, `/api/properties_for_map`, `/api/services_for_map`) alineados a contrato JSON v1.
+- [x] Compatibilidad legacy preservada (`status`, `province`) para no romper consumidores web existentes.
+- [x] Cobertura nueva `PublicDiscoveryApiTest` agregada y en verde.

@@ -312,8 +312,15 @@ class ApiController extends Controller
         $addressCounter = array_slice($addressCounter, 0, 7, true);
 
         return response()->json([
-            'status' => 200,
+            'success' => true,
             'data' => $addressCounter,
+            'meta' => [
+                'province' => $provinceCounter,
+            ],
+            'message' => null,
+            'errors' => null,
+            // Backward compatibility
+            'status' => 200,
             'province' => $provinceCounter,
         ]);
     }
@@ -390,8 +397,15 @@ class ApiController extends Controller
         $addressCounter = array_slice($addressCounter, 0, 7, true);
 
         return response()->json([
-            'status' => 200,
+            'success' => true,
             'data' => $addressCounter,
+            'meta' => [
+                'province' => $provinceCounter,
+            ],
+            'message' => null,
+            'errors' => null,
+            // Backward compatibility
+            'status' => 200,
             'province' => $provinceCounter,
         ]);
     }
@@ -492,7 +506,15 @@ class ApiController extends Controller
             }
         }
 
-        return response()->json(['status' => 200, 'data' => $dataProperties]);
+        return response()->json([
+            'success' => true,
+            'data' => $dataProperties,
+            'meta' => null,
+            'message' => null,
+            'errors' => null,
+            // Backward compatibility
+            'status' => 200,
+        ]);
     }
 
     public function dataServicesForMap(Request $request)
@@ -613,7 +635,15 @@ class ApiController extends Controller
             ];
         }
 
-        return response()->json(['status' => 200, 'data' => $dataProperties]);
+        return response()->json([
+            'success' => true,
+            'data' => $dataProperties,
+            'meta' => null,
+            'message' => null,
+            'errors' => null,
+            // Backward compatibility
+            'status' => 200,
+        ]);
     }
 
     public function deleteMoreImage(Request $request)
