@@ -61,38 +61,18 @@ class ApiController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'UNAUTHENTICATED',
-                'message' => 'Debes iniciar sesion.',
-                'errors' => null,
-            ], 401);
+            return $this->errorResponse('Debes iniciar sesion.', 401, ['code' => 'UNAUTHENTICATED']);
         }
 
         if ((int) $user->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'ROLE_NOT_ALLOWED',
-                'message' => 'Solo un proveedor puede generar codigos de trabajo.',
-                'errors' => null,
-            ], 403);
+            return $this->errorResponse('Solo un proveedor puede generar codigos de trabajo.', 403, ['code' => 'ROLE_NOT_ALLOWED']);
         }
 
         $code = $serviceRatingService->createWorkCode((int) $user->id);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'code' => $code,
-            ],
-            'meta' => null,
-            'message' => 'Codigo generado correctamente.',
-            'errors' => null,
-        ], 201);
+        return $this->successResponse([
+            'code' => $code,
+        ], null, 'Codigo generado correctamente.', 201);
     }
 
     public function storeServiceRating(StoreServiceRatingRequest $request, ServiceRatingService $serviceRatingService)
@@ -100,36 +80,15 @@ class ApiController extends Controller
         $client = $request->user();
 
         if (! $client) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'UNAUTHENTICATED',
-                'message' => 'Debes iniciar sesion.',
-                'errors' => null,
-            ], 401);
+            return $this->errorResponse('Debes iniciar sesion.', 401, ['code' => 'UNAUTHENTICATED']);
         }
 
         if (! $serviceRatingService->isFinalClient($client)) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'ROLE_NOT_ALLOWED',
-                'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
-                'errors' => null,
-            ], 403);
+            return $this->errorResponse('Solo el perfil Cliente final puede valorar proveedores.', 403, ['code' => 'ROLE_NOT_ALLOWED']);
         }
 
         if (! $client->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'EMAIL_NOT_VERIFIED',
-                'message' => 'Debes verificar tu email para valorar.',
-                'errors' => null,
-            ], 403);
+            return $this->errorResponse('Debes verificar tu email para valorar.', 403, ['code' => 'EMAIL_NOT_VERIFIED']);
         }
 
         $providerUserId = (int) $request->integer('provider_user_id');
@@ -153,23 +112,14 @@ class ApiController extends Controller
                 $message = 'El codigo de trabajo ya fue usado.';
             }
 
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => $errorCode,
-                'message' => $message,
-                'errors' => null,
-            ], $status);
+            return $this->errorResponse($message, $status, ['code' => $errorCode]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Valoracion registrada correctamente.',
-            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
-            'meta' => null,
-            'errors' => null,
-        ]);
+        return $this->successResponse(
+            $serviceRatingService->providerRatingSummary($providerUserId, $client),
+            null,
+            'Valoracion registrada correctamente.'
+        );
     }
 
     public function storeServiceRatingByCode(StoreServiceRatingByCodeRequest $request, ServiceRatingService $serviceRatingService)
@@ -177,36 +127,15 @@ class ApiController extends Controller
         $client = $request->user();
 
         if (! $client) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'UNAUTHENTICATED',
-                'message' => 'Debes iniciar sesion.',
-                'errors' => null,
-            ], 401);
+            return $this->errorResponse('Debes iniciar sesion.', 401, ['code' => 'UNAUTHENTICATED']);
         }
 
         if (! $serviceRatingService->isFinalClient($client)) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'ROLE_NOT_ALLOWED',
-                'message' => 'Solo el perfil Cliente final puede valorar proveedores.',
-                'errors' => null,
-            ], 403);
+            return $this->errorResponse('Solo el perfil Cliente final puede valorar proveedores.', 403, ['code' => 'ROLE_NOT_ALLOWED']);
         }
 
         if (! $client->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'EMAIL_NOT_VERIFIED',
-                'message' => 'Debes verificar tu email para valorar.',
-                'errors' => null,
-            ], 403);
+            return $this->errorResponse('Debes verificar tu email para valorar.', 403, ['code' => 'EMAIL_NOT_VERIFIED']);
         }
 
         $stars = (int) $request->integer('stars');
@@ -228,23 +157,14 @@ class ApiController extends Controller
                 $message = 'El codigo de trabajo ya fue usado.';
             }
 
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => $errorCode,
-                'message' => $message,
-                'errors' => null,
-            ], 422);
+            return $this->errorResponse($message, 422, ['code' => $errorCode]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Valoracion registrada correctamente.',
-            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $client),
-            'meta' => null,
-            'errors' => null,
-        ]);
+        return $this->successResponse(
+            $serviceRatingService->providerRatingSummary($providerUserId, $client),
+            null,
+            'Valoracion registrada correctamente.'
+        );
     }
 
     public function providerServiceRatingSummary(Request $request, int $providerUserId, ServiceRatingService $serviceRatingService)
@@ -254,25 +174,12 @@ class ApiController extends Controller
             ->first(['id', 'user_level_id']);
 
         if (! $provider || (int) $provider->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => null,
-                'error' => 'PROVIDER_NOT_ALLOWED',
-                'message' => 'El proveedor indicado no es valido.',
-                'errors' => null,
-            ], 404);
+            return $this->errorResponse('El proveedor indicado no es valido.', 404, ['code' => 'PROVIDER_NOT_ALLOWED']);
         }
 
         $authUser = $request->user() ?: $request->user('sanctum');
 
-        return response()->json([
-            'success' => true,
-            'data' => $serviceRatingService->providerRatingSummary($providerUserId, $authUser),
-            'meta' => null,
-            'message' => null,
-            'errors' => null,
-        ]);
+        return $this->successResponse($serviceRatingService->providerRatingSummary($providerUserId, $authUser));
     }
 
     public function searchProperties(Request $request)

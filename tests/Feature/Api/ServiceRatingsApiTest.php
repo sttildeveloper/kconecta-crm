@@ -35,7 +35,7 @@ class ServiceRatingsApiTest extends TestCase
             'stars' => 4,
         ]);
 
-        $response->assertStatus(403)->assertJsonPath('error', 'EMAIL_NOT_VERIFIED');
+        $response->assertStatus(403)->assertJsonPath('errors.code', 'EMAIL_NOT_VERIFIED');
     }
 
     public function test_verified_final_client_can_rate_with_valid_code_and_code_is_consumed(): void
