@@ -38,8 +38,6 @@ Route::middleware(['auth', 'provider_or_agent_verified'])->group(function () {
     Route::get('/post/update_form/{id}', [PostController::class, 'updateForm']);
     Route::get('/post/delete', [PostController::class, 'delete']);
     Route::get('/post/disabledenabled', [PostController::class, 'disabledEnabled']);
-    Route::get('/api/delete_more_image', [PostController::class, 'deleteMoreImage']);
-
     Route::get('/post/services', [PostController::class, 'services']);
     Route::get('/post/services/delete', [PostController::class, 'servicesDelete']);
     Route::get('/post/services/update_form/{id}', [PostController::class, 'servicesUpdate']);

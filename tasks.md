@@ -432,3 +432,8 @@
 - [x] Endpoints publicos de discovery (`/api/properties`, `/api/services`, `/api/properties_for_map`, `/api/services_for_map`) alineados a contrato JSON v1.
 - [x] Compatibilidad legacy preservada (`status`, `province`) para no romper consumidores web existentes.
 - [x] Cobertura nueva `PublicDiscoveryApiTest` agregada y en verde.
+
+- Context update `2026-05-18` - Cero deuda (Paso 2):
+- [x] Contrato `401` unificado para rutas API via manejador de excepciones (`bootstrap/app.php`).
+- [x] Ruta web legacy que colisionaba con `/api/delete_more_image` eliminada (`routes/web.php`).
+- [x] Cobertura `PropertyApiContractTest` agregada para contrato en `agent/properties` y deprecacion `410` legacy endpoint.
