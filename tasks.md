@@ -451,4 +451,10 @@
 - [x] Verificación de residuos `Ã/Â` en archivos críticos sin hallazgos.
 - [x] Regresión API en Docker validada: `tests/Feature/Api` PASS (30 tests, 267 assertions).
 
+- Context update `2026-05-18` - Cero deuda (Paso 5):
+- [x] Deuda de testing catastral cerrada:
+- [x] `CadastralImportCommandTest` agrega cobertura de importación inicial + upsert.
+- [x] `CadastralEstimateApiTest` agrega cobertura de estimación con postal code existente + `404` en inexistente.
+- [x] Regresión final API validada en Docker: `tests/Feature/Api` PASS (32 tests, 273 assertions).
+
 
