@@ -1,4 +1,4 @@
-# Kconecta CRM - Roadmap
+﻿# Kconecta CRM - Roadmap
 
 ## Status Update (2026-05-12)
 - Ratings/client-final release deployed to production from `main` (`07c3aae`).
@@ -207,17 +207,16 @@
   - Lectura por streaming usando `fgetcsv` para máxima eficiencia de RAM.
   - Validaciones: trim de strings, normalización UTF-8, `postal_code` obligatorio, `price_m2_eur` numérico positivo.
   - Gestión de rechazos: logging de filas inválidas.
-  - Persistencia vía `upsert`: Insertar si la clave no existe; si el unique key existe, actualizar `price_m2_eur`.
-  - Trazabilidad de carga: Guardar y emitir el total de filas procesadas/inválidas y el `import_batch_id`.
+  - Persistencia vía `upsert`: insertar si la clave no existe; si el unique key existe, actualizar `price_m2_eur`.
+  - Trazabilidad de carga: guardar y emitir el total de filas procesadas/inválidas y el `import_batch_id`.
 - [x] **4. Servicio de Consulta (`CadastralCalculationService`)**
   - Entrada: `postal_code`.
-  - Salida: Estructura con `avg_price_m2`, `min`, `max`, `count` para cálculo aproximado rápido y robusto.
+  - Salida: estructura con `avg_price_m2`, `min`, `max`, `count` para cálculo aproximado rápido y robusto.
 - [ ] **5. Testing (PHPUnit/Pest)**
   - Test: importación inicial correcta.
   - Test: upsert (re-importación de datos no debe duplicar, sino actualizar precio).
   - Test: consulta con `postal_code` existente devuelve valores estadísticos.
   - Test: consulta con `postal_code` inexistente controla respuesta.
-
 ## Cadastral Production Closure (2026-04-29)
 - Backend calculadora catastral operativo en produccion.
 - Tabla `cadastral_prices` creada en produccion.
@@ -247,3 +246,6 @@
 - unit tests de rango, unicidad, auto-voto y ciclo de codigo.
 - integration/API tests de elegibilidad, consumo de codigo, upsert de voto y resumen agregado.
 - functional UI checks de proveedor (generar codigo) y cliente (votar).
+
+
+

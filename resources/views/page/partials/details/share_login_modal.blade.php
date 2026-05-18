@@ -1,4 +1,4 @@
-<div class="modal" id="googleLoginModal">
+﻿<div class="modal" id="googleLoginModal">
     <div class="modal-background"></div>
     <div class="modal-content box" style="width: 100%; max-width: 26rem">
         <div class="ctn-sendMessageEmail container is-fullwidth" style="display:none;">
@@ -13,7 +13,7 @@
                         <input type="hidden" name="property_id" value="<?= $property["id"] ?>">
                         <div class="field">
                             <div class="control">
-                                <textarea name="message" id="messageEmailToProvider" class="textarea is-medium" placeholder="Escribe tu mensaje aquÃ­..."></textarea>
+                                <textarea name="message" id="messageEmailToProvider" class="textarea is-medium" placeholder="Escribe tu mensaje aquí..."></textarea>
                             </div>
                         </div>
                         <div class="control">
@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="ctn-googleSignInButton is-fullwidth" style="display:none;">
-            <h2 style="margin-bottom: 1rem;">Inicia sesiÃ³n con Google</h2>
+            <h2 style="margin-bottom: 1rem;">Inicia sesión con Google</h2>
             <div id="googleSignInButton"></div>
             <div id="loginStatus" style="margin-top:10px;"></div>
         </div>
@@ -48,7 +48,7 @@
                     }else{
                         echo "";
                     }
-                    ?> â‚¬
+                    ?> €
             </p>
 
             <hr class="has-background-light">
@@ -56,7 +56,7 @@
             <div class="field mb-5">
                 <label class="label has-text-grey-dark">Compartir por redes sociales</label>
                 <div class="control">
-                    <a style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="whatsapp_clicks" href="https://wa.me/?text=Estimado/a, comparto con usted los detalles de una propiedad que podrÃ­a resultar de interÃ©s. https://kconecta.com/result/<?=$property["reference"] ?>" target="_blank">
+                    <a style="display:flex;column-gap:.4rem;" class="button is-success is-outlined is-fullwidth is-rounded A7x9Vb2QmL-psu" data-i="<?= $property["id"] ?>" data-col="whatsapp_clicks" href="https://wa.me/?text=Estimado/a, comparto con usted los detalles de una propiedad que podría resultar de interésult/<?=$property["reference"] ?>" target="_blank">
                         <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="#65a30d" fill-rule="evenodd" d="M12 1.25c5.937 0 10.75 4.813 10.75 10.75S17.937 22.75 12 22.75c-1.86 0-3.61-.473-5.137-1.305l-4.74.795a.75.75 0 0 1-.865-.852l.8-5.29A10.7 10.7 0 0 1 1.25 12C1.25 6.063 6.063 1.25 12 1.25M7.943 6.7c-.735 0-1.344.62-1.23 1.386c.216 1.436.854 4.082 2.752 5.994c1.984 1.999 4.823 2.854 6.36 3.191c.796.175 1.475-.455 1.475-1.232v-1.824a.3.3 0 0 0-.192-.28l-1.96-.753a.3.3 0 0 0-.166-.014l-1.977.386c-1.275-.66-2.047-1.4-2.51-2.515l.372-2.015a.3.3 0 0 0-.014-.16l-.735-1.969a.3.3 0 0 0-.28-.195z" clip-rule="evenodd"/></svg>
                         Enviar por Whatsapp
                     </a>
@@ -90,7 +90,7 @@
                 <div class="control">
                     <input class="input is-rounded" type="email" placeholder="Email de tus amigos" id="input-email-share">
                 </div>
-                <p class="help has-text-grey-light">Si son varios sepÃ¡ralos con una coma (,)</p>
+                <p class="help has-text-grey-light">Si son varios sepáralos con una coma (,)</p>
             </div>
 
             <div class="field is-grouped is-grouped-right">
@@ -138,7 +138,7 @@
         document.execCommand("copy");
 
         const originalText = this.textContent;
-        this.textContent = 'Â¡Copiado!';
+        this.textContent = '¡Copiado!';
         setTimeout(() => {
             this.textContent = originalText;
         }, 2000);
@@ -215,7 +215,7 @@
             document.getElementsByName("user_name")[0].value = data.user.name;
         })
         .catch(error => {
-            loginStatus.innerHTML = 'Error en la conexiÃ³n';
+            loginStatus.innerHTML = 'Error en la conexión';
             console.error('Error:', error);
         });
     }
@@ -248,3 +248,5 @@
 
     })
 </script>
+
+

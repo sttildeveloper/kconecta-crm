@@ -1,4 +1,4 @@
-# Kconecta CRM - Tasks
+﻿# Kconecta CRM - Tasks
 
 ## Nueva tarea UX Registro (2026-05-12) - Reducir friccion en alta
 - [ ] Objetivo:
@@ -264,7 +264,7 @@
 - [x] tabla `terrain_use`
 - [x] columna nullable `property.terrain_use_id`
 - [x] Catalogo web/API de `Terreno` separado en:
-- [x] `Tipo de terreno`: `Urbano`, `Urbanizable`, `Rústico`
+- [x] `Tipo de teRústico`
 - [x] `Uso`: `Servicios`, `Residencial`, `Industrial`, `Agrícola`
 - [x] Formulario web de alta de `Terreno` validado online tras aplicar esquema en produccion.
 - [x] Detalle publico de `Terreno` muestra arriba los recuadros:
@@ -444,3 +444,11 @@
 - [x] Endpoints utilitarios legacy (`visitor/*`, `property_stats/register`, `verify_token_google`, `send/message/*`) alineados a contrato JSON v1 con compatibilidad legacy.
 - [x] Cobertura `AuthApiTest` y nueva `LegacyUtilityApiContractTest` en verde.
 - [x] Suite API Docker validada: `tests/Feature/Api` PASS (30 tests, 267 assertions).
+
+- Context update `2026-05-18` - Cero deuda (Paso 4):
+- [x] Limpieza de mojibake/UTF-8 aplicada en vistas públicas clave de detalle/compartir.
+- [x] Limpieza de mojibake aplicada en archivos de contexto (`tasks.md`, `roadmap.md`, `agent.md`).
+- [x] Verificación de residuos `Ã/Â` en archivos críticos sin hallazgos.
+- [x] Regresión API en Docker validada: `tests/Feature/Api` PASS (30 tests, 267 assertions).
+
+

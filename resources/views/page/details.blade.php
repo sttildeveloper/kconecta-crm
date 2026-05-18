@@ -1,4 +1,4 @@
-@extends('layouts.page')
+﻿@extends('layouts.page')
 
 @section('nav_option')
 <a href="<?= site_url() ?>">
@@ -455,5 +455,8 @@
     }
 </script>
 @endsection
+
+
+
 
 

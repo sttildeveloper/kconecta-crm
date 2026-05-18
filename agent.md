@@ -1,4 +1,4 @@
-# AGENT.md - Kconecta CRM
+﻿# AGENT.md - Kconecta CRM
 
 ## Goal
 Operate and evolve `kconecta-crm` with focus on:
@@ -157,7 +157,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - table `terrain_use`
 - nullable column `property.terrain_use_id`
 - `Terreno` web create/edit forms now show:
-- `Tipo de terreno`: `Urbano`, `Urbanizable`, `Rústico`
+- `Tipo de teRústico`
 - `Uso`: `Servicios`, `Residencial`, `Industrial`, `Agrícola`
 - public property detail now shows `Tipo de terreno` and `Uso` cards for `Terreno`
 - production `500` on `/post/create_form/9` diagnosed after deploy
@@ -306,7 +306,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Future Dokploy service changes must preserve the configured media volume mounts or the same class of incident can return.
 - Legacy dumps may override expected Laravel schema if imported without review.
 - Production data can drift from local if sync is repeated without controls.
-- Some backoffice/service views still show legacy mojibake text (`Ã...`) and require final UTF-8 cleanup pass.
+- Some backoffice/service views still show legacy mojibake text (`...`) and require final UTF-8 cleanup pass.
 
 - Context update `2026-04-23`:
 - `details.blade.php` estabilizado para evitar cards vacias en detalle publico (garaje/nave y casos sin datos).
@@ -326,3 +326,5 @@ Operate and evolve `kconecta-crm` with focus on:
 - Endpoint legacy `GET /api/delete_more_image` retirado con `410`.
 - Fallback legacy de password en texto plano eliminado del login API.
 - Validacion final: `tests/Feature/Api` en verde.
+
+
