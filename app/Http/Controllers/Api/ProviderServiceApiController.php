@@ -9,9 +9,11 @@ use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
 use App\Models\ServiceTypeLink;
+use App\Models\ServiceWorkCode;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\Video;
+use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -123,6 +125,125 @@ class ProviderServiceApiController extends Controller
             ->all();
 
         return $this->successResponse($types);
+    }
+
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        $service = Service::query()
+            ->where('user_id', (int) $user->id)
+            ->orderByDesc('id')
+            ->first();
+
+        $serviceAddress = $service
+            ? ServiceAddress::query()->where('service_id', (int) $service->id)->first()
+            : null;
+        $userAddress = UserAddress::query()->where('user_id', (int) $user->id)->first();
+        $address = $serviceAddress ?: $userAddress;
+        $cover = $service ? CoverImage::query()->where('service_id', (int) $service->id)->first() : null;
+        $video = $service ? Video::query()->where('service_id', (int) $service->id)->first() : null;
+
+        $serviceIds = Service::query()
+            ->where('user_id', (int) $user->id)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $typeIds = empty($serviceIds)
+            ? []
+            : ServiceTypeLink::query()
+                ->whereIn('service_id', $serviceIds)
+                ->pluck('service_type_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+        $types = empty($typeIds)
+            ? []
+            : ServiceType::query()
+                ->whereIn('id', $typeIds)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (ServiceType $type) => ['id' => (int) $type->id, 'name' => $type->name])
+                ->values()
+                ->all();
+
+        $payload = [
+            'company_name' => $user->user_name,
+            'description' => $service?->description,
+            'phone' => $user->mobile_phone ?: $user->landline_phone,
+            'availability' => $service?->availability,
+            'page_url' => $service?->page_url,
+            'updated_at' => optional($service?->updated_at ?: $user->updated_at)?->toISOString(),
+            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
+            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/' . ltrim((string) $video->url, '/')) : null,
+            'address' => $address?->address,
+            'city' => $address?->city,
+            'province' => $address?->province,
+            'postal_code' => $address?->postal_code,
+            'country' => $address?->country,
+            'latitude' => $address?->latitude,
+            'longitude' => $address?->longitude,
+            'services' => $types,
+            'services_count' => count($serviceIds),
+        ];
+
+        return $this->successResponse($payload);
+    }
+
+    public function workCodes(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        $codes = ServiceWorkCode::query()
+            ->where('provider_user_id', (int) $user->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (ServiceWorkCode $code) => [
+                'id' => (int) $code->id,
+                'code' => $code->code,
+                'status' => $code->is_used ? 'Usado' : 'Activo',
+                'is_used' => (bool) $code->is_used,
+                'created_at' => optional($code->created_at)?->toISOString(),
+                'used_at' => optional($code->used_at)?->toISOString(),
+            ])
+            ->values()
+            ->all();
+
+        return $this->successResponse(['codes' => $codes]);
+    }
+
+    public function createWorkCode(Request $request, ServiceRatingService $serviceRatingService)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        $code = $serviceRatingService->createWorkCode((int) $user->id);
+
+        return $this->successResponse(['code' => $code], null, 'Codigo generado correctamente.', 201);
     }
 
     public function store(Request $request)
