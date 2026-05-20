@@ -77,16 +77,24 @@ class AuthController extends Controller
             return $this->errorResponse('User not authenticated', 401);
         }
 
+        $providerLogoPath = trim((string) ($user->photo ?? ''));
+        $providerLogoPath = $providerLogoPath !== '' ? $providerLogoPath : null;
+        $providerLogoUrl = $providerLogoPath ? asset('img/photo_profile/' . ltrim($providerLogoPath, '/')) : null;
+
         return response()->json([
             'success' => true,
             'data' => [
                 'user' => $user,
+                'provider_logo_path' => $providerLogoPath,
+                'provider_logo_url' => $providerLogoUrl,
             ],
             'meta' => null,
             'message' => null,
             'errors' => null,
             // Backward compatibility
             'user' => $user,
+            'provider_logo_path' => $providerLogoPath,
+            'provider_logo_url' => $providerLogoUrl,
         ]);
     }
 

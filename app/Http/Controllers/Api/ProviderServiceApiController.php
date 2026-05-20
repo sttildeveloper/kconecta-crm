@@ -21,7 +21,9 @@ use Illuminate\Support\Str;
 class ProviderServiceApiController extends Controller
 {
     private const MAX_IMAGE_KB = 5120; // 5 MB
+    private const MAX_PROVIDER_LOGO_KB = 2048; // 2 MB
     private const MAX_VIDEO_KB = 51200; // 50 MB
+    private const LEGACY_PROVIDER_LOGO_FIELDS = ['logo', 'photo', 'avatar', 'image', 'company_logo'];
 
     private const ALLOWED_IMAGE_MIME_TYPES = [
         'image/jpeg',
@@ -195,9 +197,68 @@ class ProviderServiceApiController extends Controller
             'longitude' => $address?->longitude,
             'services' => $types,
             'services_count' => count($serviceIds),
+            'provider_logo_path' => $this->providerLogoPath($user),
+            'provider_logo_url' => $this->providerLogoUrl($user),
         ];
 
         return $this->successResponse($payload);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        $input = $request->all();
+        if (! $request->hasFile('provider_logo')) {
+            foreach (self::LEGACY_PROVIDER_LOGO_FIELDS as $legacyField) {
+                if ($request->hasFile($legacyField)) {
+                    $input['provider_logo'] = $request->file($legacyField);
+                    break;
+                }
+            }
+        }
+
+        $validator = Validator::make($input, [
+            'provider_logo' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_PROVIDER_LOGO_KB,
+        ], [
+            'provider_logo.mimes' => 'El logo debe ser una imagen JPG, JPEG, PNG o WEBP.',
+            'provider_logo.max' => 'El logo no puede superar 2MB.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos', 422, $validator->errors()->toArray());
+        }
+
+        $logoFile = $input['provider_logo'] ?? null;
+        if ($logoFile) {
+            try {
+                $newFileName = $this->processProviderLogo($logoFile, (int) $user->id);
+                $oldFileName = (string) ($user->photo ?? '');
+                $user->photo = $newFileName;
+                $user->save();
+
+                if ($oldFileName !== '' && $oldFileName !== $newFileName) {
+                    $this->deleteStoredFile('img/photo_profile', $oldFileName);
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return $this->errorResponse(
+                    'No se pudo procesar el logo en este momento. Verifica que sea una imagen JPG, PNG o WEBP e intentalo de nuevo.',
+                    422,
+                    ['provider_logo' => ['No se pudo procesar el archivo enviado.']]
+                );
+            }
+        }
+
+        return $this->profile($request);
     }
 
     public function workCodes(Request $request)
@@ -752,5 +813,93 @@ class ProviderServiceApiController extends Controller
         if (is_file($path)) {
             @unlink($path);
         }
+    }
+
+    private function providerLogoPath(User $user): ?string
+    {
+        $photo = trim((string) ($user->photo ?? ''));
+
+        return $photo !== '' ? $photo : null;
+    }
+
+    private function providerLogoUrl(User $user): ?string
+    {
+        $path = $this->providerLogoPath($user);
+
+        return $path !== null ? asset('img/photo_profile/' . ltrim($path, '/')) : null;
+    }
+
+    private function processProviderLogo(\Illuminate\Http\UploadedFile $file, int $userId): string
+    {
+        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
+            throw new \RuntimeException('GD/WebP no disponible en el servidor.');
+        }
+
+        $source = $this->createImageResourceFromUpload($file);
+        if (! $source) {
+            throw new \RuntimeException('No se pudo procesar la imagen subida.');
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $squareSize = min($sourceWidth, $sourceHeight);
+        $sourceX = (int) floor(($sourceWidth - $squareSize) / 2);
+        $sourceY = (int) floor(($sourceHeight - $squareSize) / 2);
+
+        $canvas = imagecreatetruecolor(350, 350);
+        imagealphablending($canvas, true);
+        imagesavealpha($canvas, true);
+
+        imagecopyresampled(
+            $canvas,
+            $source,
+            0,
+            0,
+            $sourceX,
+            $sourceY,
+            350,
+            350,
+            $squareSize,
+            $squareSize
+        );
+
+        $directory = public_path('img/photo_profile');
+        if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
+            throw new \RuntimeException('No se pudo crear el directorio de logos de perfil.');
+        }
+
+        if (! is_writable($directory)) {
+            throw new \RuntimeException('El directorio de logos de perfil no tiene permisos de escritura.');
+        }
+
+        $filename = 'user_' . $userId . '_' . Str::random(12) . '.webp';
+        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $saved = imagewebp($canvas, $destination, 82);
+
+        imagedestroy($canvas);
+        imagedestroy($source);
+
+        if (! $saved) {
+            throw new \RuntimeException('No se pudo guardar la imagen en formato WebP.');
+        }
+
+        return $filename;
+    }
+
+    private function createImageResourceFromUpload(\Illuminate\Http\UploadedFile $file): \GdImage|false
+    {
+        $mime = (string) $file->getMimeType();
+        $path = $file->getRealPath();
+
+        if (! $path) {
+            return false;
+        }
+
+        return match ($mime) {
+            'image/jpeg', 'image/jpg' => @imagecreatefromjpeg($path),
+            'image/png' => @imagecreatefrompng($path),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+            default => false,
+        };
     }
 }

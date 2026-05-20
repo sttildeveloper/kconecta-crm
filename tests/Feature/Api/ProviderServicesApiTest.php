@@ -90,6 +90,107 @@ class ProviderServicesApiTest extends TestCase
             ]);
     }
 
+    public function test_profile_includes_provider_logo_url_and_path(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-logo@test.dev');
+        $provider->photo = 'provider-logo.webp';
+        $provider->save();
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.provider_logo_path', 'provider-logo.webp')
+            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/provider-logo.webp'));
+    }
+
+    public function test_profile_returns_null_provider_logo_url_when_logo_missing(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-no-logo@test.dev');
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.provider_logo_path', null)
+            ->assertJsonPath('data.provider_logo_url', null);
+    }
+
+    public function test_profile_patch_accepts_provider_logo_and_returns_updated_profile(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-patch@test.dev');
+
+        $response = $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/services/profile', [
+                'provider_logo' => UploadedFile::fake()->image('logo.jpg', 700, 700),
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        $updatedProvider = $provider->fresh();
+        $this->assertNotNull($updatedProvider->photo);
+        $this->assertStringEndsWith('.webp', (string) $updatedProvider->photo);
+        $response->assertJsonPath('data.provider_logo_path', $updatedProvider->photo)
+            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/' . $updatedProvider->photo));
+    }
+
+    public function test_profile_patch_accepts_legacy_logo_field_photo_when_provider_logo_not_present(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-legacy@test.dev');
+
+        $response = $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/services/profile', [
+                'photo' => UploadedFile::fake()->image('legacy-photo.png', 700, 700),
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        $updatedProvider = $provider->fresh();
+        $this->assertNotNull($updatedProvider->photo);
+        $this->assertStringEndsWith('.webp', (string) $updatedProvider->photo);
+        $response->assertJsonPath('data.provider_logo_path', $updatedProvider->photo)
+            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/' . $updatedProvider->photo));
+    }
+
+    public function test_profile_patch_validates_provider_logo_mime_and_size(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-validation@test.dev');
+
+        $invalidMime = $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/services/profile', [
+                'provider_logo' => UploadedFile::fake()->create('logo.pdf', 32, 'application/pdf'),
+            ]);
+
+        $invalidMime->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['provider_logo'],
+            ]);
+
+        $invalidSize = $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/services/profile', [
+                'provider_logo' => UploadedFile::fake()->image('logo.jpg')->size(3000),
+            ]);
+
+        $invalidSize->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Datos invalidos')
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+                'message',
+                'errors' => ['provider_logo'],
+            ]);
+    }
+
     public function test_provider_can_create_and_list_only_own_services(): void
     {
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider@test.dev');

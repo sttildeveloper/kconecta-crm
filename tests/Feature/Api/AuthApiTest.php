@@ -74,4 +74,33 @@ class AuthApiTest extends TestCase
 
         $this->assertNull(PersonalAccessToken::findToken($token));
     }
+
+    public function test_me_includes_provider_logo_fields(): void
+    {
+        $user = User::query()->create([
+            'first_name' => 'Api',
+            'last_name' => 'Logo',
+            'user_name' => 'api-user-logo',
+            'email' => 'api-user-logo@test.dev',
+            'phone' => '600000002',
+            'password' => Hash::make('password123'),
+            'user_level_id' => User::LEVEL_SERVICE_PROVIDER,
+            'photo' => 'provider-test.webp',
+            'email_verified_at' => now(),
+        ]);
+
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password123',
+        ])->assertOk();
+
+        $token = (string) $loginResponse->json('data.token');
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.provider_logo_path', 'provider-test.webp')
+            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/provider-test.webp'));
+    }
 }
