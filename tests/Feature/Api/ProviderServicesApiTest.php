@@ -10,6 +10,7 @@ use App\Models\ServiceTypeLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -114,6 +115,49 @@ class ProviderServicesApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.provider_logo_path', null)
             ->assertJsonPath('data.provider_logo_url', null);
+    }
+
+    public function test_profile_includes_rating_aggregates_with_defaults_when_no_reviews(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-ratings-empty@test.dev');
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rating_avg', 0)
+            ->assertJsonPath('data.reviews_count', 0);
+    }
+
+    public function test_profile_includes_rating_aggregates_for_authenticated_provider(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-ratings@test.dev');
+        $clientA = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-profile-ratings-client-a@test.dev');
+        $clientB = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-profile-ratings-client-b@test.dev');
+
+        DB::table('service_provider_ratings')->insert([
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientA->id,
+                'stars' => 5,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientB->id,
+                'stars' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rating_avg', 4.5)
+            ->assertJsonPath('data.reviews_count', 2);
     }
 
     public function test_profile_patch_accepts_provider_logo_and_returns_updated_profile(): void

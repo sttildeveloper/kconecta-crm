@@ -178,6 +178,7 @@ class ProviderServiceApiController extends Controller
                 ->map(fn (ServiceType $type) => ['id' => (int) $type->id, 'name' => $type->name])
                 ->values()
                 ->all();
+        $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $user->id);
 
         $payload = [
             'company_name' => $user->user_name,
@@ -199,6 +200,8 @@ class ProviderServiceApiController extends Controller
             'services_count' => count($serviceIds),
             'provider_logo_path' => $this->providerLogoPath($user),
             'provider_logo_url' => $this->providerLogoUrl($user),
+            'rating_avg' => isset($ratingSummary['average_stars']) ? (float) $ratingSummary['average_stars'] : 0.0,
+            'reviews_count' => isset($ratingSummary['ratings_count']) ? (int) $ratingSummary['ratings_count'] : 0,
         ];
 
         return $this->successResponse($payload);

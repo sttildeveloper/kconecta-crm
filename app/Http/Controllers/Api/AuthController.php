@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ServiceRatingService;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\TransientToken;
 use Illuminate\Http\Request;
@@ -80,6 +81,11 @@ class AuthController extends Controller
         $providerLogoPath = trim((string) ($user->photo ?? ''));
         $providerLogoPath = $providerLogoPath !== '' ? $providerLogoPath : null;
         $providerLogoUrl = $providerLogoPath ? asset('img/photo_profile/' . ltrim($providerLogoPath, '/')) : null;
+        $ratingSummary = $user->isServiceProvider()
+            ? app(ServiceRatingService::class)->providerRatingSummary((int) $user->id)
+            : null;
+        $ratingAvg = $ratingSummary ? (float) ($ratingSummary['average_stars'] ?? 0.0) : null;
+        $reviewsCount = $ratingSummary ? (int) ($ratingSummary['ratings_count'] ?? 0) : null;
 
         return response()->json([
             'success' => true,
@@ -87,6 +93,8 @@ class AuthController extends Controller
                 'user' => $user,
                 'provider_logo_path' => $providerLogoPath,
                 'provider_logo_url' => $providerLogoUrl,
+                'rating_avg' => $ratingAvg,
+                'reviews_count' => $reviewsCount,
             ],
             'meta' => null,
             'message' => null,
@@ -95,6 +103,8 @@ class AuthController extends Controller
             'user' => $user,
             'provider_logo_path' => $providerLogoPath,
             'provider_logo_url' => $providerLogoUrl,
+            'rating_avg' => $ratingAvg,
+            'reviews_count' => $reviewsCount,
         ]);
     }
 

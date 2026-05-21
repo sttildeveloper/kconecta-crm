@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -102,5 +103,74 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.provider_logo_path', 'provider-test.webp')
             ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/provider-test.webp'));
+    }
+
+    public function test_me_includes_provider_rating_aggregates(): void
+    {
+        $provider = User::query()->create([
+            'first_name' => 'Api',
+            'last_name' => 'Provider',
+            'user_name' => 'api-user-ratings',
+            'email' => 'api-user-ratings@test.dev',
+            'phone' => '600000003',
+            'password' => Hash::make('password123'),
+            'user_level_id' => User::LEVEL_SERVICE_PROVIDER,
+            'email_verified_at' => now(),
+        ]);
+
+        $clientA = User::query()->create([
+            'first_name' => 'Api',
+            'last_name' => 'Client',
+            'user_name' => 'api-client-a',
+            'email' => 'api-client-a@test.dev',
+            'phone' => '600000004',
+            'password' => Hash::make('password123'),
+            'user_level_id' => User::LEVEL_FINAL_CLIENT,
+            'email_verified_at' => now(),
+        ]);
+
+        $clientB = User::query()->create([
+            'first_name' => 'Api',
+            'last_name' => 'Client',
+            'user_name' => 'api-client-b',
+            'email' => 'api-client-b@test.dev',
+            'phone' => '600000005',
+            'password' => Hash::make('password123'),
+            'user_level_id' => User::LEVEL_FINAL_CLIENT,
+            'email_verified_at' => now(),
+        ]);
+
+        DB::table('service_provider_ratings')->insert([
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientA->id,
+                'stars' => 5,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientB->id,
+                'stars' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => $provider->email,
+            'password' => 'password123',
+        ])->assertOk();
+
+        $token = (string) $loginResponse->json('data.token');
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rating_avg', 4.5)
+            ->assertJsonPath('data.reviews_count', 2)
+            ->assertJsonPath('rating_avg', 4.5)
+            ->assertJsonPath('reviews_count', 2);
     }
 }
