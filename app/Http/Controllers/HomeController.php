@@ -30,6 +30,7 @@ class HomeController extends Controller
         $userLevelName = $user ? (UserLevel::find($user->user_level_id)?->name ?? 'Usuario') : 'Usuario';
         $canManageProperties = $user ? $user->canManageProperties() : false;
         $canManageServices = $user ? $user->canManageServices() : false;
+        $isServiceProvider = $user && (int) $user->user_level_id === User::LEVEL_SERVICE_PROVIDER;
         $isFinalClient = $user && (int) $user->user_level_id === User::LEVEL_FINAL_CLIENT;
 
         $propertyBase = Property::query()->where('state_id', 4);
@@ -79,6 +80,110 @@ class HomeController extends Controller
             ? 0
             : PsMessagesReceived::whereIn('property_id', $propertyIdsForStats)->count();
         $contactClicks = $emailClicks + $callClicks + $whatsappClicks + $messagesCount;
+        $providerKpis = [
+            'profile_visits' => 0,
+            'profile_visits_change_pct' => 0,
+            'contact_clicks' => 0,
+            'contact_clicks_change_pct' => 0,
+            'service_tickets' => 0,
+            'service_tickets_change_pct' => 0,
+        ];
+
+        if ($isServiceProvider && $user) {
+            $providerPropertyIds = Property::query()
+                ->where('state_id', 4)
+                ->where('user_id', (int) $user->id)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $windowDays = 30;
+            $currentStart = now()->subDays($windowDays);
+            $previousStart = now()->subDays($windowDays * 2);
+            $previousEnd = $currentStart;
+
+            $viewsCurrent = empty($providerPropertyIds)
+                ? 0
+                : (int) PsViewsDetail::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $currentStart)
+                    ->sum('counter');
+            $viewsPrevious = empty($providerPropertyIds)
+                ? 0
+                : (int) PsViewsDetail::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $previousStart)
+                    ->where('created_at', '<', $previousEnd)
+                    ->sum('counter');
+
+            $emailClicksCurrent = empty($providerPropertyIds)
+                ? 0
+                : (int) PsEmailOwner::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $currentStart)
+                    ->sum('counter');
+            $emailClicksPrevious = empty($providerPropertyIds)
+                ? 0
+                : (int) PsEmailOwner::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $previousStart)
+                    ->where('created_at', '<', $previousEnd)
+                    ->sum('counter');
+
+            $callClicksCurrent = empty($providerPropertyIds)
+                ? 0
+                : (int) PsOwnerCalls::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $currentStart)
+                    ->sum('counter');
+            $callClicksPrevious = empty($providerPropertyIds)
+                ? 0
+                : (int) PsOwnerCalls::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $previousStart)
+                    ->where('created_at', '<', $previousEnd)
+                    ->sum('counter');
+
+            $whatsappClicksCurrent = empty($providerPropertyIds)
+                ? 0
+                : (int) PsWhatsappClicks::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $currentStart)
+                    ->sum('counter');
+            $whatsappClicksPrevious = empty($providerPropertyIds)
+                ? 0
+                : (int) PsWhatsappClicks::query()
+                    ->whereIn('property_id', $providerPropertyIds)
+                    ->where('created_at', '>=', $previousStart)
+                    ->where('created_at', '<', $previousEnd)
+                    ->sum('counter');
+
+            $contactCurrent = $emailClicksCurrent + $callClicksCurrent + $whatsappClicksCurrent;
+            $contactPrevious = $emailClicksPrevious + $callClicksPrevious + $whatsappClicksPrevious;
+
+            $ticketsCurrent = (int) DB::table('service_work_codes')
+                ->where('provider_user_id', (int) $user->id)
+                ->where('is_used', 1)
+                ->whereNotNull('used_at')
+                ->where('used_at', '>=', $currentStart)
+                ->count();
+            $ticketsPrevious = (int) DB::table('service_work_codes')
+                ->where('provider_user_id', (int) $user->id)
+                ->where('is_used', 1)
+                ->whereNotNull('used_at')
+                ->where('used_at', '>=', $previousStart)
+                ->where('used_at', '<', $previousEnd)
+                ->count();
+
+            $providerKpis = [
+                'profile_visits' => $viewsCurrent,
+                'profile_visits_change_pct' => $this->percentageChange($viewsCurrent, $viewsPrevious),
+                'contact_clicks' => $contactCurrent,
+                'contact_clicks_change_pct' => $this->percentageChange($contactCurrent, $contactPrevious),
+                'service_tickets' => $ticketsCurrent,
+                'service_tickets_change_pct' => $this->percentageChange($ticketsCurrent, $ticketsPrevious),
+            ];
+        }
 
         $userTypeMetrics = [];
         if ($isAdmin) {
@@ -266,6 +371,7 @@ class HomeController extends Controller
             'user' => $user,
             'userLevelName' => $userLevelName,
             'isAdmin' => $isAdmin,
+            'isServiceProvider' => $isServiceProvider,
             'isFinalClient' => $isFinalClient,
             'canManageProperties' => $canManageProperties,
             'canManageServices' => $canManageServices,
@@ -285,6 +391,16 @@ class HomeController extends Controller
             'recentServices' => $recentServicesData,
             'alerts' => $alerts,
             'finalClientStats' => $finalClientStats,
+            'providerKpis' => $providerKpis,
         ]);
+    }
+
+    private function percentageChange(int $current, int $previous): int
+    {
+        if ($previous <= 0) {
+            return $current > 0 ? 100 : 0;
+        }
+
+        return (int) round((($current - $previous) / $previous) * 100);
     }
 }

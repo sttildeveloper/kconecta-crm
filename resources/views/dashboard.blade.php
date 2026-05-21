@@ -301,6 +301,43 @@
             </div>
         </section>
     @else
+    @if ($isServiceProvider ?? false)
+    <section class="stats-grid">
+        <div class="stat-card metric-card">
+            <div class="stat-label">Visitas al perfil</div>
+            <div class="stat-value">{{ number_format((int) ($providerKpis['profile_visits'] ?? 0)) }}</div>
+            <div class="stat-sparkline stat-sparkline--soft">
+                <svg viewBox="0 0 120 40" aria-hidden="true" focusable="false">
+                    <path class="sparkline-fill" d="M2 28L18 24L32 30L48 14L60 26L76 18L92 22L108 12L118 20L118 40L2 40Z"/>
+                    <path class="sparkline-line" d="M2 28L18 24L32 30L48 14L60 26L76 18L92 22L108 12L118 20"/>
+                </svg>
+            </div>
+            <small style="display:block;margin-top:8px;color:#0f9488;font-weight:700;">↑ {{ number_format((int) ($providerKpis['profile_visits_change_pct'] ?? 0)) }}% vs. mes anterior</small>
+        </div>
+        <div class="stat-card metric-card">
+            <div class="stat-label">Clicks en contacto</div>
+            <div class="stat-value">{{ number_format((int) ($providerKpis['contact_clicks'] ?? 0)) }}</div>
+            <div class="stat-sparkline stat-sparkline--muted">
+                <svg viewBox="0 0 120 40" aria-hidden="true" focusable="false">
+                    <path class="sparkline-fill" d="M2 14L16 20L30 16L44 22L58 12L72 18L86 10L100 16L118 8L118 40L2 40Z"/>
+                    <path class="sparkline-line" d="M2 14L16 20L30 16L44 22L58 12L72 18L86 10L100 16L118 8"/>
+                </svg>
+            </div>
+            <small style="display:block;margin-top:8px;color:#0f9488;font-weight:700;">↑ {{ number_format((int) ($providerKpis['contact_clicks_change_pct'] ?? 0)) }}% vs. mes anterior</small>
+        </div>
+        <div class="stat-card metric-card">
+            <div class="stat-label">Tickets de servicio</div>
+            <div class="stat-value">{{ number_format((int) ($providerKpis['service_tickets'] ?? 0)) }}</div>
+            <div class="stat-sparkline stat-sparkline--accent">
+                <svg viewBox="0 0 120 40" aria-hidden="true" focusable="false">
+                    <path class="sparkline-fill" d="M2 26L16 22L30 28L44 18L58 24L72 14L86 20L100 12L118 18L118 40L2 40Z"/>
+                    <path class="sparkline-line" d="M2 26L16 22L30 28L44 18L58 24L72 14L86 20L100 12L118 18"/>
+                </svg>
+            </div>
+            <small style="display:block;margin-top:8px;color:#0f9488;font-weight:700;">↑ {{ number_format((int) ($providerKpis['service_tickets_change_pct'] ?? 0)) }}% vs. mes anterior</small>
+        </div>
+    </section>
+    @else
     <section class="stats-grid">
         <div class="stat-card metric-card">
             <div class="stat-label">Clicks en alguna propiedad</div>
@@ -333,6 +370,7 @@
             </div>
         </div>
     </section>
+    @endif
 
     <section class="insights-grid">
         <div class="insight-stack">
