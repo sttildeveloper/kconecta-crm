@@ -458,3 +458,138 @@
 - [x] Regresión final API validada en Docker: `tests/Feature/Api` PASS (32 tests, 273 assertions).
 
 
+
+- Context update `2026-05-18` - Cierre productivo API mobile readiness:
+- [x] Commits locales publicados a `origin/main`:
+- [x] `e23ebae` (`throttle` mixto + verificacion email API en JSON 403).
+- [x] `15d6703` (cierre H-02 ratings/work-codes + configuracion CORS).
+- [x] Redeploy productivo ejecutado en Dokploy con codigo actualizado.
+- [x] Cache de Laravel regenerada en contenedor productivo:
+- [x] `php artisan optimize:clear`
+- [x] `php artisan config:cache`
+- [x] `php artisan route:cache`
+- [x] Validacion productiva API:
+- [x] `GET /api/me` -> `401` contrato v1 (`success/data/meta/message/errors`).
+- [x] `GET /api/properties?text=mad` -> `200` contrato v1 + compat legacy (`status`, `province`).
+- [x] `OPTIONS /api/properties` -> `204` con CORS operativo.
+- [x] CORS productivo endurecido:
+- [x] `CORS_ALLOWED_ORIGINS=https://kconecta.com,https://www.kconecta.com`.
+- [x] `Access-Control-Allow-Origin` validado en preflight para `https://kconecta.com`.
+
+- Context update `2026-05-21` - Provider logo canonico para app movil:
+- [x] API perfil proveedor ampliada con lectura canonica:
+- [x] `GET /api/agent/services/profile` ahora incluye `provider_logo_url` y `provider_logo_path`.
+- [x] Regla de no regresion aplicada: `provider_logo_url` no usa `cover_image_url` ni galeria.
+- [x] Nuevo update de perfil proveedor para logo:
+- [x] `PATCH /api/agent/services/profile` acepta `provider_logo` (`jpg,jpeg,png,webp`, max `2048KB`).
+- [x] Compatibilidad legacy temporal habilitada para upload:
+- [x] fallback de campos `logo|photo|avatar|image|company_logo` cuando no llega `provider_logo`.
+- [x] Respuesta de `PATCH` devuelve perfil actualizado con `provider_logo_url`.
+- [x] Coherencia entre clientes:
+- [x] `GET /api/me` incluye `provider_logo_url` y `provider_logo_path`.
+- [x] Cobertura feature agregada/actualizada:
+- [x] `ProviderServicesApiTest` y `AuthApiTest` en verde.
+- [x] Publicado en `origin/main` commit `87941f2` (deploy habilitado para revision mobile).
+
+## Session Update (2026-05-22) - Service metrics online fixed and validated
+- [x] Deployed backend/frontend tracking for provider service KPIs (commit `355e49f`).
+- [x] Added migrations:
+- [x] `2026_05_22_090000_create_service_profile_visits_table`
+- [x] `2026_05_22_090100_create_service_contact_clicks_table`
+- [x] Added/validated tracking endpoints for:
+- [x] profile visit register
+- [x] contact click register
+- [x] Dashboard provider metrics now read from persistent tables:
+- [x] `service_profile_visits`
+- [x] `service_contact_clicks`
+- [x] `service_work_codes` (used tickets)
+- [x] Online validation confirmed with real click/visit:
+- [x] `Visitas al perfil` increments.
+- [x] `Clicks en contacto` increments.
+- [x] `Tickets de servicio` remains consistent.
+
+## Session Incident Note (2026-05-22) - Legacy migrations table drift
+- [x] Root cause identified: production `migrations` table is non-standard and requires:
+- [x] `version`
+- [x] `class`
+- [x] `namespace`
+- [x] `group`
+- [x] `time`
+- [x] Symptom: `SQLSTATE[HY000]: 1364 Field 'version' doesn't have a default value` after physical migration execution.
+- [x] Mitigation used:
+- [x] manual insert into `migrations` with all required legacy fields.
+- [x] re-run `php artisan migrate --force` until `Nothing to migrate`.
+- [x] Additional reconciliation performed:
+- [x] manually created missing table `service_contact_clicks` in production.
+
+## Safe Migration SOP (VPS) - Avoid line-break/quote failures
+- [x] Step 1: refresh dynamic container names every time before commands:
+- [x] `APP_CTN=$(docker ps --format '{{.Names}}' | grep '^kconecta-kconectacrm-5oikfs\.1\.')`
+- [x] `DB_CTN=$(docker ps --format '{{.Names}}' | grep '^kconecta-crm-b8ejyl\.1\.')`
+- [x] Step 2: verify no hidden newlines in vars:
+- [x] `printf '%s\n' "$APP_CTN"`
+- [x] `printf '%s\n' "$DB_CTN"`
+- [x] Step 3: backup before migrate:
+- [x] `mysqldump` from `DB_CTN` into `/root/kconecta_backups/<timestamp>_pre_migrate`.
+- [x] Step 4: migrate in maintenance mode + cache rebuild.
+- [x] Step 5: if legacy error appears, use HEREDOC SQL (not escaped mega one-liners).
+- [x] Step 6: final checks:
+- [x] `php artisan migrate --force` -> `Nothing to migrate`
+- [x] confirm tables exist
+- [x] validate online KPI increment flow
+
+## Nueva tarea Release Compliance (2026-05-22) - Google Play + App Store
+- [ ] Objetivo:
+- [ ] completar auditoria integral de requisitos de publicacion para marketplaces movil (Google Play y App Store) y cerrar brechas de cumplimiento antes de submit.
+
+### Brechas detectadas (prioridad alta)
+- [ ] Publicar URL HTML de `Politica de Privacidad` (publica, accesible, no PDF, no geobloqueada).
+- [ ] Publicar URL HTML de `Eliminar cuenta y datos` (flujo visible y funcional fuera de la app).
+- [ ] Agregar ruta in-app para iniciar eliminacion de cuenta (iOS/Android).
+- [ ] Alinear politica con retencion/eliminacion real de datos (incluye excepciones legales/fraude).
+
+### Google Play - checklist operativo
+- [ ] Play Console -> App content -> Data safety:
+- [ ] declarar recoleccion/uso/comparticion de datos de forma exacta.
+- [ ] responder bloque de eliminacion de cuenta/datos.
+- [ ] Play Console -> Privacy Policy URL:
+- [ ] URL activa HTML (no PDF), editable solo por el propietario, referencia a app o developer.
+- [ ] App:
+- [ ] mostrar acceso a politica de privacidad dentro de la app.
+- [ ] incluir opcion visible para eliminar cuenta en app (o deep-link al flujo web permitido por politica).
+- [ ] Verificar declaraciones de permisos sensibles y coherencia con funcionalidad publicada.
+
+### App Store - checklist operativo
+- [ ] App Store Connect -> App Privacy:
+- [ ] `Privacy Policy URL` obligatorio y publico.
+- [ ] completar nutricion de privacidad (data collected/linked/tracking) coherente con app real + SDKs.
+- [ ] Guideline 5.1.1:
+- [ ] link de politica dentro de la app y en metadata de App Store Connect.
+- [ ] politica debe explicar coleccion, uso, terceros, retencion y eliminacion de datos.
+- [ ] Guideline 5.1.1(v):
+- [ ] si hay cuenta, debe existir eliminacion de cuenta dentro de la app.
+- [ ] Submission readiness:
+- [ ] demo account o demo mode completo para App Review si aplica login.
+- [ ] notas de review y credenciales de prueba actualizadas.
+
+### Entregables minimos (HTML)
+- [ ] `/privacy-policy` (HTML publico).
+- [ ] `/account-deletion` (HTML publico con flujo de solicitud).
+- [ ] contenido legal minimo:
+- [ ] responsable del tratamiento/contacto.
+- [ ] datos recolectados y finalidades.
+- [ ] terceros/SDKs.
+- [ ] retencion de datos.
+- [ ] derechos del usuario (acceso, rectificacion, eliminacion).
+- [ ] proceso y plazo de eliminacion de cuenta/datos.
+
+### Validacion pre-submit
+- [ ] QA funcional:
+- [ ] crear cuenta -> solicitar eliminacion en app -> confirmar solicitud -> estado final.
+- [ ] solicitar eliminacion desde web publica (sin reinstalar app).
+- [ ] QA tecnico:
+- [ ] verificar respuestas API de eliminacion y borrado/anonymizacion de datos asociados.
+- [ ] verificar links en metadata Play/App Store y dentro de la app.
+- [ ] Evidencia:
+- [ ] capturas + video corto del flujo de eliminacion.
+- [ ] checklist firmada por producto/legal/tecnico.

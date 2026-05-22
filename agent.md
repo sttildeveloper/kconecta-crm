@@ -19,6 +19,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Context checkpoint updated: `2026-05-06` (ratings with work-codes implemented locally + client registration rules refined)
 - Context checkpoint updated: `2026-05-07` (services map/local search fixes + details view split into partials, local validated)
 - Context checkpoint updated: `2026-05-12` (ratings release deployed in production + final client registration visibility restored)
+- Context checkpoint updated: `2026-05-21` (canonical provider logo API deployed for mobile profile parity)
 
 ## Session Update (2026-05-12)
 - Production deploy completed from `main` at commit `07c3aae`.
@@ -328,3 +329,84 @@ Operate and evolve `kconecta-crm` with focus on:
 - Validacion final: `tests/Feature/Api` en verde.
 
 
+
+## Context checkpoint updated: 2026-05-18 (production hardening + CORS closure)
+- Local API debt-closure commits were pushed to `origin/main` and deployed to Dokploy:
+- `e23ebae`
+- `15d6703`
+- Production container cache was refreshed (`optimize:clear`, `config:cache`, `route:cache`).
+- Production API behavior validated after deploy:
+- `GET /api/me` returns `401` with v1 contract payload.
+- `GET /api/properties` returns `200` with v1 contract + legacy compatibility fields.
+- `OPTIONS /api/properties` returns `204` with valid preflight response.
+- CORS environment binding confirmed in runtime:
+- `CORS_ALLOWED_ORIGINS=https://kconecta.com,https://www.kconecta.com`
+- `config('cors.allowed_origins')` resolved to both domains.
+- preflight confirms `Access-Control-Allow-Origin: https://kconecta.com`.
+
+## Context checkpoint updated: 2026-05-21 (provider logo canonical fields for mobile)
+- Deployed commit on `main`: `87941f2`.
+- Provider profile API now exposes canonical logo fields:
+- `GET /api/agent/services/profile` includes `provider_logo_url` and `provider_logo_path`.
+- Provider profile update endpoint added:
+- `PATCH /api/agent/services/profile` accepts multipart `provider_logo`.
+- Legacy compatibility for upload aliases enabled:
+- `logo`, `photo`, `avatar`, `image`, `company_logo`.
+- Validation contract for provider logo uploads:
+- `mimes: jpg,jpeg,png,webp` and `max:2048` with `422` error payload.
+- `/api/me` now mirrors provider logo fields for cross-client consistency.
+- Mobile verification status:
+- team confirmed provider logo renders correctly after deploy.
+
+## Context checkpoint updated: 2026-05-22 (service metrics online + safe migration runbook)
+- Feature status: **online validated** for provider dashboard service metrics.
+- Public flow validated:
+- guest visit to `result_service/{id}` increments `Visitas al perfil`.
+- guest click on provider WhatsApp increments `Clicks en contacto`.
+- provider dashboard now shows:
+- `Visitas al perfil`
+- `Clicks en contacto`
+- `Tickets de servicio` (from used `service_work_codes`).
+- Code release:
+- commit pushed/deployed: `355e49f`.
+- New migrations in that release:
+- `2026_05_22_090000_create_service_profile_visits_table`
+- `2026_05_22_090100_create_service_contact_clicks_table`
+- Production incident during migration:
+- legacy `migrations` table requires extra fields (`version`, `class`, `namespace`, `group`, `time`), so Laravel insert failed after physical table creation.
+- App container name rotated after deploy; stale `APP_CTN` caused false "No such container".
+- `service_contact_clicks` table was missing and had to be created/reconciled manually in production.
+
+## Safe Migration Runbook (Hostinger VPS, newline-safe)
+- Always execute from single-line commands or HEREDOC blocks to avoid shell line-break corruption.
+- Always re-resolve running container names immediately before migration commands.
+- Prefer `printf '%s\n' "$VAR"` to detect hidden newline/CRLF in env vars.
+
+### 1) Resolve runtime containers (fresh)
+- `APP_CTN=$(docker ps --format '{{.Names}}' | grep '^kconecta-kconectacrm-5oikfs\.1\.')`
+- `DB_CTN=$(docker ps --format '{{.Names}}' | grep '^kconecta-crm-b8ejyl\.1\.')`
+- `printf '%s\n' "$APP_CTN"`
+- `printf '%s\n' "$DB_CTN"`
+
+### 2) Backup before any migration
+- `BKP_DIR="/root/kconecta_backups/$(date +%Y%m%d_%H%M)_pre_migrate"`
+- `mkdir -p "$BKP_DIR"`
+- `docker exec "$DB_CTN" sh -lc 'mysqldump --no-tablespaces -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' > "$BKP_DIR/db_production.sql"`
+- `gzip "$BKP_DIR/db_production.sql"`
+
+### 3) Run migrate with maintenance window
+- `docker exec "$APP_CTN" php artisan down`
+- `docker exec "$APP_CTN" php artisan migrate --force`
+- `docker exec "$APP_CTN" php artisan optimize:clear`
+- `docker exec "$APP_CTN" php artisan config:cache`
+- `docker exec "$APP_CTN" php artisan route:cache`
+- `docker exec "$APP_CTN" php artisan up`
+
+### 4) If `version doesn't have a default value` appears
+- Cause: legacy `migrations` schema drift.
+- Action: insert missing migration rows manually with all legacy columns using **HEREDOC** (not long escaped one-liners), then re-run `php artisan migrate --force`.
+
+### 5) Post-migration checks
+- Verify expected tables exist.
+- Verify `php artisan migrate --force` returns `Nothing to migrate`.
+- Verify app dashboard and target flow online.

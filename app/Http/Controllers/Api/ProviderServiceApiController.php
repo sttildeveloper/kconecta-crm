@@ -15,6 +15,8 @@ use App\Models\UserAddress;
 use App\Models\Video;
 use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -179,6 +181,7 @@ class ProviderServiceApiController extends Controller
                 ->values()
                 ->all();
         $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $user->id);
+        $providerKpis = $this->buildProviderKpis((int) $user->id);
 
         $payload = [
             'company_name' => $user->user_name,
@@ -202,6 +205,17 @@ class ProviderServiceApiController extends Controller
             'provider_logo_url' => $this->providerLogoUrl($user),
             'rating_avg' => isset($ratingSummary['average_stars']) ? (float) $ratingSummary['average_stars'] : 0.0,
             'reviews_count' => isset($ratingSummary['ratings_count']) ? (int) $ratingSummary['ratings_count'] : 0,
+            // Canonical service KPIs for mobile dashboard.
+            'profile_visits' => $providerKpis['profile_visits'],
+            'profile_visits_change_pct' => $providerKpis['profile_visits_change_pct'],
+            'contact_clicks' => $providerKpis['contact_clicks'],
+            'contact_clicks_change_pct' => $providerKpis['contact_clicks_change_pct'],
+            'service_tickets' => $providerKpis['service_tickets'],
+            'service_tickets_change_pct' => $providerKpis['service_tickets_change_pct'],
+            // Backward-compatible aliases expected by some mobile clients.
+            'visits_count' => $providerKpis['profile_visits'],
+            'contact_clicks_count' => $providerKpis['contact_clicks'],
+            'service_tickets_count' => $providerKpis['service_tickets'],
         ];
 
         return $this->successResponse($payload);
@@ -904,5 +918,77 @@ class ProviderServiceApiController extends Controller
             'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
             default => false,
         };
+    }
+
+    private function buildProviderKpis(int $providerUserId): array
+    {
+        $windowDays = 30;
+        $currentStart = now()->subDays($windowDays);
+        $previousStart = now()->subDays($windowDays * 2);
+        $previousEnd = $currentStart;
+
+        $viewsCurrent = Schema::hasTable('service_profile_visits')
+            ? (int) DB::table('service_profile_visits')
+                ->where('provider_user_id', $providerUserId)
+                ->where('created_at', '>=', $currentStart)
+                ->count()
+            : 0;
+        $viewsPrevious = Schema::hasTable('service_profile_visits')
+            ? (int) DB::table('service_profile_visits')
+                ->where('provider_user_id', $providerUserId)
+                ->where('created_at', '>=', $previousStart)
+                ->where('created_at', '<', $previousEnd)
+                ->count()
+            : 0;
+
+        $contactCurrent = Schema::hasTable('service_contact_clicks')
+            ? (int) DB::table('service_contact_clicks')
+                ->where('provider_user_id', $providerUserId)
+                ->where('created_at', '>=', $currentStart)
+                ->count()
+            : 0;
+        $contactPrevious = Schema::hasTable('service_contact_clicks')
+            ? (int) DB::table('service_contact_clicks')
+                ->where('provider_user_id', $providerUserId)
+                ->where('created_at', '>=', $previousStart)
+                ->where('created_at', '<', $previousEnd)
+                ->count()
+            : 0;
+
+        $ticketsCurrent = Schema::hasTable('service_work_codes')
+            ? (int) DB::table('service_work_codes')
+                ->where('provider_user_id', $providerUserId)
+                ->where('is_used', 1)
+                ->whereNotNull('used_at')
+                ->where('used_at', '>=', $currentStart)
+                ->count()
+            : 0;
+        $ticketsPrevious = Schema::hasTable('service_work_codes')
+            ? (int) DB::table('service_work_codes')
+                ->where('provider_user_id', $providerUserId)
+                ->where('is_used', 1)
+                ->whereNotNull('used_at')
+                ->where('used_at', '>=', $previousStart)
+                ->where('used_at', '<', $previousEnd)
+                ->count()
+            : 0;
+
+        return [
+            'profile_visits' => $viewsCurrent,
+            'profile_visits_change_pct' => $this->percentageChange($viewsCurrent, $viewsPrevious),
+            'contact_clicks' => $contactCurrent,
+            'contact_clicks_change_pct' => $this->percentageChange($contactCurrent, $contactPrevious),
+            'service_tickets' => $ticketsCurrent,
+            'service_tickets_change_pct' => $this->percentageChange($ticketsCurrent, $ticketsPrevious),
+        ];
+    }
+
+    private function percentageChange(int $current, int $previous): int
+    {
+        if ($previous <= 0) {
+            return $current > 0 ? 100 : 0;
+        }
+
+        return (int) round((($current - $previous) / $previous) * 100);
     }
 }

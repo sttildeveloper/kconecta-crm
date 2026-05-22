@@ -192,6 +192,19 @@
 - fallback legacy de password en texto plano removido del login API.
 - suite `tests/Feature/Api` validada en verde.
 
+## Context update (2026-05-21)
+- Mobile profile/logo parity completed in backend:
+- canonical read field added for provider profile: `provider_logo_url` (+ `provider_logo_path`).
+- canonical multipart write enabled: `provider_logo` in `PATCH /api/agent/services/profile`.
+- legacy upload aliases supported for compatibility window:
+- `logo`, `photo`, `avatar`, `image`, `company_logo`.
+- validation enforced for provider logo uploads:
+- `jpg|jpeg|png|webp`, max `2048KB`, with `422` contract errors.
+- coherence update:
+- `GET /api/me` now also exposes `provider_logo_url` and `provider_logo_path`.
+- release status:
+- deployed via `main` commit `87941f2`; mobile team confirmed logo now renders.
+
 ## Sub-plan: Backend Calculador Catastral (Precios M2)
 *Plan de implementación asíncrona para la importación y cálculo de precios por metro cuadrado.*
 
@@ -249,3 +262,41 @@
 
 
 
+
+## Status Update (2026-05-18) - Production API Mobile Readiness Closed
+- Local hardening/api-contract commits were pushed to `main` and deployed in Dokploy.
+- Release commits in production path:
+- `e23ebae` (mixed throttle policy + API email verification JSON 403)
+- `15d6703` (ratings/work-codes contract unification + CORS config)
+- Laravel runtime cache refreshed in production container:
+- `php artisan optimize:clear`
+- `php artisan config:cache`
+- `php artisan route:cache`
+- Production verification passed:
+- `GET /api/me` -> `401` with v1 JSON contract.
+- `GET /api/properties?text=mad` -> `200` with v1 contract and legacy compatibility keys.
+- `OPTIONS /api/properties` -> `204` preflight OK.
+- CORS now constrained by env var and validated online:
+- `CORS_ALLOWED_ORIGINS=https://kconecta.com,https://www.kconecta.com`
+- preflight header returns `Access-Control-Allow-Origin: https://kconecta.com`.
+
+## Status Update (2026-05-22) - Service metrics live + migration safety protocol
+- Production validated online:
+- provider dashboard metrics now move with real usage in service profile/public page.
+- `Visitas al perfil`: increments on public service detail visit.
+- `Clicks en contacto`: increments on WhatsApp contact click.
+- `Tickets de servicio`: sourced from used `service_work_codes`.
+- Release deployed from `main`: commit `355e49f`.
+- Runtime production issue handled:
+- legacy `migrations` table shape blocked Laravel registration (`version` required, no default).
+- Recovery path executed: manual migration row reconciliation + missing table creation for `service_contact_clicks`.
+
+## Operational Guardrail (2026-05-22) - Newline-safe migrations in VPS
+- Before each migration run:
+- refresh `APP_CTN` and `DB_CTN` dynamically from `docker ps`.
+- print variables with `printf '%s\n'` to avoid hidden CR/LF.
+- use HEREDOC for SQL inserts into legacy `migrations` table.
+- avoid very long one-line SQL strings with many escaped quotes.
+- After migration run:
+- enforce `php artisan migrate --force` => `Nothing to migrate`.
+- verify target tables exist and online flow increments KPIs.
