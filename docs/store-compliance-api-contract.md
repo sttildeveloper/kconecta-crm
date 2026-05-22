@@ -28,7 +28,7 @@ Last updated: 2026-05-22
   "success": true,
   "data": null,
   "meta": null,
-  "message": "Si el correo existe, recibiras instrucciones para restablecer tu contraseña.",
+  "message": "Si el correo existe, recibiras instrucciones para restablecer tu contrasena.",
   "errors": null
 }
 ```
@@ -53,7 +53,7 @@ Last updated: 2026-05-22
   "success": true,
   "data": null,
   "meta": null,
-  "message": "Contraseña actualizada correctamente.",
+  "message": "Contrasena actualizada correctamente.",
   "errors": null
 }
 ```
@@ -63,7 +63,7 @@ Last updated: 2026-05-22
   "success": false,
   "data": null,
   "meta": null,
-  "message": "No se pudo restablecer la contraseña. El token puede ser invalido o haber expirado.",
+  "message": "No se pudo restablecer la contrasena. El token puede ser invalido o haber expirado.",
   "errors": {
     "token": [
       "..."
@@ -79,7 +79,7 @@ Last updated: 2026-05-22
 - Payload:
 ```json
 {
-  "password": "contraseña_actual",
+  "password": "contrasena_actual",
   "reason": "opcional"
 }
 ```
@@ -102,8 +102,10 @@ Last updated: 2026-05-22
 - Anonymizes direct user PII fields.
 - Disables account login (`is_active=0` when column exists).
 - Removes profile address rows in `user_address` when present.
+- Writes audit trail rows to `account_deletion_audits` when table exists.
 
 ## Public legal URLs (HTML)
 - `https://kconecta.com/legal/privacy`
 - `https://kconecta.com/legal/terms`
 - `https://kconecta.com/legal/account-deletion`
+

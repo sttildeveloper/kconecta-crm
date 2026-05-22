@@ -19,10 +19,10 @@ Route::get('/calculadora-avanzada', [PageController::class, 'advancedCalculator'
 Route::post('/signup', [PageController::class, 'signup']);
 Route::get('/validate_account', [PageController::class, 'validateAccountPage']);
 Route::post('/validate_code', [PageController::class, 'validateAccount']);
-Route::get('/policy_and_privacy', [PageController::class, 'policyAndPrivacy']);
-Route::get('/legal/privacy', [PageController::class, 'legalPrivacy']);
-Route::get('/legal/terms', [PageController::class, 'legalTerms']);
-Route::get('/legal/account-deletion', [PageController::class, 'legalAccountDeletion']);
+Route::permanentRedirect('/policy_and_privacy', '/legal/privacy');
+Route::get('/legal/privacy', [PageController::class, 'legalPrivacy'])->name('legal.privacy');
+Route::get('/legal/terms', [PageController::class, 'legalTerms'])->name('legal.terms');
+Route::get('/legal/account-deletion', [PageController::class, 'legalAccountDeletion'])->name('legal.account-deletion');
 Route::get('/login/close_session', [PageController::class, 'logout']);
 Route::get('/logout', [PageController::class, 'logout']);
 

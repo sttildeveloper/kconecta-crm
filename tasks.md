@@ -642,3 +642,23 @@
 - [x] `AccountComplianceApiTest` (forgot/reset/delete)
 - [x] `LegalPagesTest` (public legal pages)
 - [x] full API suite in Docker: `48` tests PASS (`358` assertions).
+
+## Session Update (2026-05-22) - Compliance hardening pass (orchestrated)
+- [x] Orchestrated multi-agent audit executed and findings remediated.
+- [x] Security hardening:
+- [x] account delete endpoints now rate-limited (`throttle:5,1`).
+- [x] account deletion audit trail added (`account_deletion_audits` table + insert on delete flow).
+- [x] anonymized deleted email domain moved to config (`config/legal.php`, `DELETED_USER_EMAIL_DOMAIN`).
+- [x] Legal architecture hardening:
+- [x] legal pages refactored to shared layout + shared nav + shared CSS (`public/css/legal.css`).
+- [x] legal content now parameterized from `config/legal.php` (brand/responsible/contact/jurisdiction/SLA/retention).
+- [x] canonical legal route naming added:
+- [x] `legal.privacy`, `legal.terms`, `legal.account-deletion`.
+- [x] legacy route hardened to permanent redirect: `/policy_and_privacy` -> `/legal/privacy` (301).
+- [x] QA hardening:
+- [x] extra tests for unauthenticated delete, alias endpoint parity, and forgot-password rate limit.
+- [x] extra legal tests for required sections + canonical redirect assertion.
+- [x] Docker validation:
+- [x] `AccountComplianceApiTest` PASS.
+- [x] `LegalPagesTest` PASS.
+- [x] full API suite PASS (`51` tests, `369` assertions).

@@ -36,7 +36,7 @@ class AccountComplianceApiTest extends TestCase
 
         $known->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Si el correo existe, recibiras instrucciones para restablecer tu contraseña.');
+            ->assertJsonPath('message', 'Si el correo existe, recibiras instrucciones para restablecer tu contrasena.');
 
         $unknown = $this->postJson('/api/forgot-password', [
             'email' => 'missing-user@test.dev',
@@ -44,7 +44,7 @@ class AccountComplianceApiTest extends TestCase
 
         $unknown->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Si el correo existe, recibiras instrucciones para restablecer tu contraseña.');
+            ->assertJsonPath('message', 'Si el correo existe, recibiras instrucciones para restablecer tu contrasena.');
 
         Notification::assertSentTo($user, ResetPassword::class);
     }
@@ -72,7 +72,7 @@ class AccountComplianceApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Contraseña actualizada correctamente.');
+            ->assertJsonPath('message', 'Contrasena actualizada correctamente.');
 
         $fresh = User::query()->findOrFail($user->id);
         $this->assertTrue(Hash::check('NewPassword123!', (string) $fresh->password));
@@ -133,5 +133,51 @@ class AccountComplianceApiTest extends TestCase
         }
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_account_delete_requires_authentication(): void
+    {
+        $response = $this->deleteJson('/api/me', [
+            'password' => 'any-password',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_account_delete_alias_endpoint_behaves_like_delete_me(): void
+    {
+        $user = User::query()->create([
+            'first_name' => 'Delete',
+            'last_name' => 'Alias',
+            'user_name' => 'delete-alias',
+            'email' => 'delete-alias@test.dev',
+            'phone' => '600100104',
+            'password' => Hash::make('DeletePassword123!'),
+            'user_level_id' => User::LEVEL_SERVICE_PROVIDER,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/account/delete', [
+            'password' => 'DeletePassword123!',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Cuenta eliminada correctamente.');
+    }
+
+    public function test_forgot_password_is_rate_limited(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/forgot-password', [
+                'email' => 'ratelimit@test.dev',
+            ])->assertOk();
+        }
+
+        $this->postJson('/api/forgot-password', [
+            'email' => 'ratelimit@test.dev',
+        ])->assertStatus(429);
     }
 }

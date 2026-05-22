@@ -323,3 +323,11 @@
 - anti-account-enumeration response for forgot-password.
 - token revocation and account anonymization on deletion.
 - Validation completed locally in Docker with API test suite fully green.
+
+## Status Update (2026-05-22) - Compliance blocker hardened for store review
+- Release-compliance implementation upgraded with security and maintainability controls.
+- Added account deletion audit trail persistence (`account_deletion_audits`).
+- Tightened rate limit for account deletion operations.
+- Removed sensitive hardcoding by parameterizing legal and deletion-domain settings in `config/legal.php`.
+- Legal pages refactored to reusable layout and route names with canonical permanent redirect from legacy URL.
+- Regression/API validation remained green after hardening (`51` tests, `369` assertions).

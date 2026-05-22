@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -19,7 +20,7 @@ use Laravel\Sanctum\TransientToken;
 
 class AuthController extends Controller
 {
-    private const FORGOT_PASSWORD_GENERIC_MESSAGE = 'Si el correo existe, recibiras instrucciones para restablecer tu contraseña.';
+    private const FORGOT_PASSWORD_GENERIC_MESSAGE = 'Si el correo existe, recibiras instrucciones para restablecer tu contrasena.';
 
     public function login(Request $request)
     {
@@ -187,13 +188,13 @@ class AuthController extends Controller
 
         if ($status !== Password::PASSWORD_RESET) {
             return $this->errorResponse(
-                'No se pudo restablecer la contraseña. El token puede ser invalido o haber expirado.',
+                'No se pudo restablecer la contrasena. El token puede ser invalido o haber expirado.',
                 400,
                 ['token' => [trans($status)]]
             );
         }
 
-        return $this->successResponse(null, 'Contraseña actualizada correctamente.');
+        return $this->successResponse(null, 'Contrasena actualizada correctamente.');
     }
 
     public function deleteAccount(Request $request)
@@ -214,20 +215,24 @@ class AuthController extends Controller
 
         if (! Hash::check((string) $request->input('password'), (string) $user->password)) {
             return $this->errorResponse('Credenciales incorrectas.', 401, [
-                'password' => ['La contraseña actual no es valida.'],
+                'password' => ['La contrasena actual no es valida.'],
             ]);
         }
 
         $userId = (int) $user->id;
         $deletedAt = now();
         $deletedSuffix = $userId . '_' . $deletedAt->timestamp;
+        $reason = trim((string) $request->input('reason', ''));
+        $actorIp = (string) $request->ip();
+        $actorUserAgent = substr((string) $request->userAgent(), 0, 255);
+        $deletedEmailDomain = (string) config('legal.deleted_user_email_domain', 'kconecta.local');
 
-        DB::transaction(function () use ($user, $userId, $deletedSuffix) {
+        DB::transaction(function () use ($user, $userId, $deletedSuffix, $reason, $actorIp, $actorUserAgent, $deletedAt, $deletedEmailDomain) {
             $payload = [
                 'first_name' => 'Cuenta eliminada',
                 'last_name' => null,
                 'user_name' => 'deleted-user-' . $userId,
-                'email' => 'deleted+' . $deletedSuffix . '@kconecta.local',
+                'email' => 'deleted+' . $deletedSuffix . '@' . ltrim($deletedEmailDomain, '@'),
                 'phone' => null,
                 'landline_phone' => null,
                 'document_type' => null,
@@ -252,7 +257,24 @@ class AuthController extends Controller
             if (Schema::hasTable('personal_access_tokens')) {
                 $user->tokens()->delete();
             }
+
+            if (Schema::hasTable('account_deletion_audits')) {
+                DB::table('account_deletion_audits')->insert([
+                    'user_id' => $userId,
+                    'requested_reason' => $reason !== '' ? $reason : null,
+                    'requested_ip' => $actorIp !== '' ? $actorIp : null,
+                    'requested_user_agent' => $actorUserAgent !== '' ? $actorUserAgent : null,
+                    'created_at' => $deletedAt,
+                    'updated_at' => $deletedAt,
+                ]);
+            }
         });
+
+        Log::info('account_deleted', [
+            'user_id' => $userId,
+            'ip' => $actorIp,
+            'reason_present' => $reason !== '',
+        ]);
 
         Auth::guard('web')->logout();
         if ($request->hasSession()) {

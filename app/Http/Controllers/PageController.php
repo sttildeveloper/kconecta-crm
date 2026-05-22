@@ -688,24 +688,19 @@ class PageController extends Controller
         return redirect('/');
     }
 
-    public function policyAndPrivacy()
-    {
-        return redirect('/legal/privacy');
-    }
-
     public function legalPrivacy()
     {
-        return view('legal.privacy');
+        return view('legal.privacy', $this->legalViewData());
     }
 
     public function legalTerms()
     {
-        return view('legal.terms');
+        return view('legal.terms', $this->legalViewData());
     }
 
     public function legalAccountDeletion()
     {
-        return view('legal.account-deletion');
+        return view('legal.account-deletion', $this->legalViewData());
     }
 
     public function logout(Request $request)
@@ -737,5 +732,13 @@ class PageController extends Controller
     public function advancedCalculator()
     {
         return view('page.calculadora_avanzada');
+    }
+
+    private function legalViewData(): array
+    {
+        return [
+            'legalConfig' => config('legal'),
+            'lastUpdated' => (string) config('legal.last_updated'),
+        ];
     }
 }

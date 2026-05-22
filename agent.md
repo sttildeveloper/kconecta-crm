@@ -452,3 +452,23 @@ Operate and evolve `kconecta-crm` with focus on:
 - Validation:
 - new tests `AccountComplianceApiTest` and `LegalPagesTest` passing.
 - full API suite in Docker: 48 tests / 358 assertions PASS.
+
+## Context checkpoint updated: 2026-05-22 (compliance hardening complete, pending release commit)
+- Orchestrated local-agent review completed and remediations applied.
+- API compliance endpoints retained and hardened:
+- `POST /api/forgot-password`
+- `POST /api/reset-password`
+- `DELETE /api/me`
+- `POST /api/account/delete`
+- Security improvements:
+- stricter rate limit for account deletion endpoints (`5/min`).
+- account deletion audit trail table added: `account_deletion_audits`.
+- delete flow now records audit row when table exists.
+- configurable anonymized email domain for deleted accounts via `config/legal.php`.
+- Legal web improvements:
+- legal pages now share a common layout and CSS.
+- legal content fields are configuration-driven (`config/legal.php`).
+- named canonical legal routes + permanent redirect from legacy privacy URL.
+- Validation status:
+- Docker API suite PASS (`51` tests, `369` assertions).
+- This hardening pass is complete and ready for user-triggered commit/push.

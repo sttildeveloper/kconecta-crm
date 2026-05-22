@@ -49,8 +49,8 @@ Route::middleware(['orchestrator.key', 'throttle:120,1'])->prefix('orchestrate')
 Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::delete('/me', [AuthController::class, 'deleteAccount']);
-    Route::post('/account/delete', [AuthController::class, 'deleteAccount']);
+    Route::delete('/me', [AuthController::class, 'deleteAccount'])->middleware('throttle:5,1');
+    Route::post('/account/delete', [AuthController::class, 'deleteAccount'])->middleware('throttle:5,1');
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::get('/agent/service-types', [ProviderServiceApiController::class, 'serviceTypes']);

@@ -88,7 +88,7 @@
             <div id="cookieBanner" class="cookie-banner hide">
                 <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="cookie kconecta">
                 <h1>COOKIES</h1>
-                <p>Usamos cookies para mejorar tu experiencia en el sitio, analizar el trafico y personalizar contenido. Al hacer clic en "Aceptar", consientes su uso. Consulta nuestra <a href="{{ url('/policy_and_privacy') }}">Politica de Privacidad</a> para mas informacion</p>
+                <p>Usamos cookies para mejorar tu experiencia en el sitio, analizar el trafico y personalizar contenido. Al hacer clic en "Aceptar", consientes su uso. Consulta nuestra <a href="{{ route('legal.privacy') }}">Politica de Privacidad</a> para mas informacion</p>
                 <div class="cookie-buttons">
                     <button class="accept" onclick="cookieConfig()">Aceptar</button>
                     <button class="deny" onclick="cookieConfig()">Denegar</button>
