@@ -26,6 +26,8 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::post('/send/message/email_to_provider', [ApiController::class, 'sendEmailContactUser']);
     Route::get('/send/message/email_share', [ApiController::class, 'sendEmailShare']);
     Route::post('/property_stats/register', [ApiController::class, 'propertyStatsConfig']);
+    Route::post('/service_stats/register_visit', [ApiController::class, 'serviceStatsRegisterVisit']);
+    Route::post('/service_stats/register_contact_click', [ApiController::class, 'serviceStatsRegisterContactClick']);
     Route::get('/service-ratings/provider/{providerUserId}', [ApiController::class, 'providerServiceRatingSummary']);
 
     Route::get('/cadastral/estimate', [CadastralController::class, 'estimate']);

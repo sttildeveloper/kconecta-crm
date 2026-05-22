@@ -773,4 +773,52 @@ class ApiController extends Controller
 
         return $this->successResponse(null, null, 'Estadistica registrada', 200, ['status' => 200]);
     }
+
+    public function serviceStatsRegisterVisit(Request $request)
+    {
+        $providerUserId = (int) $request->post('provider_user_id');
+        $serviceId = (int) $request->post('service_id');
+
+        if ($providerUserId <= 0) {
+            return $this->errorResponse('provider_user_id invalido', 422, ['provider_user_id' => ['El proveedor es obligatorio.']]);
+        }
+
+        DB::table('service_profile_visits')->insert([
+            'provider_user_id' => $providerUserId,
+            'service_id' => $serviceId > 0 ? $serviceId : null,
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) ($request->userAgent() ?? ''), 0, 255),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->successResponse(null, null, 'Visita registrada', 200, ['status' => 200]);
+    }
+
+    public function serviceStatsRegisterContactClick(Request $request)
+    {
+        $providerUserId = (int) $request->post('provider_user_id');
+        $serviceId = (int) $request->post('service_id');
+        $channel = trim((string) $request->post('channel', 'whatsapp'));
+
+        if ($providerUserId <= 0) {
+            return $this->errorResponse('provider_user_id invalido', 422, ['provider_user_id' => ['El proveedor es obligatorio.']]);
+        }
+
+        if ($channel === '') {
+            $channel = 'whatsapp';
+        }
+
+        DB::table('service_contact_clicks')->insert([
+            'provider_user_id' => $providerUserId,
+            'service_id' => $serviceId > 0 ? $serviceId : null,
+            'channel' => substr($channel, 0, 40),
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) ($request->userAgent() ?? ''), 0, 255),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->successResponse(null, null, 'Click registrado', 200, ['status' => 200]);
+    }
 }

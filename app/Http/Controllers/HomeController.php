@@ -90,76 +90,38 @@ class HomeController extends Controller
         ];
 
         if ($isServiceProvider && $user) {
-            $providerPropertyIds = Property::query()
-                ->where('state_id', 4)
-                ->where('user_id', (int) $user->id)
-                ->pluck('id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-
             $windowDays = 30;
             $currentStart = now()->subDays($windowDays);
             $previousStart = now()->subDays($windowDays * 2);
             $previousEnd = $currentStart;
 
-            $viewsCurrent = empty($providerPropertyIds)
-                ? 0
-                : (int) PsViewsDetail::query()
-                    ->whereIn('property_id', $providerPropertyIds)
+            $viewsCurrent = (Schema::hasTable('service_profile_visits'))
+                ? (int) DB::table('service_profile_visits')
+                    ->where('provider_user_id', (int) $user->id)
                     ->where('created_at', '>=', $currentStart)
-                    ->sum('counter');
-            $viewsPrevious = empty($providerPropertyIds)
-                ? 0
-                : (int) PsViewsDetail::query()
-                    ->whereIn('property_id', $providerPropertyIds)
+                    ->count()
+                : 0;
+            $viewsPrevious = (Schema::hasTable('service_profile_visits'))
+                ? (int) DB::table('service_profile_visits')
+                    ->where('provider_user_id', (int) $user->id)
                     ->where('created_at', '>=', $previousStart)
                     ->where('created_at', '<', $previousEnd)
-                    ->sum('counter');
+                    ->count()
+                : 0;
 
-            $emailClicksCurrent = empty($providerPropertyIds)
-                ? 0
-                : (int) PsEmailOwner::query()
-                    ->whereIn('property_id', $providerPropertyIds)
+            $contactCurrent = (Schema::hasTable('service_contact_clicks'))
+                ? (int) DB::table('service_contact_clicks')
+                    ->where('provider_user_id', (int) $user->id)
                     ->where('created_at', '>=', $currentStart)
-                    ->sum('counter');
-            $emailClicksPrevious = empty($providerPropertyIds)
-                ? 0
-                : (int) PsEmailOwner::query()
-                    ->whereIn('property_id', $providerPropertyIds)
+                    ->count()
+                : 0;
+            $contactPrevious = (Schema::hasTable('service_contact_clicks'))
+                ? (int) DB::table('service_contact_clicks')
+                    ->where('provider_user_id', (int) $user->id)
                     ->where('created_at', '>=', $previousStart)
                     ->where('created_at', '<', $previousEnd)
-                    ->sum('counter');
-
-            $callClicksCurrent = empty($providerPropertyIds)
-                ? 0
-                : (int) PsOwnerCalls::query()
-                    ->whereIn('property_id', $providerPropertyIds)
-                    ->where('created_at', '>=', $currentStart)
-                    ->sum('counter');
-            $callClicksPrevious = empty($providerPropertyIds)
-                ? 0
-                : (int) PsOwnerCalls::query()
-                    ->whereIn('property_id', $providerPropertyIds)
-                    ->where('created_at', '>=', $previousStart)
-                    ->where('created_at', '<', $previousEnd)
-                    ->sum('counter');
-
-            $whatsappClicksCurrent = empty($providerPropertyIds)
-                ? 0
-                : (int) PsWhatsappClicks::query()
-                    ->whereIn('property_id', $providerPropertyIds)
-                    ->where('created_at', '>=', $currentStart)
-                    ->sum('counter');
-            $whatsappClicksPrevious = empty($providerPropertyIds)
-                ? 0
-                : (int) PsWhatsappClicks::query()
-                    ->whereIn('property_id', $providerPropertyIds)
-                    ->where('created_at', '>=', $previousStart)
-                    ->where('created_at', '<', $previousEnd)
-                    ->sum('counter');
-
-            $contactCurrent = $emailClicksCurrent + $callClicksCurrent + $whatsappClicksCurrent;
-            $contactPrevious = $emailClicksPrevious + $callClicksPrevious + $whatsappClicksPrevious;
+                    ->count()
+                : 0;
 
             $ticketsCurrent = (int) DB::table('service_work_codes')
                 ->where('provider_user_id', (int) $user->id)
