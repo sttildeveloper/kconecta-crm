@@ -690,7 +690,22 @@ class PageController extends Controller
 
     public function policyAndPrivacy()
     {
-        return view('page.placeholder', ['title' => 'Policy and Privacy']);
+        return redirect('/legal/privacy');
+    }
+
+    public function legalPrivacy()
+    {
+        return view('legal.privacy');
+    }
+
+    public function legalTerms()
+    {
+        return view('legal.terms');
+    }
+
+    public function legalAccountDeletion()
+    {
+        return view('legal.account-deletion');
     }
 
     public function logout(Request $request)

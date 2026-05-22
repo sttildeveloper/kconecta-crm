@@ -300,3 +300,26 @@
 - After migration run:
 - enforce `php artisan migrate --force` => `Nothing to migrate`.
 - verify target tables exist and online flow increments KPIs.
+
+## Status Update (2026-05-22) - Mobile dashboard KPI parity completed
+- CRM backend and native app are now aligned for provider service KPIs.
+- Deployed commit: `d7fa1ed` on `main`.
+- API profile endpoint (`GET /api/agent/services/profile`) now exposes provider KPI aggregates and monthly deltas.
+- Compatibility aliases included to minimize mobile integration risk.
+- Tracking endpoints (`register_visit`, `register_contact_click`) confirmed operational.
+- Production validation completed end-to-end:
+- migrations present and applied (`2026_05_22_*` in `Ran` state).
+- provider dashboard in native app displays live values (visits/clicks/tickets).
+
+## Status Update (2026-05-22) - Store release blockers closed (account + legal)
+- Backend compliance for app marketplaces implemented in CRM:
+- password recovery API endpoints ready for native app integration.
+- in-app initiated account deletion API ready (auth + password confirmation).
+- legal public HTML pages online-ready paths defined:
+  - `/legal/privacy`
+  - `/legal/terms`
+  - `/legal/account-deletion`
+- Security controls included:
+- anti-account-enumeration response for forgot-password.
+- token revocation and account anonymization on deletion.
+- Validation completed locally in Docker with API test suite fully green.

@@ -593,3 +593,52 @@
 - [ ] Evidencia:
 - [ ] capturas + video corto del flujo de eliminacion.
 - [ ] checklist firmada por producto/legal/tecnico.
+
+## Session Closure (2026-05-22) - Mobile metrics integration validated online
+- [x] Backend API for provider KPI metrics exposed in mobile profile endpoint.
+- [x] Endpoint confirmed for mobile dashboard:
+- [x] `GET /api/agent/services/profile` now returns KPI fields:
+- [x] `profile_visits`, `profile_visits_change_pct`
+- [x] `contact_clicks`, `contact_clicks_change_pct`
+- [x] `service_tickets`, `service_tickets_change_pct`
+- [x] plus compatibility aliases:
+- [x] `visits_count`, `contact_clicks_count`, `service_tickets_count`
+- [x] Tracking endpoints confirmed and operational:
+- [x] `POST /api/service_stats/register_visit`
+- [x] `POST /api/service_stats/register_contact_click`
+- [x] Local Docker validation completed:
+- [x] `ProviderServicesApiTest` PASS (`22` tests, `195` assertions).
+- [x] Production VPS migration state validated:
+- [x] tables exist: `service_profile_visits`, `service_contact_clicks`, `service_work_codes`.
+- [x] `php artisan migrate --force` => `Nothing to migrate`.
+- [x] migration status shows `2026_05_22_*` as `Ran`.
+- [x] Mobile app online validation completed:
+- [x] dashboard now shows real values for `visitas`, `clicks`, `tickets`.
+
+## Commit/Release Log (2026-05-22)
+- [x] Published to `origin/main`: `d7fa1ed`
+- [x] Commit scope:
+- [x] mobile KPI API exposure in `ProviderServiceApiController@profile`
+- [x] context/runbook updates for safe VPS migration workflow
+
+## Session Update (2026-05-22) - Release blocker compliance (stores) implemented
+- [x] API Password Recovery implemented:
+- [x] `POST /api/forgot-password` (generic anti-enumeration response).
+- [x] `POST /api/reset-password` (token + password reset via Laravel broker).
+- [x] API Account Deletion implemented:
+- [x] `DELETE /api/me` (auth required + password confirmation).
+- [x] compatibility endpoint: `POST /api/account/delete`.
+- [x] account deletion behavior:
+- [x] revoke Sanctum tokens.
+- [x] anonymize direct PII fields in `user`.
+- [x] disable account (`is_active=0` when column exists).
+- [x] remove profile address rows from `user_address` when present.
+- [x] Legal HTML pages published (public, 200 OK):
+- [x] `/legal/privacy`
+- [x] `/legal/terms`
+- [x] `/legal/account-deletion`
+- [x] legacy route `/policy_and_privacy` now redirects to `/legal/privacy`.
+- [x] Automated tests added and passing:
+- [x] `AccountComplianceApiTest` (forgot/reset/delete)
+- [x] `LegalPagesTest` (public legal pages)
+- [x] full API suite in Docker: `48` tests PASS (`358` assertions).

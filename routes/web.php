@@ -20,6 +20,9 @@ Route::post('/signup', [PageController::class, 'signup']);
 Route::get('/validate_account', [PageController::class, 'validateAccountPage']);
 Route::post('/validate_code', [PageController::class, 'validateAccount']);
 Route::get('/policy_and_privacy', [PageController::class, 'policyAndPrivacy']);
+Route::get('/legal/privacy', [PageController::class, 'legalPrivacy']);
+Route::get('/legal/terms', [PageController::class, 'legalTerms']);
+Route::get('/legal/account-deletion', [PageController::class, 'legalAccountDeletion']);
 Route::get('/login/close_session', [PageController::class, 'logout']);
 Route::get('/logout', [PageController::class, 'logout']);
 

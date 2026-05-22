@@ -37,6 +37,8 @@ Route::middleware('throttle:60,1')->group(function () {
 
 // Mobile app auth + agent endpoints
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
 Route::middleware(['orchestrator.key', 'throttle:120,1'])->prefix('orchestrate')->group(function () {
     Route::post('/plan', [OrchestratorController::class, 'plan']);
@@ -47,6 +49,8 @@ Route::middleware(['orchestrator.key', 'throttle:120,1'])->prefix('orchestrate')
 Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::delete('/me', [AuthController::class, 'deleteAccount']);
+    Route::post('/account/delete', [AuthController::class, 'deleteAccount']);
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::get('/agent/service-types', [ProviderServiceApiController::class, 'serviceTypes']);

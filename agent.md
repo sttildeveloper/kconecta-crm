@@ -410,3 +410,45 @@ Operate and evolve `kconecta-crm` with focus on:
 - Verify expected tables exist.
 - Verify `php artisan migrate --force` returns `Nothing to migrate`.
 - Verify app dashboard and target flow online.
+
+## Context checkpoint updated: 2026-05-22 (mobile KPI parity closed)
+- Release commit published: `d7fa1ed`.
+- `GET /api/agent/services/profile` now returns provider KPI metrics used by native dashboard:
+- `profile_visits`, `profile_visits_change_pct`
+- `contact_clicks`, `contact_clicks_change_pct`
+- `service_tickets`, `service_tickets_change_pct`
+- compatibility aliases:
+- `visits_count`, `contact_clicks_count`, `service_tickets_count`
+- Tracking endpoints confirmed live:
+- `POST /api/service_stats/register_visit`
+- `POST /api/service_stats/register_contact_click`
+- Local verification:
+- Docker tests `ProviderServicesApiTest` PASS (22 tests, 195 assertions).
+- Production verification:
+- tables present: `service_profile_visits`, `service_contact_clicks`, `service_work_codes`.
+- migration state stable: `Nothing to migrate` and `2026_05_22_*` marked `Ran`.
+- Native app verification:
+- provider dashboard now reflects real counters online (`1` visit, `1` click, `1` ticket in validation sample).
+
+## Context checkpoint updated: 2026-05-22 (release compliance endpoints + legal pages)
+- Implemented new public API auth endpoints for mobile release compliance:
+- `POST /api/forgot-password` (generic response).
+- `POST /api/reset-password` (Laravel password broker).
+- Implemented account deletion endpoints:
+- `DELETE /api/me`
+- `POST /api/account/delete` (compatibility alias).
+- Account deletion implementation includes:
+- password confirmation.
+- sanitization/anonymization of direct user PII.
+- token revocation.
+- account deactivation (`is_active=0` if available).
+- cleanup of `user_address` rows when table exists.
+- Implemented legal public HTML pages:
+- `/legal/privacy`
+- `/legal/terms`
+- `/legal/account-deletion`
+- Updated legacy route behavior:
+- `/policy_and_privacy` redirects to `/legal/privacy`.
+- Validation:
+- new tests `AccountComplianceApiTest` and `LegalPagesTest` passing.
+- full API suite in Docker: 48 tests / 358 assertions PASS.

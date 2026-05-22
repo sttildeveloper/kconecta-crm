@@ -5,15 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ServiceRatingService;
-use Laravel\Sanctum\PersonalAccessToken;
-use Laravel\Sanctum\TransientToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 
 class AuthController extends Controller
 {
+    private const FORGOT_PASSWORD_GENERIC_MESSAGE = 'Si el correo existe, recibiras instrucciones para restablecer tu contraseña.';
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -135,13 +142,136 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
         }
 
+        return $this->successResponse(null, 'User logged out successfully');
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos.', 422, $validator->errors()->toArray());
+        }
+
+        // Always return a generic response to avoid user enumeration.
+        Password::sendResetLink([
+            'email' => (string) $request->input('email'),
+        ]);
+
+        return $this->successResponse(null, self::FORGOT_PASSWORD_GENERIC_MESSAGE);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos.', 422, $validator->errors()->toArray());
+        }
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make((string) $request->input('password')),
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return $this->errorResponse(
+                'No se pudo restablecer la contraseña. El token puede ser invalido o haber expirado.',
+                400,
+                ['token' => [trans($status)]]
+            );
+        }
+
+        return $this->successResponse(null, 'Contraseña actualizada correctamente.');
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('User not authenticated', 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos.', 422, $validator->errors()->toArray());
+        }
+
+        if (! Hash::check((string) $request->input('password'), (string) $user->password)) {
+            return $this->errorResponse('Credenciales incorrectas.', 401, [
+                'password' => ['La contraseña actual no es valida.'],
+            ]);
+        }
+
+        $userId = (int) $user->id;
+        $deletedAt = now();
+        $deletedSuffix = $userId . '_' . $deletedAt->timestamp;
+
+        DB::transaction(function () use ($user, $userId, $deletedSuffix) {
+            $payload = [
+                'first_name' => 'Cuenta eliminada',
+                'last_name' => null,
+                'user_name' => 'deleted-user-' . $userId,
+                'email' => 'deleted+' . $deletedSuffix . '@kconecta.local',
+                'phone' => null,
+                'landline_phone' => null,
+                'document_type' => null,
+                'document_number' => null,
+                'address' => null,
+                'photo' => null,
+                'email_verified_at' => null,
+                'remember_token' => Str::random(60),
+                'password' => Hash::make(Str::random(64)),
+            ];
+
+            if (Schema::hasColumn('user', 'is_active')) {
+                $payload['is_active'] = 0;
+            }
+
+            $user->forceFill($payload)->save();
+
+            if (Schema::hasTable('user_address')) {
+                DB::table('user_address')->where('user_id', $userId)->delete();
+            }
+
+            if (Schema::hasTable('personal_access_tokens')) {
+                $user->tokens()->delete();
+            }
+        });
+
+        Auth::guard('web')->logout();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return $this->successResponse(null, 'Cuenta eliminada correctamente.');
+    }
+
+    private function successResponse(mixed $data, ?string $message = null, int $status = 200)
+    {
         return response()->json([
             'success' => true,
-            'data' => null,
+            'data' => $data,
             'meta' => null,
-            'message' => 'User logged out successfully',
+            'message' => $message,
             'errors' => null,
-        ]);
+        ], $status);
     }
 
     private function errorResponse(string $message, int $status, ?array $errors = null)
