@@ -472,3 +472,22 @@ Operate and evolve `kconecta-crm` with focus on:
 - Validation status:
 - Docker API suite PASS (`51` tests, `369` assertions).
 - This hardening pass is complete and ready for user-triggered commit/push.
+
+## Context checkpoint updated: 2026-05-22 (compliance release deployed + migration reconciled)
+- Compliance release hardening was published to `main` in commit `c3caab1`.
+- Production migration status validated on VPS:
+- migration `2026_05_22_160000_create_account_deletion_audits_table` executed physically and then registered in legacy `migrations` schema (manual reconciliation required due to `version` field constraint).
+- Final production confirmation:
+- `php artisan migrate --force` => `Nothing to migrate`.
+- `2026_05_22_160000_create_account_deletion_audits_table` => `Ran`.
+- Compliance capabilities now online:
+- `POST /api/forgot-password`
+- `POST /api/reset-password`
+- `DELETE /api/me`
+- `POST /api/account/delete`
+- public legal HTML URLs:
+  - `/legal/privacy`
+  - `/legal/terms`
+  - `/legal/account-deletion`
+- Native app handoff prepared:
+- implementation prompt/contract delivered for iOS/Android integration of forgot/reset/delete/legal links.

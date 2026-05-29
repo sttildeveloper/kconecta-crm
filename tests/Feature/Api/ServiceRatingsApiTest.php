@@ -13,6 +13,135 @@ class ServiceRatingsApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_store_rating_by_code_requires_authentication(): void
+    {
+        $response = $this->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-NO-TOKEN',
+            'stars' => 5,
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    public function test_store_rating_by_code_rejects_non_final_client_role(): void
+    {
+        $this->seedUserLevels();
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, true, 'provider-role@example.com');
+
+        DB::table('service_work_codes')->insert([
+            'provider_user_id' => $provider->id,
+            'code' => 'WK-ROLE-BYCODE',
+            'is_used' => 0,
+            'used_by_user_id' => null,
+            'used_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($provider, 'sanctum')->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-ROLE-BYCODE',
+            'stars' => 4,
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('errors.code', 'ROLE_NOT_ALLOWED');
+    }
+
+    public function test_store_rating_by_code_rejects_unverified_email(): void
+    {
+        [$provider, $client] = $this->seedProviderAndFinalClient(false);
+
+        DB::table('service_work_codes')->insert([
+            'provider_user_id' => $provider->id,
+            'code' => 'WK-UNVERIFIED-BYCODE',
+            'is_used' => 0,
+            'used_by_user_id' => null,
+            'used_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-UNVERIFIED-BYCODE',
+            'stars' => 3,
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('errors.code', 'EMAIL_NOT_VERIFIED');
+    }
+
+    public function test_store_rating_by_code_rejects_invalid_code(): void
+    {
+        [, $client] = $this->seedProviderAndFinalClient(true);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-INVALID-BYCODE',
+            'stars' => 4,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('errors.code', 'WORK_CODE_INVALID');
+    }
+
+    public function test_store_rating_by_code_rejects_used_code(): void
+    {
+        [$provider, $client] = $this->seedProviderAndFinalClient(true);
+        $otherClient = $this->makeUser(User::LEVEL_FINAL_CLIENT, true, 'used-bycode-client@example.com');
+
+        DB::table('service_work_codes')->insert([
+            'provider_user_id' => $provider->id,
+            'code' => 'WK-USED-BYCODE',
+            'is_used' => 1,
+            'used_by_user_id' => $otherClient->id,
+            'used_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-USED-BYCODE',
+            'stars' => 5,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('errors.code', 'WORK_CODE_USED');
+    }
+
+    public function test_store_rating_by_code_succeeds_and_returns_updated_summary(): void
+    {
+        [$provider, $client] = $this->seedProviderAndFinalClient(true);
+
+        DB::table('service_provider_ratings')->insert([
+            'provider_user_id' => $provider->id,
+            'client_user_id' => $this->makeUser(User::LEVEL_FINAL_CLIENT, true, 'bycode-existing@example.com')->id,
+            'stars' => 3,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('service_work_codes')->insert([
+            'provider_user_id' => $provider->id,
+            'code' => 'WK-SUCCESS-BYCODE',
+            'is_used' => 0,
+            'used_by_user_id' => null,
+            'used_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/service-ratings/by-code', [
+            'work_code' => 'WK-SUCCESS-BYCODE',
+            'stars' => 5,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Valoracion registrada correctamente.')
+            ->assertJsonPath('data.ratings_count', 2)
+            ->assertJsonPath('data.average_stars', 4)
+            ->assertJsonPath('data.my_stars', 5);
+    }
+
     public function test_unverified_final_client_cannot_rate_provider(): void
     {
         [$provider, $client] = $this->seedProviderAndFinalClient(false);

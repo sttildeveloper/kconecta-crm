@@ -662,3 +662,21 @@
 - [x] `AccountComplianceApiTest` PASS.
 - [x] `LegalPagesTest` PASS.
 - [x] full API suite PASS (`51` tests, `369` assertions).
+
+## Session Closure (2026-05-22) - Compliance deploy + migration + mobile handoff
+- [x] Compliance hardening commit published: `c3caab1`.
+- [x] Production deploy executed.
+- [x] VPS migration handled (legacy schema):
+- [x] `2026_05_22_160000_create_account_deletion_audits_table` reconciled and marked as `Ran`.
+- [x] Final migration check passed:
+- [x] `php artisan migrate --force` => `Nothing to migrate`.
+- [x] Compliance endpoints online:
+- [x] `POST /api/forgot-password`
+- [x] `POST /api/reset-password`
+- [x] `DELETE /api/me`
+- [x] `POST /api/account/delete`
+- [x] Legal public pages online:
+- [x] `/legal/privacy`
+- [x] `/legal/terms`
+- [x] `/legal/account-deletion`
+- [x] Native app Codex prompt delivered to implement store-compliance UX flows end-to-end.

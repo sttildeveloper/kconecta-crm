@@ -331,3 +331,14 @@
 - Removed sensitive hardcoding by parameterizing legal and deletion-domain settings in `config/legal.php`.
 - Legal pages refactored to reusable layout and route names with canonical permanent redirect from legacy URL.
 - Regression/API validation remained green after hardening (`51` tests, `369` assertions).
+
+## Status Update (2026-05-22) - Store compliance release deployed and production-ready
+- Backend and legal web compliance block for App Store / Play Store is now deployed.
+- Commit deployed: `c3caab1`.
+- VPS migration for `account_deletion_audits` completed with legacy migration-table reconciliation.
+- Production migration state is stable (`Nothing to migrate`, migration marked `Ran`).
+- Native app team received integration contract for:
+- forgot-password flow
+- reset-password flow
+- in-app account deletion
+- legal links exposure

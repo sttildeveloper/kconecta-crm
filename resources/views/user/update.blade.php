@@ -21,6 +21,7 @@
         $addressValidated = $addressValidated ?? false;
         $targetUserId = $targetUserId ?? null;
         $addressRequired = $addressRequired ?? true;
+        $isFinalClient = (int) ($user->user_level_id ?? 0) === \App\Models\User::LEVEL_FINAL_CLIENT;
     @endphp
 
     @if (session('status'))
@@ -83,7 +84,7 @@
                         <small>
                             {{ $addressRequired
                                 ? 'Selecciona una dirección sugerida por Google para validar la ubicación.'
-                                : 'Opcional. Si no seleccionas una dirección validada, no aparecerás en el mapa.'
+                                : 'Opcional.'
                             }}
                         </small>
                         <div class="address-status {{ $addressValidated ? 'is-valid' : '' }}" id="address-status">
@@ -144,10 +145,12 @@
                     <span>{{ $user->email }}</span>
                 </div>
             </div>
-            <div class="profile-note">
-                <h4>Direcci&oacute;n validada</h4>
-                <p>Usa el autocompletado de Google para mejorar la visibilidad en el mapa.</p>
-            </div>
+            @if (! $isFinalClient)
+                <div class="profile-note">
+                    <h4>Direcci&oacute;n validada</h4>
+                    <p>Usa el autocompletado de Google para mejorar la visibilidad en el mapa.</p>
+                </div>
+            @endif
         </aside>
     </div>
 
@@ -302,3 +305,4 @@
         })();
     </script>
 @endsection
+

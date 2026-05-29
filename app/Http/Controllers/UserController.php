@@ -217,11 +217,16 @@ class UserController extends Controller
         $documentTypes = ['DNI', 'NIE', 'CIF', 'Pasaporte'];
         $addressValidated = $address && $address->latitude && $address->longitude;
 
+        $addressRequired = ! in_array((int) $user->user_level_id, [
+            User::LEVEL_SERVICE_PROVIDER,
+            User::LEVEL_FINAL_CLIENT,
+        ], true);
+
         return view('user.update', [
             'user' => $user,
             'address' => $address,
             'documentTypes' => $documentTypes,
-            'addressRequired' => (int) $user->user_level_id !== User::LEVEL_SERVICE_PROVIDER,
+            'addressRequired' => $addressRequired,
             'activeNav' => 'profile',
             'isAdmin' => (int) $user->user_level_id === 1,
             'mapsKey' => config('services.google.maps_key'),
@@ -249,11 +254,16 @@ class UserController extends Controller
         $documentTypes = ['DNI', 'NIE', 'CIF', 'Pasaporte'];
         $addressValidated = $address && $address->latitude && $address->longitude;
 
+        $addressRequired = ! in_array((int) $profileUser->user_level_id, [
+            User::LEVEL_SERVICE_PROVIDER,
+            User::LEVEL_FINAL_CLIENT,
+        ], true);
+
         return view('user.update', [
             'user' => $profileUser,
             'address' => $address,
             'documentTypes' => $documentTypes,
-            'addressRequired' => (int) $profileUser->user_level_id !== User::LEVEL_SERVICE_PROVIDER,
+            'addressRequired' => $addressRequired,
             'activeNav' => 'users',
             'isAdmin' => $isAdmin,
             'mapsKey' => config('services.google.maps_key'),
@@ -311,8 +321,10 @@ class UserController extends Controller
         $addressInput = trim((string) ($validated['address'] ?? ''));
         $placeId = trim((string) ($validated['address_place_id'] ?? ''));
         $currentAddress = trim((string) ($addressRecord->address ?? $user->address ?? ''));
-        $isServiceProvider = (int) $user->user_level_id === User::LEVEL_SERVICE_PROVIDER;
-        $addressRequired = ! $isServiceProvider;
+        $addressRequired = ! in_array((int) $user->user_level_id, [
+            User::LEVEL_SERVICE_PROVIDER,
+            User::LEVEL_FINAL_CLIENT,
+        ], true);
 
         if ($addressRequired && $addressInput !== '' && $addressInput !== $currentAddress && $placeId === '') {
             return back()
