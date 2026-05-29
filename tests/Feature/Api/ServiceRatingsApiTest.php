@@ -296,6 +296,101 @@ class ServiceRatingsApiTest extends TestCase
             ->assertJsonPath('data.my_stars', 3);
     }
 
+    public function test_my_dashboard_requires_authentication(): void
+    {
+        $response = $this->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertStatus(401);
+    }
+
+    public function test_my_dashboard_rejects_non_final_client_role(): void
+    {
+        $this->seedUserLevels();
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, true, 'provider-dashboard-role@example.com');
+
+        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertStatus(403)
+            ->assertJsonPath('errors.code', 'ROLE_NOT_ALLOWED');
+    }
+
+    public function test_my_dashboard_returns_expected_structure_for_final_client(): void
+    {
+        [, $client] = $this->seedProviderAndFinalClient(true);
+
+        $response = $this->actingAs($client, 'sanctum')->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'data' => ['ratingsCount', 'providersRatedCount', 'averageStars', 'recentRatings'],
+                'meta',
+                'message',
+                'errors',
+            ]);
+    }
+
+    public function test_my_dashboard_returns_recent_ratings_sorted_by_updated_at_desc(): void
+    {
+        [$providerA, $client] = $this->seedProviderAndFinalClient(true);
+        $providerB = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, true, 'provider-dashboard-b@example.com');
+
+        DB::table('service_provider_ratings')->insert([
+            [
+                'provider_user_id' => $providerA->id,
+                'client_user_id' => $client->id,
+                'stars' => 2,
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subDays(2),
+            ],
+            [
+                'provider_user_id' => $providerB->id,
+                'client_user_id' => $client->id,
+                'stars' => 5,
+                'created_at' => now()->subDay(),
+                'updated_at' => now()->subDay(),
+            ],
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('data.recentRatings.0.provider_user_id', $providerB->id)
+            ->assertJsonPath('data.recentRatings.1.provider_user_id', $providerA->id);
+    }
+
+    public function test_my_dashboard_returns_average_and_counters_correctly(): void
+    {
+        [$providerA, $client] = $this->seedProviderAndFinalClient(true);
+        $providerB = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, true, 'provider-dashboard-c@example.com');
+
+        DB::table('service_provider_ratings')->insert([
+            [
+                'provider_user_id' => $providerA->id,
+                'client_user_id' => $client->id,
+                'stars' => 5,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'provider_user_id' => $providerB->id,
+                'client_user_id' => $client->id,
+                'stars' => 3,
+                'created_at' => now()->subHour(),
+                'updated_at' => now()->subHour(),
+            ],
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('data.ratingsCount', 2)
+            ->assertJsonPath('data.providersRatedCount', 2)
+            ->assertJsonPath('data.averageStars', 4)
+            ->assertJsonCount(2, 'data.recentRatings');
+    }
+
     private function seedProviderAndFinalClient(bool $clientVerified): array
     {
         $this->seedUserLevels();

@@ -64,4 +64,5 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::post('/service-ratings/work-codes', [ApiController::class, 'createServiceWorkCode']);
     Route::post('/service-ratings', [ApiController::class, 'storeServiceRating']);
     Route::post('/service-ratings/by-code', [ApiController::class, 'storeServiceRatingByCode']);
+    Route::get('/service-ratings/my-dashboard', [ApiController::class, 'myServiceRatingsDashboard']);
 });

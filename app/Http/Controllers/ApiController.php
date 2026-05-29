@@ -182,6 +182,68 @@ class ApiController extends Controller
         return $this->successResponse($serviceRatingService->providerRatingSummary($providerUserId, $authUser));
     }
 
+    public function myServiceRatingsDashboard(Request $request, ServiceRatingService $serviceRatingService)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return $this->errorResponse('Debes iniciar sesion.', 401, ['code' => 'UNAUTHENTICATED']);
+        }
+
+        if (! $serviceRatingService->isFinalClient($user)) {
+            return $this->errorResponse('Solo el perfil Cliente final puede consultar sus valoraciones.', 403, ['code' => 'ROLE_NOT_ALLOWED']);
+        }
+
+        $ratingsQuery = DB::table('service_provider_ratings as r')
+            ->where('r.client_user_id', (int) $user->id);
+
+        $aggregate = (clone $ratingsQuery)
+            ->selectRaw('COUNT(*) as ratings_count, COUNT(DISTINCT r.provider_user_id) as providers_rated_count, AVG(r.stars) as average_stars')
+            ->first();
+
+        $averageStars = $aggregate && $aggregate->average_stars !== null
+            ? round((float) $aggregate->average_stars, 2)
+            : 0.0;
+
+        $recentRatings = (clone $ratingsQuery)
+            ->leftJoin('user as u', 'u.id', '=', 'r.provider_user_id')
+            ->orderByDesc('r.updated_at')
+            ->limit(10)
+            ->get([
+                'r.provider_user_id',
+                'r.stars',
+                'r.updated_at',
+                'u.first_name',
+                'u.last_name',
+                'u.user_name',
+                'u.email',
+            ])
+            ->map(function ($row) {
+                $fullName = trim(((string) ($row->first_name ?? '')) . ' ' . ((string) ($row->last_name ?? '')));
+                $providerName = $fullName !== ''
+                    ? $fullName
+                    : (((string) ($row->user_name ?? '')) !== ''
+                        ? (string) $row->user_name
+                        : (((string) ($row->email ?? '')) !== '' ? (string) $row->email : ('Proveedor #' . (int) $row->provider_user_id)));
+
+                return [
+                    'provider_user_id' => (int) $row->provider_user_id,
+                    'provider_name' => $providerName,
+                    'stars' => (int) $row->stars,
+                    'updated_at' => $row->updated_at ? date('Y-m-d H:i:s', strtotime((string) $row->updated_at)) : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $this->successResponse([
+            'ratingsCount' => (int) ($aggregate->ratings_count ?? 0),
+            'providersRatedCount' => (int) ($aggregate->providers_rated_count ?? 0),
+            'averageStars' => $averageStars,
+            'recentRatings' => $recentRatings,
+        ]);
+    }
+
     public function searchProperties(Request $request)
     {
         $text = trim((string) $request->query('text', ''));

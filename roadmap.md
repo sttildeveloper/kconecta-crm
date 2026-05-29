@@ -342,3 +342,14 @@
 - reset-password flow
 - in-app account deletion
 - legal links exposure
+
+## Status Update (2026-05-29) - Final client ratings dashboard API parity
+- Mobile parity backend gap closed for final client ratings dashboard hydration.
+- New authenticated endpoint available: GET /api/service-ratings/my-dashboard.
+- Endpoint returns metrics and recent activity from server-side source (service_provider_ratings):
+- atingsCount, providersRatedCount, verageStars, ecentRatings.
+- Security/role constraints aligned with existing ratings APIs:
+- 401 UNAUTHENTICATED without token.
+- 403 ROLE_NOT_ALLOWED for non-final-client roles.
+- Regression coverage extended in ServiceRatingsApiTest; suite is green after changes.
+

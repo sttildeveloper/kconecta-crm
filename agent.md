@@ -491,3 +491,14 @@ Operate and evolve `kconecta-crm` with focus on:
   - `/legal/account-deletion`
 - Native app handoff prepared:
 - implementation prompt/contract delivered for iOS/Android integration of forgot/reset/delete/legal links.
+
+## Context checkpoint updated: 2026-05-29 (final-client ratings dashboard API for mobile)
+- Added authenticated endpoint GET /api/service-ratings/my-dashboard for user_level_id = 6 (final client).
+- Access control enforced with existing API contract:
+- 401 + UNAUTHENTICATED when no auth user.
+- 403 + ROLE_NOT_ALLOWED when role is not final client.
+- Response payload added for mobile dashboard hydration:
+- atingsCount, providersRatedCount, verageStars, ecentRatings (latest 10 by updated_at desc).
+- provider_name fallback chain implemented: irst_name + last_name -> user_name -> email -> Proveedor #ID.
+- Feature tests expanded and passing for dashboard endpoint scenarios.
+

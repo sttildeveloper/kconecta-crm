@@ -680,3 +680,14 @@
 - [x] `/legal/terms`
 - [x] `/legal/account-deletion`
 - [x] Native app Codex prompt delivered to implement store-compliance UX flows end-to-end.
+
+## Session Update (2026-05-29) - Final client ratings dashboard API
+- [x] Added authenticated endpoint GET /api/service-ratings/my-dashboard in outes/api.php (uth:sanctum).
+- [x] Implemented ApiController@myServiceRatingsDashboard with:
+- [x] access control (401 UNAUTHENTICATED, 403 ROLE_NOT_ALLOWED).
+- [x] dashboard payload: atingsCount, providersRatedCount, verageStars, ecentRatings.
+- [x] recent activity ordered by updated_at descending (limit 10).
+- [x] provider name fallback chain for robust UI labels.
+- [x] Added/updated feature tests for endpoint auth, role gate, structure, order, and metric correctness.
+- [x] Test run completed: docker compose exec app php artisan test --filter=ServiceRatingsApiTest -> PASS (15 tests, 56 assertions).
+
