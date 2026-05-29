@@ -391,6 +391,34 @@ class ServiceRatingsApiTest extends TestCase
             ->assertJsonCount(2, 'data.recentRatings');
     }
 
+    public function test_my_dashboard_recent_ratings_include_work_code(): void
+    {
+        [$provider, $client] = $this->seedProviderAndFinalClient(true);
+
+        DB::table('service_provider_ratings')->insert([
+            'provider_user_id' => $provider->id,
+            'client_user_id' => $client->id,
+            'stars' => 5,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('service_work_codes')->insert([
+            'provider_user_id' => $provider->id,
+            'code' => 'WK-DASHBOARD-CODE',
+            'is_used' => 1,
+            'used_by_user_id' => $client->id,
+            'used_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->getJson('/api/service-ratings/my-dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('data.recentRatings.0.work_code', 'WK-DASHBOARD-CODE');
+    }
+
     private function seedProviderAndFinalClient(bool $clientVerified): array
     {
         $this->seedUserLevels();

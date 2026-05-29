@@ -218,19 +218,27 @@ class ApiController extends Controller
                 'u.user_name',
                 'u.email',
             ])
-            ->map(function ($row) {
+            ->map(function ($row) use ($user) {
                 $fullName = trim(((string) ($row->first_name ?? '')) . ' ' . ((string) ($row->last_name ?? '')));
                 $providerName = $fullName !== ''
                     ? $fullName
                     : (((string) ($row->user_name ?? '')) !== ''
                         ? (string) $row->user_name
                         : (((string) ($row->email ?? '')) !== '' ? (string) $row->email : ('Proveedor #' . (int) $row->provider_user_id)));
+                $workCode = (string) (DB::table('service_work_codes')
+                    ->where('provider_user_id', (int) $row->provider_user_id)
+                    ->where('used_by_user_id', (int) $user->id)
+                    ->where('is_used', 1)
+                    ->orderByDesc('used_at')
+                    ->orderByDesc('updated_at')
+                    ->value('code') ?? '');
 
                 return [
                     'provider_user_id' => (int) $row->provider_user_id,
                     'provider_name' => $providerName,
                     'stars' => (int) $row->stars,
                     'updated_at' => $row->updated_at ? date('Y-m-d H:i:s', strtotime((string) $row->updated_at)) : null,
+                    'work_code' => $workCode,
                 ];
             })
             ->values()
