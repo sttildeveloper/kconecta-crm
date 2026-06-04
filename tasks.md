@@ -1,5 +1,15 @@
 ﻿# Kconecta CRM - Tasks
 
+## Sprint Execution Mode (2026-06-04)
+- [x] Decision tomada:
+- [x] implementar el backlog tecnico-funcional siguiendo el plan por sprints.
+- [x] Documento maestro de ejecucion:
+- [x] `kconecta_backlog_roadmap.md`
+- [ ] Siguiente paso operativo:
+- [ ] desglosar Sprint 1 en tareas ejecutables del repo actual.
+- [ ] validar alcance inicial de `Tickets e Incidencias` frente a la baseline ya desplegada.
+- [ ] identificar dependencias tecnicas reutilizables del sistema actual para minimizar riesgo de integracion.
+
 ## Nueva tarea UX Registro (2026-05-12) - Reducir friccion en alta
 - [ ] Objetivo:
 - [ ] simplificar formulario de registro para aumentar conversion y reducir intimidacion del usuario.

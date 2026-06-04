@@ -1,5 +1,12 @@
 ﻿# Kconecta CRM - Roadmap
 
+## Execution Mode (2026-06-04)
+- El plan activo de ejecucion del backlog pasa a ser por sprints.
+- Documento maestro para implementacion incremental:
+- `kconecta_backlog_roadmap.md`
+- `roadmap.md` se mantiene como contexto historico, operativo y de estado de produccion.
+- Cualquier nueva priorizacion funcional debe alinearse con los sprints definidos en el backlog de 90 dias.
+
 ## Status Update (2026-05-12)
 - Ratings/client-final release deployed to production from `main` (`07c3aae`).
 - Backup pre-deploy executed and validated in VPS (`/root/kconecta_backups/*_pre_ratings_release/db_production.sql.gz`).

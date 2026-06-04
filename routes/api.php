@@ -65,4 +65,11 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::post('/service-ratings', [ApiController::class, 'storeServiceRating']);
     Route::post('/service-ratings/by-code', [ApiController::class, 'storeServiceRatingByCode']);
     Route::get('/service-ratings/my-dashboard', [ApiController::class, 'myServiceRatingsDashboard']);
+
+    // Módulo de Tickets / Soporte API
+    Route::get('/agent/tickets', [\App\Http\Controllers\Api\TicketApiController::class, 'index']);
+    Route::post('/agent/tickets', [\App\Http\Controllers\Api\TicketApiController::class, 'store']);
+    Route::get('/agent/tickets/{id}', [\App\Http\Controllers\Api\TicketApiController::class, 'show']);
+    Route::post('/agent/tickets/{id}/reply', [\App\Http\Controllers\Api\TicketApiController::class, 'reply']);
+    Route::post('/agent/tickets/{id}/close', [\App\Http\Controllers\Api\TicketApiController::class, 'close']);
 });

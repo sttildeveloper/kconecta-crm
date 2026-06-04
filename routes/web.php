@@ -74,4 +74,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/service-ratings/by-code', [\App\Http\Controllers\ApiController::class, 'storeServiceRatingByCode']);
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/post/tickets', [\App\Http\Controllers\TicketController::class, 'index'])->name('tickets.index');
+    Route::get('/post/tickets/create', [\App\Http\Controllers\TicketController::class, 'create'])->name('tickets.create');
+    Route::post('/post/tickets', [\App\Http\Controllers\TicketController::class, 'store'])->name('tickets.store');
+    Route::get('/post/tickets/{id}', [\App\Http\Controllers\TicketController::class, 'show'])->name('tickets.show');
+    Route::post('/post/tickets/{id}/reply', [\App\Http\Controllers\TicketController::class, 'reply'])->name('tickets.reply');
+    Route::post('/post/tickets/{id}/close', [\App\Http\Controllers\TicketController::class, 'close'])->name('tickets.close');
+});
+
 require __DIR__.'/auth.php';
