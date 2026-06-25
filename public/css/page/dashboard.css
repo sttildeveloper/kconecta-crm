@@ -1227,6 +1227,18 @@ body {
   justify-items: start;
 }
 
+.users-list-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.users-list-page .catalog-grid.users-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.25rem;
+  justify-content: stretch;
+  justify-items: stretch;
+}
+
 .catalog-grid.providers-grid {
   grid-template-columns: repeat(auto-fit, minmax(280px, 340px));
   justify-content: flex-start;
@@ -1749,6 +1761,11 @@ body {
 .catalog-grid.users-grid .user-card {
   width: 100%;
   max-width: 360px;
+}
+
+.users-list-page .catalog-grid.users-grid .user-card {
+  max-width: none;
+  min-width: 0;
 }
 
 .user-card {
@@ -2408,6 +2425,10 @@ body {
     height: 200px;
     justify-self: center;
   }
+
+  .users-list-page .catalog-grid.users-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -2432,6 +2453,30 @@ body {
   .header-actions a {
     width: 100%;
     text-align: center;
+  }
+}
+
+@media (max-width: 1320px) {
+  .users-list-page .catalog-grid.users-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .users-list-page .catalog-grid.users-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .users-list-page .catalog-grid.users-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .users-list-page .catalog-grid.users-grid {
+    grid-template-columns: 1fr;
   }
 }
 

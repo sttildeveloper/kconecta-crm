@@ -26,10 +26,8 @@
                     @if ($navCanManageProperties)
                         <a class="{{ ($activeNav ?? '') === 'properties' ? 'active' : '' }}" href="{{ url('/post/my_posts') }}">Mis propiedades</a>
                     @endif
-                    @if ($navCanManageServices)
-                        <a class="{{ ($activeNav ?? '') === 'services' ? 'active' : '' }}" href="{{ url('/post/services') }}">
-                            {{ $navIsAdmin ? 'Proveedores de servicios' : 'Servicios' }}
-                        </a>
+                    @if ($navCanManageServices && ! $navIsAdmin)
+                        <a class="{{ ($activeNav ?? '') === 'services' ? 'active' : '' }}" href="{{ url('/post/services') }}">Servicios</a>
                     @endif
                     @if ($navIsAdmin)
                         <a class="{{ ($activeNav ?? '') === 'blog' ? 'active' : '' }}" href="{{ url('/post/blogs') }}">Blog</a>
