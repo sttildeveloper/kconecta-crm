@@ -18,6 +18,7 @@ use App\Models\PsViewsSearch;
 use App\Models\PsWhatsappClicks;
 use App\Models\Service;
 use App\Models\ServiceAddress;
+use App\Models\ServiceType;
 use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -406,6 +407,52 @@ class ApiController extends Controller
             // Backward compatibility
             'status' => 200,
             'province' => $provinceCounter,
+        ]);
+    }
+
+    public function publicServiceTypes()
+    {
+        $types = ServiceType::query()
+            ->select('service_type.id', 'service_type.name')
+            ->join('service_types', 'service_types.service_type_id', '=', 'service_type.id')
+            ->join('service', 'service.id', '=', 'service_types.service_id')
+            ->join('user', 'user.id', '=', 'service.user_id')
+            ->where('user.user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(function ($query) {
+                $query->whereExists(function ($subquery) {
+                    $subquery->select(DB::raw(1))
+                        ->from('service_address')
+                        ->whereColumn('service_address.service_id', 'service.id')
+                        ->whereNotNull('service_address.latitude')
+                        ->whereNotNull('service_address.longitude')
+                        ->where('service_address.latitude', '<>', '')
+                        ->where('service_address.longitude', '<>', '');
+                })->orWhereExists(function ($subquery) {
+                    $subquery->select(DB::raw(1))
+                        ->from('user_address')
+                        ->whereColumn('user_address.user_id', 'service.user_id')
+                        ->whereNotNull('user_address.latitude')
+                        ->whereNotNull('user_address.longitude')
+                        ->where('user_address.latitude', '<>', '')
+                        ->where('user_address.longitude', '<>', '');
+                });
+            })
+            ->distinct()
+            ->orderBy('service_type.name')
+            ->get()
+            ->map(fn (ServiceType $type) => [
+                'id' => (int) $type->id,
+                'name' => $type->name,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $types,
+            'message' => null,
+            'errors' => null,
+            'status' => 200,
         ]);
     }
 
