@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,12 @@ Route::middleware(['auth', 'provider_or_agent_verified'])->group(function () {
     Route::get('/users/toggle', [UserController::class, 'toggleStatus']);
     Route::get('/users/edit/{id}', [UserController::class, 'editAdmin']);
     Route::get('/users/{id}', [UserController::class, 'userView']);
+
+    Route::get('/admin/service-types', [ServiceTypeController::class, 'index'])->name('admin.service-types.index');
+    Route::get('/admin/service-types/edit/{id}', [ServiceTypeController::class, 'edit'])->name('admin.service-types.edit');
+    Route::post('/admin/service-types/save', [ServiceTypeController::class, 'store'])->name('admin.service-types.store');
+    Route::post('/admin/service-types/update/{id}', [ServiceTypeController::class, 'update'])->name('admin.service-types.update');
+    Route::post('/admin/service-types/delete', [ServiceTypeController::class, 'delete'])->name('admin.service-types.delete');
 
     Route::get('/user/update', [UserController::class, 'update']);
     Route::post('/user/update/save', [UserController::class, 'updateSave']);

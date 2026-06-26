@@ -12,10 +12,14 @@ use App\Models\UserAddress;
 use App\Models\UserLevel;
 use App\Models\CoverImage;
 use App\Models\MoreImage;
+use App\Models\ServiceProviderRating;
+use App\Models\ServiceWorkCode;
 use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
@@ -97,18 +101,78 @@ class UserController extends Controller
         $addressRows = empty($userIds)
             ? collect()
             : UserAddress::whereIn('user_id', $userIds)->get()->groupBy('user_id');
+        $providerIds = $users->getCollection()
+            ->filter(fn (User $row) => (int) $row->user_level_id === User::LEVEL_SERVICE_PROVIDER)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
         $levelMap = UserLevel::pluck('name', 'id')->all();
         $roleLabels = $this->userTypeLabels();
         foreach ($roleLabels as $id => $label) {
             $levelMap[$id] = $label;
         }
 
-        $users->getCollection()->transform(function (User $row) use ($addressRows, $levelMap) {
+        $profileVisitsMap = [];
+        if (! empty($providerIds) && Schema::hasTable('service_profile_visits')) {
+            $profileVisitsMap = DB::table('service_profile_visits')
+                ->selectRaw('provider_user_id, COUNT(*) as total')
+                ->whereIn('provider_user_id', $providerIds)
+                ->groupBy('provider_user_id')
+                ->pluck('total', 'provider_user_id')
+                ->map(fn ($total) => (int) $total)
+                ->all();
+        }
+
+        $contactClicksMap = [];
+        if (! empty($providerIds) && Schema::hasTable('service_contact_clicks')) {
+            $contactClicksMap = DB::table('service_contact_clicks')
+                ->selectRaw('provider_user_id, COUNT(*) as total')
+                ->whereIn('provider_user_id', $providerIds)
+                ->groupBy('provider_user_id')
+                ->pluck('total', 'provider_user_id')
+                ->map(fn ($total) => (int) $total)
+                ->all();
+        }
+
+        $serviceTicketsMap = [];
+        if (! empty($providerIds)) {
+            $serviceTicketsMap = ServiceWorkCode::query()
+                ->selectRaw('provider_user_id, COUNT(*) as total')
+                ->whereIn('provider_user_id', $providerIds)
+                ->where('is_used', 1)
+                ->groupBy('provider_user_id')
+                ->pluck('total', 'provider_user_id')
+                ->map(fn ($total) => (int) $total)
+                ->all();
+        }
+
+        $ratingsSummaryMap = [];
+        if (! empty($providerIds)) {
+            $ratingsSummaryMap = ServiceProviderRating::query()
+                ->selectRaw('provider_user_id, COUNT(*) as total, AVG(stars) as average')
+                ->whereIn('provider_user_id', $providerIds)
+                ->groupBy('provider_user_id')
+                ->get()
+                ->mapWithKeys(function (ServiceProviderRating $rating) {
+                    return [
+                        (int) $rating->provider_user_id => [
+                            'total' => (int) ($rating->total ?? 0),
+                            'average' => round((float) ($rating->average ?? 0), 1),
+                        ],
+                    ];
+                })
+                ->all();
+        }
+
+        $users->getCollection()->transform(function (User $row) use ($addressRows, $levelMap, $profileVisitsMap, $contactClicksMap, $serviceTicketsMap, $ratingsSummaryMap) {
             $address = $addressRows->get($row->id)?->first();
             $name = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
             if ($name === '') {
                 $name = $row->user_name ?: ($row->email ?: 'Usuario');
             }
+
+            $isProvider = (int) $row->user_level_id === User::LEVEL_SERVICE_PROVIDER;
 
             return [
                 'id' => $row->id,
@@ -127,6 +191,13 @@ class UserController extends Controller
                 'photo' => $row->photo ?? '',
                 'created_at' => $row->created_at ? $row->created_at->format('d/m/Y') : '',
                 'updated_at' => $row->updated_at ? $row->updated_at->format('d/m/Y') : '',
+                'provider_metrics' => $isProvider ? [
+                    'profile_visits' => $profileVisitsMap[(int) $row->id] ?? 0,
+                    'contact_clicks' => $contactClicksMap[(int) $row->id] ?? 0,
+                    'service_tickets' => $serviceTicketsMap[(int) $row->id] ?? 0,
+                    'ratings_received' => $ratingsSummaryMap[(int) $row->id]['total'] ?? 0,
+                    'ratings_average' => $ratingsSummaryMap[(int) $row->id]['average'] ?? 0,
+                ] : null,
             ];
         });
 
@@ -473,18 +544,66 @@ class UserController extends Controller
             return response()->json(['status' => 403, 'message' => 'Solo puedes eliminar proveedores de servicio.'], 403);
         }
 
-        $serviceIds = Service::where('user_id', $user->id)->pluck('id')->all();
-        if (! empty($serviceIds)) {
-            CoverImage::whereIn('service_id', $serviceIds)->delete();
-            MoreImage::whereIn('service_id', $serviceIds)->delete();
-            Video::whereIn('service_id', $serviceIds)->delete();
-            ServiceAddress::whereIn('service_id', $serviceIds)->delete();
-            ServiceTypeLink::whereIn('service_id', $serviceIds)->delete();
-            Service::whereIn('id', $serviceIds)->delete();
-        }
+        DB::transaction(function () use ($user): void {
+            $serviceIds = Service::where('user_id', $user->id)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
 
-        UserAddress::where('user_id', $user->id)->delete();
-        $user->delete();
+            if (Schema::hasTable('service_profile_visits')) {
+                $profileVisitsQuery = DB::table('service_profile_visits')
+                    ->where('provider_user_id', (int) $user->id);
+
+                if (! empty($serviceIds)) {
+                    $profileVisitsQuery->orWhereIn('service_id', $serviceIds);
+                }
+
+                $profileVisitsQuery->delete();
+            }
+
+            if (Schema::hasTable('service_contact_clicks')) {
+                $contactClicksQuery = DB::table('service_contact_clicks')
+                    ->where('provider_user_id', (int) $user->id);
+
+                if (! empty($serviceIds)) {
+                    $contactClicksQuery->orWhereIn('service_id', $serviceIds);
+                }
+
+                $contactClicksQuery->delete();
+            }
+
+            if (! empty($serviceIds)) {
+                CoverImage::whereIn('service_id', $serviceIds)->delete();
+                MoreImage::whereIn('service_id', $serviceIds)->delete();
+                Video::whereIn('service_id', $serviceIds)->delete();
+                ServiceAddress::whereIn('service_id', $serviceIds)->delete();
+                ServiceTypeLink::whereIn('service_id', $serviceIds)->delete();
+
+                Service::whereIn('id', $serviceIds)->delete();
+            }
+
+            ServiceProviderRating::where('provider_user_id', (int) $user->id)->delete();
+
+            ServiceWorkCode::where('provider_user_id', (int) $user->id)
+                ->orWhere('used_by_user_id', (int) $user->id)
+                ->delete();
+
+            if (Schema::hasTable('account_deletion_audits')) {
+                DB::table('account_deletion_audits')
+                    ->where('user_id', (int) $user->id)
+                    ->delete();
+            }
+
+            if (Schema::hasTable('personal_access_tokens')) {
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', User::class)
+                    ->where('tokenable_id', (int) $user->id)
+                    ->delete();
+            }
+
+            UserAddress::where('user_id', $user->id)->delete();
+            $user->delete();
+        });
 
         return response()->json(['status' => 200]);
     }

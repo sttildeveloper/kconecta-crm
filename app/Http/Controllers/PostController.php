@@ -77,6 +77,20 @@ class PostController extends Controller
         return max(1, (int) config('uploads.video_max_upload_mb', 150)) . 'MB';
     }
 
+    private function providerPrimaryServiceId(User $user): ?int
+    {
+        if (! $user->isServiceProvider()) {
+            return null;
+        }
+
+        $serviceId = Service::query()
+            ->where('user_id', (int) $user->id)
+            ->orderBy('id')
+            ->value('id');
+
+        return $serviceId ? (int) $serviceId : null;
+    }
+
     private function normalizeLegacyLabel(?string $value): ?string
     {
         if (! is_string($value) || $value === '') {
@@ -492,6 +506,13 @@ class PostController extends Controller
         $isAdmin = (int) $user->user_level_id === 1;
 
         if ($id === 'service') {
+            $existingProviderServiceId = $this->providerPrimaryServiceId($user);
+            if ($existingProviderServiceId) {
+                return redirect()
+                    ->to('/post/services/update_form/' . $existingProviderServiceId)
+                    ->with('status', 'Ya tienes una ficha de servicios. Puedes actualizarla aqui.');
+            }
+
             $serviceType = ServiceType::orderBy('name')->get();
 
             return view('post.forms.form_service', [
@@ -2123,6 +2144,13 @@ class PostController extends Controller
             return redirect()
                 ->to('/home')
                 ->with('error', 'Tu cuenta no puede crear servicios.');
+        }
+
+        $existingProviderServiceId = $this->providerPrimaryServiceId($user);
+        if ($existingProviderServiceId) {
+            return redirect()
+                ->to('/post/services/update_form/' . $existingProviderServiceId)
+                ->with('status', 'Ya tienes una ficha de servicios. Actualiza ese perfil para gestionar tus categorias y multimedia.');
         }
 
         $validated = $request->validate([

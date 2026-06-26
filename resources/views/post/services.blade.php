@@ -7,7 +7,7 @@
 @endsection
 
 @section('subheading')
-    {{ ($isProviderView ?? false) ? 'Gestiona tu perfil y los servicios que ofreces' : 'Gestiona los proveedores de servicios publicados y sus detalles' }}
+    {{ ($isProviderView ?? false) ? 'Gestiona tu ficha de servicios, categorias y multimedia' : 'Gestiona los proveedores de servicios publicados y sus detalles' }}
 @endsection
 
 @section('header_actions')
@@ -161,8 +161,8 @@
                     <div class="card service-list">
                         <div class="service-list-header">
                             <div>
-                                <h3>Servicios publicados</h3>
-                                <p>{{ $services->total() }} servicios en total</p>
+                                <h3>Ficha de servicios</h3>
+                                <p>{{ $services->total() }} perfil{{ $services->total() === 1 ? '' : 'es' }} asociado{{ $services->total() === 1 ? '' : 's' }}</p>
                             </div>
                         </div>
                         <div class="service-items">
@@ -218,13 +218,13 @@
                                 </article>
                             @empty
                                 <div class="empty-state">
-                                <h3>Sin servicios registrados</h3>
-                                    <p>Agrega tu primer servicio para mostrarlo en tu landing.</p>
+                                <h3>Sin ficha de servicios</h3>
+                                    <p>Crea tu ficha para indicar los servicios que ofreces y cargar tu multimedia.</p>
                                     <a class="primary" href="{{ url('/post/create_form/service') }}">
                                         <svg viewBox="0 0 24 24" aria-hidden="true">
                                             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"/>
                                         </svg>
-                                        <span>Agregar servicio</span>
+                                        <span>Crear ficha</span>
                                     </a>
                                 </div>
                             @endforelse
