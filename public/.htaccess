@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Canonical host: redirect www traffic to the apex domain over HTTPS.
+    RewriteCond %{HTTP_HOST} ^www\.kconecta\.com$ [NC]
+    RewriteRule ^ https://kconecta.com%{REQUEST_URI} [L,R=301,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
