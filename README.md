@@ -203,6 +203,12 @@ Notas:
 - igualar formularios web y movil
 - definir pipeline consistente de video e imagenes para web y movil
 
+## Mobile API Native Registration (2026-06-28)
+Endpoints de registro nativo disponibles para la App Móvil:
+- `POST /api/mobile/register-provider`: Registro de Proveedores (`user_level_id = 4`). Revisa al menos `company_name` o `first_name`.
+- `POST /api/mobile/register-client`: Registro de Clientes Finales (`user_level_id = 6`).
+- Respuestas en JSON estandarizado (`201 Created` / `422 Unprocessable Entity`) con token personal Sanctum para inicio de sesión automático inmediato.
+
 ## Project Control Files
 - Estado y plan: [tasks.md](./tasks.md)
 - Contexto operativo: [agent.md](./agent.md)

@@ -38,6 +38,8 @@ Route::middleware('throttle:60,1')->group(function () {
 
 // Mobile app auth + agent endpoints
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/mobile/register-provider', [\App\Http\Controllers\Api\RegisterApiController::class, 'registerProvider'])->middleware('throttle:10,1');
+Route::post('/mobile/register-client', [\App\Http\Controllers\Api\RegisterApiController::class, 'registerClient'])->middleware('throttle:10,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 

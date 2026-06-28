@@ -1,4 +1,12 @@
-﻿# Kconecta CRM - Tasks
+# Kconecta CRM - Tasks
+
+## Mobile API Registration Release (2026-06-28)
+- [x] Implementados endpoints nativos de registro para la app móvil bajo `/api/mobile/`:
+  - [x] `POST /api/mobile/register-provider` (`user_level_id = 4`)
+  - [x] `POST /api/mobile/register-client` (`user_level_id = 6`)
+- [x] Creado `App\Services\UserRegistrationService` para reutilizar las reglas de validación y creación del registro web.
+- [x] Creado `App\Http\Controllers\Api\RegisterApiController` devuelviendo tokens Sanctum y estructura JSON normalizada.
+- [x] Refactorizado `RegisteredUserController` sin alterar el comportamiento web.
 
 ## Sprint Execution Mode (2026-06-04)
 - [x] Decision tomada:
@@ -9,6 +17,55 @@
 - [ ] desglosar Sprint 1 en tareas ejecutables del repo actual.
 - [ ] validar alcance inicial de `Tickets e Incidencias` frente a la baseline ya desplegada.
 - [ ] identificar dependencias tecnicas reutilizables del sistema actual para minimizar riesgo de integracion.
+
+## Session Closure (2026-06-07) - Pause sprint escalation / switch to Apple release
+- [x] Sprint 1 `Tickets e Incidencias` ejecutado parcialmente en local.
+- [x] Commit local creado sin push:
+- [x] `f24313d` - `feat(tickets): add sprint 1 support module`
+- [x] Validacion local tickets:
+- [x] `docker compose exec app php artisan test --filter=TicketTest` -> PASS (`7` tests, `37` assertions)
+- [x] Estado deliberado:
+- [x] no hacer `push` todavia para evitar autodeploy a produccion
+- [x] Flujo local de migraciones legacy reconciliado para:
+- [x] `2026_05_22_160000_create_account_deletion_audits_table`
+- [x] `2026_06_04_000000_create_tickets_and_messages_tables`
+- [x] Revisada la UX del detalle publico de propiedades y corregido localmente el overflow de cards/textos largos.
+- [x] Revisado el bloque de formularios de propiedades con estrategia por tipo.
+- [x] `Casa o chalet` completado en primera pasada local:
+- [x] resumen de errores en frontend
+- [x] bloqueo de guardado si faltan obligatorios clave
+- [x] validacion backend especifica para tipo `1`
+- [ ] Pendiente cuando se retome esta linea:
+- [ ] prueba manual funcional de `Casa o chalet` autenticado en navegador local
+- [ ] ajustar hallazgos UX/validacion de esa prueba
+- [ ] replicar el mismo enfoque por tipo:
+- [ ] `Piso`
+- [ ] `Local o nave`
+- [ ] `Garaje`
+- [ ] `Terreno`
+- [ ] `Casa rustica`
+- [x] Cambio de prioridad acordado:
+- [x] pausa temporal del trabajo de sprints/backend web
+- [x] siguiente frente principal: preparar la app de proveedores de servicios para subida al **Apple App Store**
+
+## Nueva prioridad release iOS (2026-06-07) - App de proveedores a Apple App Store
+- [ ] Auditar estado actual de la app de proveedores para envio a App Store Connect.
+- [ ] Confirmar build actual, bundle identifier, version y build number.
+- [ ] Revisar requisitos Apple pendientes:
+- [ ] metadatos App Store
+- [ ] screenshots
+- [ ] privacy nutrition
+- [ ] privacy policy URL
+- [ ] account deletion UX/link si aplica
+- [ ] credenciales/demo flow para review
+- [ ] Comprobar integracion real contra backend Kconecta ya desplegado.
+- [ ] Ejecutar checklist tecnico de release iOS:
+- [ ] login
+- [ ] perfil proveedor
+- [ ] logo proveedor
+- [ ] servicios proveedor
+- [ ] metricas/ratings si forman parte del alcance del build
+- [ ] Preparar plan de subida sin afectar produccion web hasta validar build final.
 
 ## Nueva tarea UX Registro (2026-05-12) - Reducir friccion en alta
 - [ ] Objetivo:
