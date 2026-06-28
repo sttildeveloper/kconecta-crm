@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/properties', [ApiController::class, 'searchProperties']);
     Route::get('/services', [ApiController::class, 'searchServices']);
+    Route::get('/services/{id}', [ApiController::class, 'publicServiceDetail']);
+    Route::get('/public/services/{id}', [ApiController::class, 'publicServiceDetail']);
     Route::get('/service-types', [ApiController::class, 'publicServiceTypes']);
+    Route::get('/public/service-types', [ApiController::class, 'publicServiceTypes']);
     Route::get('/properties_for_map', [ApiController::class, 'dataPropertiesForMap']);
     Route::get('/services_for_map', [ApiController::class, 'dataServicesForMap']);
     Route::get('/delete_more_image', fn () => response()->json([

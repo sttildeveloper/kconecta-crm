@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CoverImage;
 use App\Models\MoreImage;
 use App\Models\PostVisit;
 use App\Models\Property;
 use App\Models\PropertyAddress;
+use App\Models\Video;
 use App\Models\PsEmailOwner;
 use App\Models\PsLinkCopied;
 use App\Models\PsMessagesReceived;
@@ -413,33 +415,8 @@ class ApiController extends Controller
     public function publicServiceTypes()
     {
         $types = ServiceType::query()
-            ->select('service_type.id', 'service_type.name')
-            ->join('service_types', 'service_types.service_type_id', '=', 'service_type.id')
-            ->join('service', 'service.id', '=', 'service_types.service_id')
-            ->join('user', 'user.id', '=', 'service.user_id')
-            ->where('user.user_level_id', User::LEVEL_SERVICE_PROVIDER)
-            ->where(function ($query) {
-                $query->whereExists(function ($subquery) {
-                    $subquery->select(DB::raw(1))
-                        ->from('service_address')
-                        ->whereColumn('service_address.service_id', 'service.id')
-                        ->whereNotNull('service_address.latitude')
-                        ->whereNotNull('service_address.longitude')
-                        ->where('service_address.latitude', '<>', '')
-                        ->where('service_address.longitude', '<>', '');
-                })->orWhereExists(function ($subquery) {
-                    $subquery->select(DB::raw(1))
-                        ->from('user_address')
-                        ->whereColumn('user_address.user_id', 'service.user_id')
-                        ->whereNotNull('user_address.latitude')
-                        ->whereNotNull('user_address.longitude')
-                        ->where('user_address.latitude', '<>', '')
-                        ->where('user_address.longitude', '<>', '');
-                });
-            })
-            ->distinct()
-            ->orderBy('service_type.name')
-            ->get()
+            ->orderBy('name')
+            ->get(['id', 'name'])
             ->map(fn (ServiceType $type) => [
                 'id' => (int) $type->id,
                 'name' => $type->name,
@@ -661,23 +638,41 @@ class ApiController extends Controller
             $userLogoUrl = '';
             $user = User::find((int) $service->user_id);
             if ($user) {
-                $userName = $user->first_name;
-                if (! empty($user->last_name)) {
-                    $userName .= ', ' . $user->last_name;
-                }
+                $userName = $user->user_name ?: trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
                 if (! empty($user->photo)) {
-                    $userLogoUrl = '/img/photo_profile/' . ltrim($user->photo, '/');
+                    $userLogoUrl = asset('img/photo_profile/' . ltrim((string) $user->photo, '/'));
                 }
             }
 
+            $serviceTypeLinks = ServiceTypeLink::query()->where('service_id', (int) $service->id)->pluck('service_type_id')->map(fn ($id) => (int) $id)->all();
+            $serviceTypes = empty($serviceTypeLinks) ? [] : ServiceType::query()->whereIn('id', $serviceTypeLinks)->orderBy('name')->get(['id', 'name'])->map(fn ($t) => ['id' => (int) $t->id, 'name' => $t->name])->values()->all();
+            $cover = CoverImage::query()->where('service_id', (int) $service->id)->first();
+
+            $phone = $user?->phone ?: ($user?->mobile_phone ?: $user?->landline_phone);
+            $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
+            $whatsappPhone = ltrim((string) $cleanPhone, '+');
+            $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio') : null;
+
             $dataProperties[] = [
-                'id' => $service->id,
-                'title' => $userName,
-                'logo_url' => $userLogoUrl,
-                'average_stars' => $ratingsSummaryByProvider[(int) $service->user_id]['average_stars'] ?? 0.0,
-                'ratings_count' => $ratingsSummaryByProvider[(int) $service->user_id]['ratings_count'] ?? 0,
+                'id' => (int) $service->id,
+                'provider_user_id' => (int) $service->user_id,
+                'title' => $userName ?: 'Servicio',
+                'logo_url' => $userLogoUrl ?: null,
+                'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
+                'average_stars' => (float) ($ratingsSummaryByProvider[(int) $service->user_id]['average_stars'] ?? 0.0),
+                'ratings_count' => (int) ($ratingsSummaryByProvider[(int) $service->user_id]['ratings_count'] ?? 0),
                 'lat' => $resolved->latitude,
                 'lng' => $resolved->longitude,
+                'latitude' => $resolved->latitude,
+                'longitude' => $resolved->longitude,
+                'address' => $resolvedAddress,
+                'city' => $resolvedCity,
+                'province' => $resolvedProvince,
+                'phone' => $phone,
+                'whatsapp_phone' => $whatsappPhone ?: null,
+                'whatsapp_url' => $whatsappUrl,
+                'service_type_ids' => $serviceTypeLinks,
+                'service_types' => $serviceTypes,
             ];
         }
 
@@ -690,6 +685,77 @@ class ApiController extends Controller
             // Backward compatibility
             'status' => 200,
         ]);
+    }
+
+    public function publicServiceDetail(Request $request, string $id)
+    {
+        $service = Service::query()->where('id', (int) $id)->first();
+        if (! $service) {
+            return $this->errorResponse('Servicio no encontrado', 404);
+        }
+
+        $user = User::find((int) $service->user_id);
+        $serviceAddress = ServiceAddress::query()->where('service_id', (int) $service->id)->first();
+        $userAddress = UserAddress::query()->where('user_id', (int) $service->user_id)->first();
+        $address = $serviceAddress ?: $userAddress;
+
+        $cover = CoverImage::query()->where('service_id', (int) $service->id)->first();
+        $video = Video::query()->where('service_id', (int) $service->id)->first();
+        $moreImages = MoreImage::query()->where('service_id', (int) $service->id)->get();
+
+        $serviceTypeLinks = ServiceTypeLink::query()->where('service_id', (int) $service->id)->pluck('service_type_id')->map(fn ($typeId) => (int) $typeId)->all();
+        $serviceTypes = empty($serviceTypeLinks) ? [] : ServiceType::query()->whereIn('id', $serviceTypeLinks)->orderBy('name')->get(['id', 'name'])->map(fn ($t) => ['id' => (int) $t->id, 'name' => $t->name])->values()->all();
+
+        $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $service->user_id);
+
+        $phone = $user?->phone ?: ($user?->mobile_phone ?: $user?->landline_phone);
+        $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
+        $whatsappPhone = ltrim((string) $cleanPhone, '+');
+        $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio') : null;
+
+        $gallery = $moreImages->map(function ($img) {
+            return [
+                'id' => (int) $img->id,
+                'url' => ! empty($img->url) ? asset('img/uploads/' . ltrim((string) $img->url, '/')) : null,
+            ];
+        })->filter(fn ($item) => ! empty($item['url']))->values()->all();
+
+        $title = $service->title;
+        if (empty($title) && $user) {
+            $title = $user->user_name ?: trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+        }
+
+        $payload = [
+            'id' => (int) $service->id,
+            'provider_user_id' => (int) $service->user_id,
+            'title' => $title ?: 'Servicio',
+            'description' => $service->description,
+            'availability' => $service->availability,
+            'page_url' => $service->page_url,
+            'updated_at' => optional($service->updated_at)?->toISOString(),
+            'logo_url' => $user && ! empty($user->photo) ? asset('img/photo_profile/' . ltrim((string) $user->photo, '/')) : null,
+            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
+            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/' . ltrim((string) $video->url, '/')) : null,
+            'address' => $address?->address,
+            'city' => $address?->city,
+            'province' => $address?->province,
+            'postal_code' => $address?->postal_code,
+            'country' => $address?->country,
+            'lat' => $address?->latitude,
+            'lng' => $address?->longitude,
+            'latitude' => $address?->latitude,
+            'longitude' => $address?->longitude,
+            'average_stars' => (float) ($ratingSummary['average_stars'] ?? 0.0),
+            'ratings_count' => (int) ($ratingSummary['ratings_count'] ?? 0),
+            'phone' => $phone,
+            'whatsapp_phone' => $whatsappPhone ?: null,
+            'whatsapp_url' => $whatsappUrl,
+            'email' => $user?->email,
+            'service_types' => $serviceTypes,
+            'gallery' => $gallery,
+        ];
+
+        return $this->successResponse($payload, null, null, 200, ['status' => 200]);
     }
 
     public function deleteMoreImage(Request $request)
