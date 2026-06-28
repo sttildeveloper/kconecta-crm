@@ -7,6 +7,7 @@ use App\Models\UserAddress;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -126,7 +127,7 @@ class UserRegistrationService
      */
     public function register(array $validatedData): User
     {
-        return DB::transaction(function () use ($validatedData) {
+        $user = DB::transaction(function () use ($validatedData) {
             $email = (string) $validatedData['email'];
             $userName = $this->normalizeCompanyName((string) ($validatedData['company_name'] ?? ''));
             $documentType = strtoupper(trim((string) ($validatedData['document_type'] ?? '')));
@@ -167,10 +168,20 @@ class UserRegistrationService
                 'additional_info' => null,
             ]);
 
-            event(new Registered($user));
-
             return $user;
         });
+
+        try {
+            event(new Registered($user));
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar el correo de verificacion al registrar usuario en API.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
+        return $user;
     }
 
     public function normalizeDocumentNumber(string $value): string
