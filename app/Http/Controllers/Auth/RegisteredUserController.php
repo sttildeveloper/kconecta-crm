@@ -9,6 +9,7 @@ use App\Services\UserRegistrationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
@@ -18,6 +19,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
+        $registrationFormStartedAt = now()->timestamp;
+        session(['registration_form_started_at' => $registrationFormStartedAt]);
+
         return view('auth.auth', [
             'mode' => 'register',
             'userLevels' => UserLevel::query()
@@ -26,6 +30,7 @@ class RegisteredUserController extends Controller
                 ->get(),
             'documentTypes' => $this->documentTypes(),
             'mapsKey' => (string) config('services.google.maps_key'),
+            'registrationFormStartedAt' => $registrationFormStartedAt,
         ]);
     }
 
@@ -36,12 +41,41 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request, UserRegistrationService $registrationService): RedirectResponse
     {
+        $this->ensureHumanRegistrationAttempt($request);
+
         $validated = $registrationService->validate($request->all());
         $user = $registrationService->register($validated);
 
         Auth::login($user);
 
         return redirect($this->redirectPathForUser($user));
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function ensureHumanRegistrationAttempt(Request $request): void
+    {
+        if (filled((string) $request->input('website'))) {
+            throw ValidationException::withMessages([
+                'email' => 'No se pudo procesar el registro. Intentalo de nuevo.',
+            ]);
+        }
+
+        $submittedStartedAt = (int) $request->input('registration_form_started_at');
+        $sessionStartedAt = (int) $request->session()->pull('registration_form_started_at', 0);
+
+        if ($submittedStartedAt <= 0 || $sessionStartedAt <= 0 || $submittedStartedAt !== $sessionStartedAt) {
+            throw ValidationException::withMessages([
+                'email' => 'La sesion del formulario ha caducado. Recarga la pagina e intentalo de nuevo.',
+            ]);
+        }
+
+        if ((now()->timestamp - $sessionStartedAt) < 3) {
+            throw ValidationException::withMessages([
+                'email' => 'Espera unos segundos antes de enviar el formulario.',
+            ]);
+        }
     }
 
     private function documentTypes(): array

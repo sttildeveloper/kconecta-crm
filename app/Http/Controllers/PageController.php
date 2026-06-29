@@ -101,6 +101,16 @@ class PageController extends Controller
         ]);
     }
 
+    public function providerLanding()
+    {
+        $registrationFormStartedAt = now()->timestamp;
+        session(['registration_form_started_at' => $registrationFormStartedAt]);
+
+        return view('page.provider_landing', [
+            'registrationFormStartedAt' => $registrationFormStartedAt,
+        ]);
+    }
+
     public function resultAll()
     {
         Carbon::setLocale('es');

@@ -30,6 +30,9 @@
             </div>
             <div class="nav-actions">
                 @yield('nav_option')
+                <a href="{{ route('provider.landing') }}" aria-label="Quiero ser proveedor">
+                    <span>Quiero ser proveedor</span>
+                </a>
                 <a href="{{ url('/login') }}" aria-label="Publica tus propiedades">
                     <span>Publica tus propiedades</span>
                 </a>

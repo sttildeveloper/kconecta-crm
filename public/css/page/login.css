@@ -243,12 +243,14 @@ body {
   left: 0;
   width: 50%;
   z-index: 2;
+  pointer-events: auto;
 }
 
 .container-main .sign-up-container {
   left: 0;
   width: 50%;
   z-index: 1;
+  pointer-events: none;
 }
 
 .container-main .sign-up-container form {
@@ -313,6 +315,7 @@ body {
 /* Move signin to the right */
 .container-main.right-panel-active .sign-in-container {
   transform: translateX(100%);
+  pointer-events: none;
 }
 
 /* Move overlay to left */
@@ -325,6 +328,7 @@ body {
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
+  pointer-events: auto;
 }
 
 /* Move overlay back to right */

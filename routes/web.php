@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'index'])->name('home');
+Route::get('/quiero-ser-proveedor', [PageController::class, 'providerLanding'])->name('provider.landing');
 Route::get('/result', [PageController::class, 'resultAll']);
 Route::get('/result/services', [PageController::class, 'resultAllServices']);
 Route::get('/result_maps', [PageController::class, 'resultMaps']);

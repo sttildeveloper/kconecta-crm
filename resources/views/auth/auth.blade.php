@@ -29,6 +29,11 @@
             <div class="form-container sign-up-container">
                 <form method="POST" action="{{ route('register') }}">
                     @csrf
+                    <input type="hidden" name="registration_form_started_at" value="{{ $registrationFormStartedAt ?? '' }}">
+                    <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+                        <label for="website">Sitio web</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
                     <div class="container-logo-image-dml-redirect-start">
                         <a href="{{ url('/') }}">
                             <img src="{{ asset('img/kconecta_icon.webp') }}" alt="Kconecta">
