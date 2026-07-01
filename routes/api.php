@@ -13,6 +13,8 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/services', [ApiController::class, 'searchServices']);
     Route::get('/services/{id}', [ApiController::class, 'publicServiceDetail']);
     Route::get('/public/services/{id}', [ApiController::class, 'publicServiceDetail']);
+    Route::get('/providers', [ApiController::class, 'publicProvidersDiscovery']);
+    Route::get('/public/providers', [ApiController::class, 'publicProvidersDiscovery']);
     Route::get('/service-types', [ApiController::class, 'publicServiceTypes']);
     Route::get('/public/service-types', [ApiController::class, 'publicServiceTypes']);
     Route::get('/properties_for_map', [ApiController::class, 'dataPropertiesForMap']);

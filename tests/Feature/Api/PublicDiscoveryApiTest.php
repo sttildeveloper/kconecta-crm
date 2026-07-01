@@ -11,6 +11,7 @@ use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PublicDiscoveryApiTest extends TestCase
@@ -362,6 +363,183 @@ class PublicDiscoveryApiTest extends TestCase
         $emptyResponse->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_public_providers_returns_all_active_provider_users_even_without_services(): void
+    {
+        $providerWithServices = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-services@test.dev');
+        $providerWithServices->forceFill([
+            'user_name' => 'Reformas Buele',
+            'photo' => 'reformas-buele.webp',
+            'phone' => '653252923',
+        ])->save();
+
+        $providerWithoutServices = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-no-service@test.dev');
+        $providerWithoutServices->forceFill([
+            'user_name' => 'Proveedor Sin Servicio',
+        ])->save();
+
+        $inactiveProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-inactive@test.dev');
+        $inactiveProvider->forceFill([
+            'user_name' => 'Proveedor Inactivo',
+        ])->save();
+        if (Schema::hasColumn('user', 'is_active')) {
+            $inactiveProvider->forceFill(['is_active' => 0])->save();
+        }
+
+        $agent = $this->makeUser(User::LEVEL_AGENT, 'agent@test.dev');
+
+        UserAddress::query()->create([
+            'user_id' => (int) $providerWithServices->id,
+            'address' => 'Carrer de la Riera d\'Horta, 52',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.4281449',
+            'longitude' => '2.1782515',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $providerWithoutServices->id,
+            'address' => 'Carrer de Sants, 100',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3750000',
+            'longitude' => '2.1350000',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $inactiveProvider->id,
+            'address' => 'Gran Via 1',
+            'city' => 'Madrid',
+            'province' => 'Madrid',
+            'latitude' => '40.4168',
+            'longitude' => '-3.7038',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $agent->id,
+            'address' => 'Passeig de Gracia 1',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3900',
+            'longitude' => '2.1650',
+        ]);
+
+        $reformasType = ServiceType::query()->create(['name' => 'Reformas integrales']);
+
+        $service = Service::query()->create([
+            'title' => 'Servicio publico',
+            'description' => 'Servicio provider',
+            'availability' => 'Siempre',
+            'user_id' => (int) $providerWithServices->id,
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $service->id,
+            'service_type_id' => (int) $reformasType->id,
+        ]);
+
+        DB::table('service_provider_ratings')->insert([
+            'provider_user_id' => (int) $providerWithServices->id,
+            'client_user_id' => (int) $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-provider-contract@test.dev')->id,
+            'stars' => 5,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/providers?city=Barcelona');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(2, 'data');
+
+        $items = collect($response->json('data'))->keyBy('provider_user_id');
+
+        $this->assertTrue($items->has((int) $providerWithServices->id));
+        $this->assertTrue($items->has((int) $providerWithoutServices->id));
+        if (Schema::hasColumn('user', 'is_active')) {
+            $this->assertFalse($items->has((int) $inactiveProvider->id));
+        }
+        $this->assertFalse($items->has((int) $agent->id));
+
+        $withService = $items->get((int) $providerWithServices->id);
+        $this->assertSame('Reformas Buele', $withService['title']);
+        $this->assertSame((int) $service->id, $withService['service_id']);
+        $this->assertTrue($withService['has_public_service_detail']);
+        $this->assertEquals(5.0, $withService['average_stars']);
+        $this->assertSame(1, $withService['ratings_count']);
+        $this->assertStringContainsString('/img/photo_profile/reformas-buele.webp', (string) $withService['logo_url']);
+
+        $withoutService = $items->get((int) $providerWithoutServices->id);
+        $this->assertSame('Proveedor Sin Servicio', $withoutService['title']);
+        $this->assertNull($withoutService['service_id']);
+        $this->assertFalse($withoutService['has_public_service_detail']);
+        $this->assertSame('Barcelona', $withoutService['city']);
+    }
+
+    public function test_public_providers_filters_by_service_type_but_keeps_provider_entity_contract(): void
+    {
+        $providerMatching = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-matching@test.dev');
+        $providerMatching->forceFill(['user_name' => 'Reformas Buele'])->save();
+        $providerOther = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-other-type@test.dev');
+        $providerNoService = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-no-service-filter@test.dev');
+
+        UserAddress::query()->create([
+            'user_id' => (int) $providerMatching->id,
+            'address' => 'Carrer del Duc 4',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3874',
+            'longitude' => '2.1686',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $providerOther->id,
+            'address' => 'Ronda del Mig 10',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3800',
+            'longitude' => '2.1500',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $providerNoService->id,
+            'address' => 'Gran Via 20',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3820',
+            'longitude' => '2.1600',
+        ]);
+
+        $cerrajeria = ServiceType::query()->create(['name' => 'Cerrajeria']);
+        $limpieza = ServiceType::query()->create(['name' => 'Limpieza']);
+
+        $matchingService = Service::query()->create([
+            'title' => 'Cerrajeria',
+            'description' => 'Servicio matching',
+            'availability' => 'Siempre',
+            'user_id' => (int) $providerMatching->id,
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $matchingService->id,
+            'service_type_id' => (int) $cerrajeria->id,
+        ]);
+
+        $otherService = Service::query()->create([
+            'title' => 'Limpieza',
+            'description' => 'Servicio no matching',
+            'availability' => 'Siempre',
+            'user_id' => (int) $providerOther->id,
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $otherService->id,
+            'service_type_id' => (int) $limpieza->id,
+        ]);
+
+        $response = $this->getJson('/api/public/providers?sti=' . $cerrajeria->id . '&city=Barcelona');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.provider_user_id', (int) $providerMatching->id)
+            ->assertJsonPath('data.0.title', 'Reformas Buele')
+            ->assertJsonPath('data.0.service_id', (int) $matchingService->id)
+            ->assertJsonPath('data.0.has_public_service_detail', true)
+            ->assertJsonPath('data.0.service_type_ids', [(int) $cerrajeria->id]);
     }
 
     private function makeUser(int $levelId, string $email): User
