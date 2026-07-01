@@ -34,6 +34,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class ApiController extends Controller
 {
@@ -630,9 +631,17 @@ class ApiController extends Controller
             ->get()
             ->keyBy(fn ($row) => (int) $row->user_id);
 
+        $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone'];
+        if (Schema::hasColumn('user', 'mobile_phone')) {
+            $userColumns[] = 'mobile_phone';
+        }
+        if (Schema::hasColumn('user', 'landline_phone')) {
+            $userColumns[] = 'landline_phone';
+        }
+
         $usersById = User::query()
             ->whereIn('id', $providerIds)
-            ->get(['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone', 'mobile_phone', 'landline_phone'])
+            ->get($userColumns)
             ->keyBy(fn ($row) => (int) $row->id);
 
         $serviceTypeIdsByService = ServiceTypeLink::query()
