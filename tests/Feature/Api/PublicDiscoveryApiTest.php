@@ -9,6 +9,7 @@ use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -81,7 +82,7 @@ class PublicDiscoveryApiTest extends TestCase
             ]);
     }
 
-    public function test_public_service_types_returns_only_publicly_discoverable_types_sorted_by_name(): void
+    public function test_public_service_types_returns_all_types_sorted_by_name(): void
     {
         $providerA = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'public-types-a@test.dev');
         $providerB = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'public-types-b@test.dev');
@@ -162,11 +163,205 @@ class PublicDiscoveryApiTest extends TestCase
                 'data' => [
                     ['id' => (int) $cerrajeria->id, 'name' => 'Cerrajeria'],
                     ['id' => (int) $electricista->id, 'name' => 'Electricista'],
+                    ['id' => (int) $fontaneria->id, 'name' => 'Fontaneria'],
                 ],
                 'message' => null,
                 'errors' => null,
                 'status' => 200,
             ]);
+    }
+
+    public function test_services_for_map_returns_unique_providers_with_representative_service_id_and_detail_compatibility(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'reformas-buele@test.dev');
+        $provider->forceFill([
+            'user_name' => 'Reformas Buele',
+            'photo' => 'reformas-buele.webp',
+            'phone' => '+34 600 111 222',
+        ])->save();
+
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Carrer del Duc 4',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3874',
+            'longitude' => '2.1686',
+        ]);
+
+        $carpinteria = ServiceType::query()->create(['name' => 'Carpinteria']);
+        $fontaneria = ServiceType::query()->create(['name' => 'Fontaneria']);
+
+        $serviceA = Service::query()->create([
+            'title' => 'Reformas integrales',
+            'description' => 'Servicio A',
+            'availability' => 'Siempre',
+            'user_id' => (int) $provider->id,
+        ]);
+        ServiceAddress::query()->create([
+            'service_id' => (int) $serviceA->id,
+            'latitude' => '41.3900',
+            'longitude' => '2.1700',
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $serviceA->id,
+            'service_type_id' => (int) $carpinteria->id,
+        ]);
+
+        $serviceB = Service::query()->create([
+            'title' => 'Fontaneria express',
+            'description' => 'Servicio B',
+            'availability' => 'Siempre',
+            'user_id' => (int) $provider->id,
+        ]);
+        ServiceAddress::query()->create([
+            'service_id' => (int) $serviceB->id,
+            'latitude' => '41.3910',
+            'longitude' => '2.1710',
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $serviceB->id,
+            'service_type_id' => (int) $fontaneria->id,
+        ]);
+
+        $clientA = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-a-ratings@test.dev');
+        $clientB = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-b-ratings@test.dev');
+
+        DB::table('service_provider_ratings')->insert([
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientA->id,
+                'stars' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'provider_user_id' => (int) $provider->id,
+                'client_user_id' => (int) $clientB->id,
+                'stars' => 5,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $response = $this->getJson('/api/services_for_map?city=Barcelona');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', (int) $serviceA->id)
+            ->assertJsonPath('data.0.service_id', (int) $serviceA->id)
+            ->assertJsonPath('data.0.provider_user_id', (int) $provider->id)
+            ->assertJsonPath('data.0.title', 'Reformas Buele')
+            ->assertJsonPath('data.0.average_stars', 4.5)
+            ->assertJsonPath('data.0.ratings_count', 2)
+            ->assertJsonPath('data.0.city', 'Barcelona')
+            ->assertJsonPath('data.0.province', 'Barcelona')
+            ->assertJsonPath('data.0.lat', '41.3900')
+            ->assertJsonPath('data.0.lng', '2.1700');
+
+        $item = $response->json('data.0');
+        $this->assertSame([$carpinteria->id, $fontaneria->id], $item['service_type_ids']);
+        $this->assertStringContainsString('/img/photo_profile/reformas-buele.webp', (string) $item['logo_url']);
+
+        $this->getJson('/api/services/' . $item['id'])
+            ->assertOk()
+            ->assertJsonPath('data.id', (int) $serviceA->id)
+            ->assertJsonPath('data.provider_user_id', (int) $provider->id);
+    }
+
+    public function test_services_for_map_keeps_type_filter_while_deduplicating_by_provider(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-sti@test.dev');
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Carrer de Sants 15',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3700',
+            'longitude' => '2.1400',
+        ]);
+
+        $otherProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-other@test.dev');
+        UserAddress::query()->create([
+            'user_id' => (int) $otherProvider->id,
+            'address' => 'Gran Via 1',
+            'city' => 'Madrid',
+            'province' => 'Madrid',
+            'latitude' => '40.4168',
+            'longitude' => '-3.7038',
+        ]);
+
+        $carpinteria = ServiceType::query()->create(['name' => 'Carpinteria']);
+        $fontaneria = ServiceType::query()->create(['name' => 'Fontaneria']);
+        $electricidad = ServiceType::query()->create(['name' => 'Electricidad']);
+
+        $serviceA = Service::query()->create([
+            'title' => 'Carpinteria',
+            'description' => 'Servicio A',
+            'availability' => 'Siempre',
+            'user_id' => (int) $provider->id,
+        ]);
+        ServiceAddress::query()->create([
+            'service_id' => (int) $serviceA->id,
+            'latitude' => '41.3701',
+            'longitude' => '2.1401',
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $serviceA->id,
+            'service_type_id' => (int) $carpinteria->id,
+        ]);
+
+        $serviceB = Service::query()->create([
+            'title' => 'Fontaneria',
+            'description' => 'Servicio B',
+            'availability' => 'Siempre',
+            'user_id' => (int) $provider->id,
+        ]);
+        ServiceAddress::query()->create([
+            'service_id' => (int) $serviceB->id,
+            'latitude' => '41.3702',
+            'longitude' => '2.1402',
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $serviceB->id,
+            'service_type_id' => (int) $fontaneria->id,
+        ]);
+
+        $otherService = Service::query()->create([
+            'title' => 'Electricidad',
+            'description' => 'Servicio C',
+            'availability' => 'Siempre',
+            'user_id' => (int) $otherProvider->id,
+        ]);
+        ServiceAddress::query()->create([
+            'service_id' => (int) $otherService->id,
+            'city' => 'Madrid',
+            'province' => 'Madrid',
+            'latitude' => '40.4169',
+            'longitude' => '-3.7039',
+        ]);
+        ServiceTypeLink::query()->create([
+            'service_id' => (int) $otherService->id,
+            'service_type_id' => (int) $electricidad->id,
+        ]);
+
+        $response = $this->getJson('/api/services_for_map?sti=' . $fontaneria->id . '&city=Barcelona');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.provider_user_id', (int) $provider->id)
+            ->assertJsonPath('data.0.id', (int) $serviceB->id)
+            ->assertJsonPath('data.0.service_id', (int) $serviceB->id)
+            ->assertJsonPath('data.0.city', 'Barcelona')
+            ->assertJsonPath('data.0.service_type_ids', [(int) $fontaneria->id]);
+
+        $emptyResponse = $this->getJson('/api/services_for_map?sti=999999');
+
+        $emptyResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(0, 'data');
     }
 
     private function makeUser(int $levelId, string $email): User
