@@ -683,9 +683,9 @@ class ApiController extends Controller
                 continue;
             }
 
-            $resolvedCity = trim((string) (($serviceAddress->city ?? null) ?: ($userAddress->city ?? '')));
-            $resolvedProvince = trim((string) (($serviceAddress->province ?? null) ?: ($userAddress->province ?? '')));
-            $resolvedAddress = trim((string) (($serviceAddress->address ?? null) ?: ($userAddress->address ?? '')));
+            $resolvedCity = trim((string) ((optional($serviceAddress)->city) ?: (optional($userAddress)->city ?? '')));
+            $resolvedProvince = trim((string) ((optional($serviceAddress)->province) ?: (optional($userAddress)->province ?? '')));
+            $resolvedAddress = trim((string) ((optional($serviceAddress)->address) ?: (optional($userAddress)->address ?? '')));
 
             if (! empty($city) && strcasecmp($resolvedCity, trim((string) $city)) !== 0) {
                 continue;
