@@ -736,7 +736,7 @@ class ApiController extends Controller
                     'id' => $serviceId,
                     'service_id' => $serviceId,
                     'provider_user_id' => $providerUserId,
-                    'title' => $userName ?: ($service->title ?: 'Servicio'),
+                    'title' => $userName ?: 'Servicio',
                     'logo_url' => $userLogoUrl ?: null,
                     'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
                     'average_stars' => (float) ($ratingsSummaryByProvider[$providerUserId]['average_stars'] ?? 0.0),
