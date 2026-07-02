@@ -6,7 +6,7 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Quiero ser proveedor | Kconecta">
     <meta property="og:description" content="Publica tu perfil profesional, gana visibilidad y conecta con clientes reales desde Kconecta.">
-    <meta property="og:image" content="{{ asset('img/img-hero-landing-quiero.webp') }}">
+    <meta property="og:image" content="{{ asset('img/banner-hero-landing-quiero.webp') }}">
     <meta property="og:url" content="{{ route('provider.landing') }}">
 @endsection
 
@@ -61,7 +61,7 @@
                 <div class="provider-hero__backdrop" aria-hidden="true"></div>
                 <img class="provider-hero__skyline" src="{{ asset('img/provider-hero-skyline.png') }}" alt="" aria-hidden="true">
                 <div class="provider-hero__image-card">
-                    <img src="{{ asset('img/img-hero-landing-quiero.webp') }}" alt="Proveedor Kconecta listo para conseguir clientes">
+                    <img src="{{ asset('img/banner-hero-landing-quiero.webp') }}" alt="Proveedor Kconecta listo para conseguir clientes">
                     <article class="provider-hero__testimonial" aria-label="Testimonio de proveedor">
                         <div class="provider-hero__testimonial-mark" aria-hidden="true">&ldquo;</div>
                         <p>Desde que estoy en Kconecta, tengo más trabajo y mejores clientes.</p>
