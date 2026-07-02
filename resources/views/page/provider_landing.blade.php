@@ -22,7 +22,7 @@
             <div class="provider-hero__content">
                 <span class="provider-pill">Para proveedores de servicios en Barcelona</span>
                 <h1>TU TIENES EL TALENTO. NOSOTROS TE LLEVAMOS CLIENTES.</h1>
-                <p>Une a Konecta y recibe solicitudes de clientes reales en Barcelona cada dia.</p>
+                <p>Unete a Kconecta y recibe solicitudes de clientes reales en Barcelona cada dia.</p>
 
                 <div class="provider-hero__metrics">
                     <article>
@@ -56,10 +56,10 @@
 
                 <article class="provider-quote-card">
                     <div class="provider-quote-card__mark">&ldquo;</div>
-                    <p>Desde que estoy en Konecta, tengo mas visibilidad y mas clientes.</p>
+                    <p>Desde que estoy en Kconecta, tengo mas visibilidad y mas clientes.</p>
                     <div class="provider-quote-card__rating">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <strong>Jordi, electricista</strong>
-                    <span>Proveedor Konecta</span>
+                    <span>Proveedor Kconecta</span>
                 </article>
             </div>
 
