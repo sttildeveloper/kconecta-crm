@@ -59,7 +59,7 @@
                 <h2>Tu espacio ideal, a un toque de distancia: Compra, Alquila, Vive!</h2>
             </div>
             <div class="row-images">
-                <img src="{{ asset('img/footer_1.webp') }}" class="img_1" alt="kconecta">
+                <img src="{{ asset('img/footer_1.webp') }}" class="img_1" alt="Kconecta">
                 <a href="https://www.vendoyo.es" target="_blank" class="__no-loader">
                     <img src="{{ asset('img/banner_gestiona_sin_comisiones.webp') }}" class="img_1" alt="VendoYo">
                 </a>
@@ -79,17 +79,17 @@
                         <span>info@kconecta.com</span>
                     </div>
                 </div>
-                <img src="{{ asset('img/ucrania_1.webp') }}" class="img_3" alt="kconecta ucrania">
+                <img src="{{ asset('img/ucrania_1.webp') }}" class="img_3" alt="Kconecta Ucrania">
             </div>
             <div class="container-row-3">
                 <h3>(c) 2024 Kconecta Tablon de anuncios inmobiliario particulares y profesionales gratis.</h3>
                 <div class="container-imgs">
-                    <img src="{{ asset('img/google_play.webp') }}" class="img_1" alt="kconecta google play">
-                    <img src="{{ asset('img/app_store.webp') }}" class="img_2" alt="kconecta app store">
+                    <img src="{{ asset('img/google_play.webp') }}" class="img_1" alt="Kconecta Google Play">
+                    <img src="{{ asset('img/app_store.webp') }}" class="img_2" alt="Kconecta App Store">
                 </div>
             </div>
             <div id="cookieBanner" class="cookie-banner hide">
-                <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="cookie kconecta">
+                <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="Cookie Kconecta">
                 <h1>COOKIES</h1>
                 <p>Usamos cookies para mejorar tu experiencia en el sitio, analizar el trafico y personalizar contenido. Al hacer clic en "Aceptar", consientes su uso. Consulta nuestra <a href="{{ route('legal.privacy') }}">Politica de Privacidad</a> para mas informacion</p>
                 <div class="cookie-buttons">
