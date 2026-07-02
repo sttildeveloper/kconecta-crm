@@ -60,6 +60,13 @@
             <div class="provider-hero__scene">
                 <div class="provider-hero__image-card">
                     <img src="{{ asset('img/provider-hero-worker.png') }}" alt="Proveedor Kconecta listo para conseguir clientes">
+                    <article class="provider-hero__testimonial" aria-label="Testimonio de proveedor">
+                        <div class="provider-hero__testimonial-mark" aria-hidden="true">&ldquo;</div>
+                        <p>Desde que estoy en Kconecta, tengo más trabajo y mejores clientes.</p>
+                        <div class="provider-hero__testimonial-rating" aria-label="Cinco estrellas">★★★★★</div>
+                        <strong>Jordi, electricista</strong>
+                        <span>Proveedor en Barcelona</span>
+                    </article>
                     <div class="provider-hero__trust">
                         <span>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M20 6 9 17l-5-5"/></svg>

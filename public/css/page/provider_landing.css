@@ -304,6 +304,61 @@ body:has(main.provider-landing) .container-div-logout {
     object-fit: contain;
 }
 
+.provider-hero__testimonial {
+    position: absolute;
+    right: -0.35rem;
+    bottom: 6.25rem;
+    z-index: 2;
+    width: 10.75rem;
+    padding: 1rem 0.95rem 0.9rem;
+    border: 1px solid rgba(8, 19, 74, 0.1);
+    border-radius: 1.15rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 252, 253, 0.99));
+    box-shadow: 0 18px 36px rgba(9, 33, 69, 0.14);
+}
+
+.provider-hero__testimonial-mark {
+    color: var(--provider-hero-teal);
+    font-size: 2rem;
+    line-height: 0.8;
+    font-weight: 900;
+}
+
+.provider-hero__testimonial p {
+    margin: 0.45rem 0 0;
+    color: var(--provider-hero-navy-soft);
+    font-size: 0.74rem;
+    line-height: 1.65;
+    font-weight: 600;
+}
+
+.provider-hero__testimonial-rating {
+    margin-top: 0.8rem;
+    color: #f3b316;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+}
+
+.provider-hero__testimonial strong,
+.provider-hero__testimonial span {
+    display: block;
+}
+
+.provider-hero__testimonial strong {
+    margin-top: 0.55rem;
+    color: var(--provider-hero-navy);
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.provider-hero__testimonial span {
+    margin-top: 0.2rem;
+    color: #6f7c97;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
 .provider-signup-card {
     position: relative;
     z-index: 4;
