@@ -281,9 +281,30 @@ body:has(main.provider-landing) .container-div-logout {
 
 .provider-hero__scene {
     position: relative;
-    min-height: 32.5rem;
+    min-height: 33rem;
     margin-top: 1.5625rem;
-    margin-left: 2.35rem;
+    margin-left: 2.6rem;
+    z-index: 1;
+    overflow: visible;
+}
+
+.provider-hero__backdrop {
+    position: absolute;
+    top: 0.35rem;
+    right: -0.1rem;
+    width: 18.5rem;
+    height: 19.75rem;
+    border-radius: 999px 999px 0 0;
+    background: linear-gradient(180deg, rgba(140, 205, 247, 0.95), rgba(176, 224, 255, 0.9));
+    z-index: 0;
+}
+
+.provider-hero__skyline {
+    position: absolute;
+    right: 0.2rem;
+    bottom: 8.2rem;
+    width: 16.4rem;
+    opacity: 0.96;
     z-index: 1;
 }
 
@@ -293,50 +314,52 @@ body:has(main.provider-landing) .container-div-logout {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    z-index: 2;
 }
 
 .provider-hero__image-card img {
     display: block;
-    width: 18.3125rem;
+    width: 17.9rem;
     max-width: none;
     margin-left: 0;
-    transform: translateX(2.55rem);
-    object-fit: contain;
+    transform: translateX(1.5rem);
+    object-fit: cover;
+    filter: drop-shadow(0 16px 30px rgba(9, 33, 69, 0.12));
 }
 
 .provider-hero__testimonial {
     position: absolute;
-    right: -0.35rem;
-    bottom: 6.25rem;
-    z-index: 2;
-    width: 10.75rem;
-    padding: 1rem 0.95rem 0.9rem;
+    right: -0.85rem;
+    bottom: 4.6rem;
+    z-index: 3;
+    width: 11rem;
+    padding: 1.05rem 1rem 0.95rem;
     border: 1px solid rgba(8, 19, 74, 0.1);
-    border-radius: 1.15rem;
+    border-radius: 1.3rem;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 252, 253, 0.99));
-    box-shadow: 0 18px 36px rgba(9, 33, 69, 0.14);
+    box-shadow: 0 18px 42px rgba(9, 33, 69, 0.16);
 }
 
 .provider-hero__testimonial-mark {
     color: var(--provider-hero-teal);
-    font-size: 2rem;
+    font-size: 2.1rem;
     line-height: 0.8;
     font-weight: 900;
 }
 
 .provider-hero__testimonial p {
-    margin: 0.45rem 0 0;
+    margin: 0.5rem 0 0;
     color: var(--provider-hero-navy-soft);
-    font-size: 0.74rem;
-    line-height: 1.65;
+    font-size: 0.8rem;
+    line-height: 1.7;
     font-weight: 600;
 }
 
 .provider-hero__testimonial-rating {
-    margin-top: 0.8rem;
+    margin-top: 0.9rem;
     color: #f3b316;
-    font-size: 0.78rem;
-    letter-spacing: 0.18em;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
 }
 
 .provider-hero__testimonial strong,
@@ -345,16 +368,16 @@ body:has(main.provider-landing) .container-div-logout {
 }
 
 .provider-hero__testimonial strong {
-    margin-top: 0.55rem;
+    margin-top: 0.6rem;
     color: var(--provider-hero-navy);
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     font-weight: 900;
 }
 
 .provider-hero__testimonial span {
     margin-top: 0.2rem;
     color: #6f7c97;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     line-height: 1.4;
     font-weight: 600;
 }
