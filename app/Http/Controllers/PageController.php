@@ -48,6 +48,7 @@ use App\Models\UserAddress;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
 use App\Models\WheeledAccess;
+use App\Services\ServiceRatingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -575,6 +576,207 @@ class PageController extends Controller
     public function resultMaps()
     {
         return view('page.placeholder', ['title' => 'Results Map']);
+    }
+
+    public function resultProvider(string $id)
+    {
+        Carbon::setLocale('es');
+
+        $provider = User::query()
+            ->where('id', (int) $id)
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->first();
+
+        if (! $provider) {
+            return redirect('/');
+        }
+
+        $profileAddress = UserAddress::query()->where('user_id', (int) $provider->id)->first();
+        $services = Service::query()
+            ->where('user_id', (int) $provider->id)
+            ->orderByDesc('id')
+            ->get();
+
+        $serviceIds = $services->pluck('id')->map(fn ($serviceId) => (int) $serviceId)->all();
+        $serviceAddresses = empty($serviceIds)
+            ? collect()
+            : ServiceAddress::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
+        $coverImages = empty($serviceIds)
+            ? collect()
+            : CoverImage::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
+        $videos = empty($serviceIds)
+            ? collect()
+            : Video::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
+        $moreImagesByService = empty($serviceIds)
+            ? collect()
+            : MoreImage::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id');
+        $serviceTypeLinks = empty($serviceIds)
+            ? collect()
+            : ServiceTypeLink::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id');
+
+        $allServiceTypeIds = $serviceTypeLinks
+            ->flatten()
+            ->pluck('service_type_id')
+            ->map(fn ($typeId) => (int) $typeId)
+            ->unique()
+            ->values()
+            ->all();
+
+        $serviceTypesById = empty($allServiceTypeIds)
+            ? collect()
+            : ServiceType::query()->whereIn('id', $allServiceTypeIds)->get()->keyBy('id');
+
+        $providerDisplayName = trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+        if ($providerDisplayName === '') {
+            $providerDisplayName = trim((string) ($provider->user_name ?? ''));
+        }
+        if ($providerDisplayName === '') {
+            $providerDisplayName = trim((string) ($provider->email ?? ''));
+        }
+        if ($providerDisplayName === '') {
+            $providerDisplayName = 'Proveedor';
+        }
+
+        $providerPhone = $provider->phone
+            ?? ($provider->mobile_phone ?? null)
+            ?? ($provider->landline_phone ?? null);
+        $providerWhatsappPhone = preg_replace('/\D+/', '', (string) $providerPhone);
+        $providerWhatsappLink = $providerWhatsappPhone !== ''
+            ? 'https://wa.me/' . $providerWhatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio')
+            : '';
+
+        $profileAddressParts = array_values(array_filter([
+            $profileAddress?->address,
+            $profileAddress?->city,
+            $profileAddress?->province,
+            $profileAddress?->country,
+        ], fn ($value) => trim((string) $value) !== ''));
+        $profileAddressLabel = ! empty($profileAddressParts)
+            ? implode(', ', $profileAddressParts)
+            : trim((string) ($provider->address ?? ''));
+
+        $serviceCards = [];
+        foreach ($services as $service) {
+            $serviceAddress = $serviceAddresses->get((int) $service->id);
+            $addressParts = array_values(array_filter([
+                $serviceAddress?->address,
+                $serviceAddress?->city,
+                $serviceAddress?->province,
+                $serviceAddress?->country,
+            ], fn ($value) => trim((string) $value) !== ''));
+            $addressLabel = ! empty($addressParts) ? implode(', ', $addressParts) : $profileAddressLabel;
+
+            $typeNames = collect($serviceTypeLinks->get((int) $service->id, []))
+                ->map(fn ($link) => $serviceTypesById->get((int) $link->service_type_id)?->name)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $cover = $coverImages->get((int) $service->id);
+            $video = $videos->get((int) $service->id);
+
+            $serviceCards[] = [
+                'id' => (int) $service->id,
+                'title' => trim((string) ($service->title ?? '')) !== '' ? (string) $service->title : $providerDisplayName,
+                'description' => (string) ($service->description ?? ''),
+                'availability' => (string) ($service->availability ?? ''),
+                'page_url' => (string) ($service->page_url ?? ''),
+                'updated_at_text' => $this->formatUpdatedAt($service->updated_at),
+                'address_label' => $addressLabel,
+                'cover_image_url' => $cover && ! empty($cover->url)
+                    ? asset('img/uploads/' . ltrim((string) $cover->url, '/'))
+                    : null,
+                'video_url' => $video && ! empty($video->url)
+                    ? asset('video/uploads/' . ltrim((string) $video->url, '/'))
+                    : null,
+                'service_types' => $typeNames,
+                'latitude' => $serviceAddress?->latitude ?: ($profileAddress?->latitude ?? ''),
+                'longitude' => $serviceAddress?->longitude ?: ($profileAddress?->longitude ?? ''),
+            ];
+        }
+
+        $primaryService = $serviceCards[0] ?? null;
+        $primaryServiceId = $primaryService['id'] ?? null;
+        $galleryImages = [];
+        if ($primaryService && ! empty($primaryService['cover_image_url'])) {
+            $galleryImages[] = $primaryService['cover_image_url'];
+        }
+        if ($primaryServiceId) {
+            foreach ($moreImagesByService->get((int) $primaryServiceId, collect()) as $image) {
+                $file = trim((string) ($image->url ?? ''));
+                if ($file === '') {
+                    continue;
+                }
+
+                $url = asset('img/uploads/' . ltrim($file, '/'));
+                if (! in_array($url, $galleryImages, true)) {
+                    $galleryImages[] = $url;
+                }
+            }
+        }
+
+        foreach ($serviceCards as $serviceCard) {
+            if (empty($serviceCard['cover_image_url'])) {
+                continue;
+            }
+            if (! in_array($serviceCard['cover_image_url'], $galleryImages, true)) {
+                $galleryImages[] = $serviceCard['cover_image_url'];
+            }
+        }
+
+        if (empty($galleryImages)) {
+            $galleryImages[] = asset('img/image-icon-1280x960.png');
+        }
+
+        $aggregatedServiceTypes = collect($serviceCards)
+            ->pluck('service_types')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $resolvedLatitude = $primaryService['latitude'] ?? ($profileAddress?->latitude ?? '');
+        $resolvedLongitude = $primaryService['longitude'] ?? ($profileAddress?->longitude ?? '');
+        $resolvedAddressLabel = $primaryService['address_label'] ?? $profileAddressLabel;
+        $providerDescription = trim((string) ($primaryService['description'] ?? ''));
+        if ($providerDescription === '') {
+            $providerDescription = $services->count() > 0
+                ? 'Proveedor de servicios con ' . $services->count() . ' servicio(s) publicado(s) en Kconecta.'
+                : 'Proveedor de servicios registrado en Kconecta.';
+        }
+
+        $providerUpdatedAt = $services->max('updated_at') ?: $provider->updated_at;
+        $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $provider->id);
+
+        return view('page.details_provider', [
+            'provider' => [
+                'id' => (int) $provider->id,
+                'name' => $providerDisplayName,
+                'user_name' => (string) ($provider->user_name ?? ''),
+                'email' => (string) ($provider->email ?? ''),
+                'phone' => (string) ($providerPhone ?? ''),
+                'whatsapp_phone' => $providerWhatsappPhone,
+                'whatsapp_link' => $providerWhatsappLink,
+                'photo_url' => ! empty($provider->photo)
+                    ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
+                    : asset('img/default-avatar-profile-icon.webp'),
+                'address_label' => $resolvedAddressLabel,
+                'latitude' => $resolvedLatitude,
+                'longitude' => $resolvedLongitude,
+                'description' => $providerDescription,
+                'updated_at_text' => $this->formatUpdatedAt($providerUpdatedAt),
+                'average_stars' => (float) ($ratingSummary['average_stars'] ?? 0),
+                'ratings_count' => (int) ($ratingSummary['ratings_count'] ?? 0),
+                'service_types' => $aggregatedServiceTypes,
+                'service_count' => count($serviceCards),
+                'gallery_images' => $galleryImages,
+                'primary_page_url' => (string) ($primaryService['page_url'] ?? ''),
+                'primary_video_url' => (string) ($primaryService['video_url'] ?? ''),
+                'services' => $serviceCards,
+            ],
+        ]);
     }
 
     public function result(string $reference)

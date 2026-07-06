@@ -240,6 +240,11 @@
                             <span>Contactar por whatsApp</span>
                         </a>
                     <?php } ?>
+                    <?php if($providerUserId > 0){ ?>
+                        <a href="<?= route('provider.public', ['id' => $providerUserId]) ?>" class="btn-contact-redirect" style="background:#123f6e;width:100%;">
+                            <span>Ver ficha del proveedor</span>
+                        </a>
+                    <?php } ?>
                 </div>
                 
             </div>

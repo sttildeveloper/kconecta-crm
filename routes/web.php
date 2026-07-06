@@ -15,6 +15,8 @@ Route::get('/result', [PageController::class, 'resultAll']);
 Route::get('/result/services', [PageController::class, 'resultAllServices']);
 Route::get('/result_maps', [PageController::class, 'resultMaps']);
 Route::get('/result/{reference}', [PageController::class, 'result']);
+Route::get('/proveedor/{id}', [PageController::class, 'resultProvider'])->name('provider.public');
+Route::get('/result_provider/{id}', [PageController::class, 'resultProvider']);
 Route::get('/result_service/{id}', [PageController::class, 'resultService']);
 Route::get('/service-ratings/provider/{providerUserId}', [\App\Http\Controllers\ApiController::class, 'providerServiceRatingSummary']);
 Route::get('/calculadora-avanzada', [PageController::class, 'advancedCalculator']);
