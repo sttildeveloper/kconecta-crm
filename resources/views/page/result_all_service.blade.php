@@ -225,6 +225,82 @@
         let center_map = { lat: 40.4168, lng: -3.7038 };
         let data_temp = [];
 
+        const getValidMapLocations = () => {
+            return data_temp
+                .map((location) => ({
+                    ...location,
+                    latNum: Number.parseFloat(location.lat),
+                    lngNum: Number.parseFloat(location.lng),
+                }))
+                .filter((location) => Number.isFinite(location.latNum) && Number.isFinite(location.lngNum));
+        };
+
+        const syncMapState = (lat, lng, nextZoom = null) => {
+            document.getElementById("latitude").value = lat;
+            document.getElementById("longitude").value = lng;
+            actualizarParametro("latitude", lat);
+            actualizarParametro("longitude", lng);
+
+            if (nextZoom !== null && Number.isFinite(nextZoom)) {
+                document.getElementById("zoom").value = nextZoom;
+                actualizarParametro("zoom", nextZoom);
+                zoom = nextZoom;
+            }
+
+            center_map.lat = lat;
+            center_map.lng = lng;
+        };
+
+        const focusGoogleMapOnResults = (locations) => {
+            if (!map || !locations.length) {
+                return;
+            }
+
+            if (locations.length === 1) {
+                const onlyLocation = locations[0];
+                const singleZoom = Math.max(13, zoom || 13);
+                map.setCenter({ lat: onlyLocation.latNum, lng: onlyLocation.lngNum });
+                map.setZoom(singleZoom);
+                syncMapState(onlyLocation.latNum, onlyLocation.lngNum, singleZoom);
+                return;
+            }
+
+            const bounds = new google.maps.LatLngBounds();
+            locations.forEach((location) => {
+                bounds.extend({ lat: location.latNum, lng: location.lngNum });
+            });
+            map.fitBounds(bounds, 60);
+
+            google.maps.event.addListenerOnce(map, "idle", () => {
+                const center = map.getCenter();
+                if (!center) {
+                    return;
+                }
+
+                syncMapState(center.lat(), center.lng(), map.getZoom());
+            });
+        };
+
+        const focusLeafletMapOnResults = (locations) => {
+            if (!leafletMap || !locations.length) {
+                return;
+            }
+
+            if (locations.length === 1) {
+                const onlyLocation = locations[0];
+                const singleZoom = Math.max(13, zoom || 13);
+                leafletMap.setView([onlyLocation.latNum, onlyLocation.lngNum], singleZoom);
+                syncMapState(onlyLocation.latNum, onlyLocation.lngNum, singleZoom);
+                return;
+            }
+
+            const bounds = L.latLngBounds(locations.map((location) => [location.latNum, location.lngNum]));
+            leafletMap.fitBounds(bounds, { padding: [50, 50] });
+
+            const center = leafletMap.getCenter();
+            syncMapState(center.lat, center.lng, leafletMap.getZoom());
+        };
+
         const showMapError = (message) => {
             mapContainer.innerHTML = `<div class="map-error">${message}</div>`;
         };
@@ -390,6 +466,8 @@
                     });
                 }
             });
+
+            focusGoogleMapOnResults(getValidMapLocations());
         }
 
         const initLeafletMap = async () => {
@@ -467,6 +545,8 @@
                     leafletMarkers.push(marker);
                 }
             });
+
+            focusLeafletMapOnResults(getValidMapLocations());
         };
 
         const address_input = document.getElementById("address");

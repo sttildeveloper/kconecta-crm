@@ -442,48 +442,88 @@ class PageController extends Controller
             ->values();
 
         $quantity = $servicesPage->count();
+        $matchedProviderLocations = [];
+        foreach ($servicesAll as $service) {
+            $providerUserId = (int) $service->user_id;
+            if (isset($matchedProviderLocations[$providerUserId])) {
+                continue;
+            }
 
-        $provinces = UserAddress::query()
-            ->select('province', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '')
-            ->groupBy('province')
-            ->orderByDesc('total')
-            ->get()
-            ->toArray();
+            $serviceAddress = ServiceAddress::query()
+                ->where('service_id', (int) $service->id)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->where('latitude', '<>', '')
+                ->where('longitude', '<>', '')
+                ->first();
 
-        $cities = UserAddress::query()
-            ->select('city', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '')
-            ->groupBy('city')
-            ->orderByDesc('total')
-            ->get()
-            ->toArray();
+            $userAddress = UserAddress::query()
+                ->where('user_id', $providerUserId)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->where('latitude', '<>', '')
+                ->where('longitude', '<>', '')
+                ->first();
 
-        $provinceCitiesList = UserAddress::query()
-            ->select('province', 'city', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '')
-            ->groupBy('province', 'city')
-            ->orderBy('province')
-            ->orderByDesc('total')
-            ->get();
+            $resolvedAddress = $serviceAddress ?: $userAddress;
+            if (! $resolvedAddress) {
+                continue;
+            }
 
-        $provinceCities = [];
-        foreach ($provinceCitiesList as $row) {
-            $provinceKey = $row->province;
-            $provinceCities[$provinceKey][] = [
-                'city' => $row->city,
-                'total' => $row->total,
+            $matchedProviderLocations[$providerUserId] = [
+                'province' => trim((string) ($resolvedAddress->province ?? '')),
+                'city' => trim((string) ($resolvedAddress->city ?? '')),
             ];
         }
+
+        $provinceTotals = [];
+        $cityTotals = [];
+        $provinceCities = [];
+
+        foreach ($matchedProviderLocations as $location) {
+            $provinceName = $location['province'];
+            $cityName = $location['city'];
+
+            if ($provinceName !== '') {
+                $provinceTotals[$provinceName] = ($provinceTotals[$provinceName] ?? 0) + 1;
+            }
+
+            if ($cityName !== '') {
+                $cityTotals[$cityName] = ($cityTotals[$cityName] ?? 0) + 1;
+            }
+
+            if ($provinceName !== '' && $cityName !== '') {
+                $provinceCities[$provinceName][$cityName] = ($provinceCities[$provinceName][$cityName] ?? 0) + 1;
+            }
+        }
+
+        arsort($provinceTotals);
+        arsort($cityTotals);
+        ksort($provinceCities);
+
+        $provinces = collect($provinceTotals)
+            ->map(fn ($total, $provinceName) => ['province' => $provinceName, 'total' => $total])
+            ->values()
+            ->all();
+
+        $cities = collect($cityTotals)
+            ->map(fn ($total, $cityName) => ['city' => $cityName, 'total' => $total])
+            ->values()
+            ->all();
+
+        $provinceCities = collect($provinceCities)
+            ->map(function ($citiesByProvince) {
+                arsort($citiesByProvince);
+
+                return collect($citiesByProvince)
+                    ->map(fn ($total, $cityName) => [
+                        'city' => $cityName,
+                        'total' => $total,
+                    ])
+                    ->values()
+                    ->all();
+            })
+            ->all();
 
         $updatedServices = [];
         foreach ($servicesPage as $service) {
