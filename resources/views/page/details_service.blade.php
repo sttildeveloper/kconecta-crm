@@ -117,6 +117,19 @@
                 && (int) ($authUser->user_level_id ?? 0) === \App\Models\User::LEVEL_FINAL_CLIENT
                 && method_exists($authUser, 'hasVerifiedEmail')
                 && $authUser->hasVerifiedEmail();
+            $providerPhoto = trim((string) ($property["user"]["photo"] ?? ''));
+            $providerPhotoUrl = $providerPhoto !== ''
+                ? base_url("img/photo_profile/") . ltrim($providerPhoto, '/')
+                : base_url("img/default-avatar-profile-icon.webp");
+            $providerPhone = trim((string) ($property["user"]["phone"] ?? ''));
+            $providerWhatsappPhone = preg_replace('/\D+/', '', $providerPhone);
+            $providerDisplayName = trim((string) ($property["user"]["user_name"] ?? '')) !== ''
+                ? $property["user"]["user_name"]
+                : 'Proveedor';
+            $providerPublishedBy = trim((string) (($property["user"]["first_name"] ?? '') . ' ' . ($property["user"]["last_name"] ?? '')));
+            if ($providerPublishedBy === '') {
+                $providerPublishedBy = $providerDisplayName;
+            }
         ?>
         <div class="service-rating-card" id="service-rating-card" data-provider-id="<?= $providerUserId ?>">
             <h3 style="font-weight: 700; margin-bottom: 8px;">Valoraciones del proveedor</h3>
@@ -196,14 +209,14 @@
             <div class="container-contact">
                 <div class="container-profile">
                     <div class="container-image">
-                        <img src="<?= base_url("img/photo_profile/").$property["user"]["photo"] ?>" alt="" />
+                        <img src="<?= $providerPhotoUrl ?>" alt="" />
                     </div>
-                    <span><?= $property["user"]["user_name"] ?></span>
+                    <span><?= $providerDisplayName ?></span>
                 </div>
                 <div class="details-user-post">
                     <div class="data-row-in">
                         <span class="span-title">Publicado por: </span>
-                        <span class="span-value"><?= $property["user"]["first_name"] ?><?= !empty($property["user"]["last_name"])? ", ".$property["user"]["last_name"] : ""?></span>
+                        <span class="span-value"><?= $providerPublishedBy ?></span>
                     </div>
                     <div class="data-row-in">
                         <span class="span-title">Última actualización</span>
@@ -214,9 +227,9 @@
                     </div>
                 </div>
                 <div class="container-contact-header-main">
-                    <?php if(!empty($property["user"]["phone"])){ ?>
+                    <?php if($providerWhatsappPhone !== ''){ ?>
                         <a
-                            href="https://wa.me/<?= $property["user"]["phone"] ?>?text=Hola,%20me%20interesa%20tu%20propiedad"
+                            href="https://wa.me/<?= $providerWhatsappPhone ?>?text=Hola,%20me%20interesa%20tu%20servicio"
                             class="btn-contact-redirect service-stats-whatsapp"
                             data-provider-user-id="<?= (int) ($property["user"]["id"] ?? $providerUserId) ?>"
                             data-service-id="<?= (int) ($property["id"] ?? 0) ?>"

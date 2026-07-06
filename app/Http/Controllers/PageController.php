@@ -30,6 +30,7 @@ use App\Models\PsViewsSearch;
 use App\Models\ReasonForSale;
 use App\Models\RentalType;
 use App\Models\Service;
+use App\Models\ServiceAddress;
 use App\Models\ServiceType;
 use App\Models\ServiceTypeLink;
 use App\Models\StateConservation;
@@ -668,8 +669,37 @@ class PageController extends Controller
         $item['more_images'] = MoreImage::where('service_id', $service->id)->get()->toArray();
 
         $item['videos'] = Video::where('service_id', $service->id)->get()->toArray();
-        $item['address'] = UserAddress::where('user_id', $service->user_id)->get()->toArray();
-        $item['user'] = User::find($service->user_id)?->toArray() ?? [];
+
+        $serviceAddress = ServiceAddress::query()->where('service_id', $service->id)->first();
+        $userAddress = UserAddress::query()->where('user_id', $service->user_id)->first();
+        $resolvedAddress = $serviceAddress ?: $userAddress;
+        $item['address'] = $resolvedAddress ? [$resolvedAddress->toArray()] : [];
+
+        if (! empty($item['address'][0])) {
+            $addressParts = array_values(array_filter([
+                $item['address'][0]['address'] ?? null,
+                $item['address'][0]['city'] ?? null,
+                $item['address'][0]['province'] ?? null,
+                $item['address'][0]['country'] ?? null,
+            ], fn ($value) => trim((string) $value) !== ''));
+
+            if (! empty($addressParts)) {
+                $item['address'][0]['address'] = implode(', ', $addressParts);
+            }
+        }
+
+        $user = User::find($service->user_id);
+        $item['user'] = $user?->toArray() ?? [];
+
+        if ($user) {
+            $item['user']['phone'] = $user->phone
+                ?? ($user->mobile_phone ?? null)
+                ?? ($user->landline_phone ?? null);
+
+            if (empty($item['user']['photo'])) {
+                $item['user']['photo'] = 'default-avatar-profile-icon.webp';
+            }
+        }
 
         $item['service_types'] = [];
         $serviceTypeLinks = ServiceTypeLink::where('service_id', $service->id)->get();
