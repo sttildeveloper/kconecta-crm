@@ -22,7 +22,7 @@
             }
         };
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=drawing,places"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=drawing,places" referrerpolicy="strict-origin-when-cross-origin"></script>
 @endsection
 
 @section('content')
@@ -773,4 +773,3 @@
 </script>
 <script src="<?= base_url("js/autocomplet.js") ?>"></script>
 @endsection
-

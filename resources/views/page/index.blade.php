@@ -504,7 +504,7 @@
 @endsection
 
 @section('js')   
-    <script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=places"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=places" referrerpolicy="strict-origin-when-cross-origin"></script>
     <script src="<?= base_url()."js/index_func.js" ?>"></script>
     <script src="<?= base_url()."js/cadastral_calculator.js" ?>"></script>
     <script src="<?= base_url()."js/search_data.js" ?>"></script>

@@ -419,7 +419,7 @@
     images.forEach(img => observer.observe(img));
 });
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=places" referrerpolicy="strict-origin-when-cross-origin"></script>
 <script>
     function initMap(initial_position) {
         // Coordenadas iniciales (puedes cambiarlo)

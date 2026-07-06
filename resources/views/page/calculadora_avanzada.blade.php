@@ -513,10 +513,9 @@ input:checked + .slider:before {
 </script>
 
 <?php
-// Incluir el script de Google Maps si existe en el layout global
-$googleMapsApiKey = env('GOOGLE_MAPS_API_KEY'); // Asumiendo que puede estar en el env
+$googleMapsApiKey = config('services.google.maps_key');
 ?>
 @if(!empty($googleMapsApiKey))
-<script src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsApiKey }}&libraries=places" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsApiKey }}&libraries=places" async defer referrerpolicy="strict-origin-when-cross-origin"></script>
 @endif
 @endsection

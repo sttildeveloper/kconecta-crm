@@ -164,6 +164,16 @@ Para que el flujo de direcciones funcione en local y produccion:
 - `Places API`
 - `Places API (New)`
 - `Geocoding API`
+- Hardening recomendado en Google Cloud:
+- para el CRM web, restringir la API key por `HTTP referrers`
+- permitir solo:
+- `https://kconecta.com/*`
+- `https://www.kconecta.com/*`
+- para la app movil, usar una key separada
+- en Android, restringir por `package name + SHA-1`
+- en iOS, restringir por `bundle identifier`
+- no reutilizar la misma key restringida por referrer en SDKs nativos
+- mantener facturacion activa en el proyecto vinculado a la key
 
 ## Upload Limit
 - Env var:
