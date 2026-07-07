@@ -91,6 +91,20 @@ class PostController extends Controller
         return $serviceId ? (int) $serviceId : null;
     }
 
+    private function normalizeWebsiteUrl(?string $url): ?string
+    {
+        $normalized = trim((string) $url);
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (Str::startsWith($normalized, ['http://', 'https://'])) {
+            return $normalized;
+        }
+
+        return 'https://' . ltrim($normalized, '/');
+    }
+
     private function normalizeLegacyLabel(?string $value): ?string
     {
         if (! is_string($value) || $value === '') {
@@ -420,6 +434,91 @@ class PostController extends Controller
         }
 
         return ['success' => true, 'file_name' => $randomName];
+    }
+
+    private function processProviderProfilePhoto($file, int $userId): array
+    {
+        if (! $file || ! $file->isValid()) {
+            return ['success' => false, 'error' => 'La imagen del logo no es valida.'];
+        }
+
+        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
+            return ['success' => false, 'error' => 'GD/WebP no esta disponible en el servidor.'];
+        }
+
+        $mimeType = (string) $file->getMimeType();
+        if (! in_array($mimeType, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], true)) {
+            return ['success' => false, 'error' => 'El logo debe estar en formato JPG, PNG o WEBP.'];
+        }
+
+        $path = $file->getRealPath();
+        if (! $path) {
+            return ['success' => false, 'error' => 'No se pudo procesar el archivo del logo.'];
+        }
+
+        $source = $this->createGdImageFromPath($path, $mimeType === 'image/jpg' ? 'image/jpeg' : $mimeType);
+        if (! $source) {
+            return ['success' => false, 'error' => 'No se pudo procesar la imagen del logo.'];
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $squareSize = min($sourceWidth, $sourceHeight);
+        $sourceX = (int) floor(($sourceWidth - $squareSize) / 2);
+        $sourceY = (int) floor(($sourceHeight - $squareSize) / 2);
+
+        $canvas = imagecreatetruecolor(350, 350);
+        imagealphablending($canvas, true);
+        imagesavealpha($canvas, true);
+        imagecopyresampled($canvas, $source, 0, 0, $sourceX, $sourceY, 350, 350, $squareSize, $squareSize);
+
+        $directory = public_path('img/photo_profile');
+        if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
+            imagedestroy($canvas);
+            imagedestroy($source);
+
+            return ['success' => false, 'error' => 'No se pudo crear el directorio del logo del proveedor.'];
+        }
+
+        $filename = 'user_' . $userId . '_' . Str::random(12) . '.webp';
+        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $saved = imagewebp($canvas, $destination, 82);
+
+        imagedestroy($canvas);
+        imagedestroy($source);
+
+        if (! $saved) {
+            return ['success' => false, 'error' => 'No se pudo guardar el logo del proveedor.'];
+        }
+
+        return ['success' => true, 'file_name' => $filename];
+    }
+
+    private function providerProfileTitle(User $provider, ?Service $legacyService = null): string
+    {
+        $title = trim((string) ($provider->provider_title ?? ''));
+        if ($title !== '') {
+            return $title;
+        }
+
+        $legacyTitle = trim((string) ($legacyService?->title ?? ''));
+        if ($legacyTitle !== '') {
+            return $legacyTitle;
+        }
+
+        $providerDescription = trim((string) ($provider->provider_description ?? ''));
+        if ($providerDescription !== '') {
+            return $providerDescription;
+        }
+
+        $displayName = trim((string) ($provider->user_name ?? ''));
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $displayName = trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+
+        return $displayName !== '' ? $displayName : 'Proveedor de servicios';
     }
 
     public function index()
@@ -832,6 +931,8 @@ class PostController extends Controller
         $categoryId = $request->filled('category') ? (int) $request->input('category') : null;
         $pageUrl = trim((string) $request->input('page_url', ''));
 
+        $this->validatePropertyCreatePayload($request, $typeId);
+
         if ($title === '' || $typeId <= 0) {
             return redirect()
                 ->back()
@@ -901,6 +1002,11 @@ class PostController extends Controller
 
         if ($addressValidation = $this->validateResolvedPropertyAddress($request)) {
             return $addressValidation;
+        }
+
+        $requestTypeId = (int) ($request->input('type') ?: 0);
+        if ($requestTypeId > 0) {
+            $this->validatePropertyUpdatePayload($request, $requestTypeId);
         }
 
         $dataForDb = [];
@@ -1809,36 +1915,48 @@ class PostController extends Controller
             ];
 
             $providerServiceIds = Service::where('user_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all();
-            if (! empty($providerServiceIds)) {
-                $typeIds = ServiceTypeLink::whereIn('service_id', $providerServiceIds)
-                    ->pluck('service_type_id')
-                    ->unique()
-                    ->map(fn ($id) => (int) $id)
-                    ->all();
-                if (! empty($typeIds)) {
-                    $providerServiceTypes = ServiceType::whereIn('id', $typeIds)->orderBy('name')->pluck('name')->all();
-                }
+            $typeIds = ServiceTypeLink::query()
+                ->where('user_id', (int) $user->id)
+                ->orWhere(function ($query) use ($providerServiceIds) {
+                    $query->whereNull('user_id')->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
+                })
+                ->pluck('service_type_id')
+                ->unique()
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            if (! empty($typeIds)) {
+                $providerServiceTypes = ServiceType::whereIn('id', $typeIds)->orderBy('name')->pluck('name')->all();
             }
 
             $primaryService = $services->first();
             $heroImage = asset('img/image-icon-1280x960.png');
             $landingImages = [$heroImage];
-            $serviceDescription = '';
-            $serviceAvailability = '';
-            $servicePageUrl = '';
+            $serviceDescription = trim((string) ($user->provider_description ?? ''));
+            $serviceAvailability = trim((string) ($user->provider_availability ?? ''));
+            $servicePageUrl = $this->normalizeWebsiteUrl((string) ($user->provider_page_url ?? '')) ?? '';
             $serviceUpdatedAt = '';
             $serviceVideoUrl = '';
             $serviceAddressLabel = $providerProfile['address'] ?? '';
 
-            if ($primaryService) {
+            $providerCover = CoverImage::query()->where('user_id', (int) $user->id)->orderByDesc('id')->first();
+            if ($providerCover && ! empty($providerCover->url)) {
+                $heroImage = asset('img/uploads/' . ltrim((string) $providerCover->url, '/'));
+                $landingImages = [$heroImage];
+            } elseif ($primaryService) {
                 $landingImages = [];
                 if (! empty($primaryService['image'])) {
                     $heroImage = asset('img/uploads/' . $primaryService['image']);
                     $landingImages[] = $heroImage;
                 }
-                $serviceDescription = $primaryService['description'] ?? '';
-                $serviceAvailability = $primaryService['availability'] ?? '';
-                $servicePageUrl = $primaryService['page_url'] ?? '';
+                if ($serviceDescription === '') {
+                    $serviceDescription = $primaryService['description'] ?? '';
+                }
+                if ($serviceAvailability === '') {
+                    $serviceAvailability = $primaryService['availability'] ?? '';
+                }
+                if ($servicePageUrl === '') {
+                    $servicePageUrl = $this->normalizeWebsiteUrl((string) ($primaryService['page_url'] ?? '')) ?? '';
+                }
                 $serviceUpdatedAt = $primaryService['updated_at'] ?? '';
                 if (! empty($primaryService['service_full_address'])) {
                     $serviceAddressLabel = $primaryService['service_full_address'];
@@ -1846,7 +1964,23 @@ class PostController extends Controller
                 if (! empty($primaryService['video'])) {
                     $serviceVideoUrl = asset('video/uploads/' . $primaryService['video']);
                 }
+            }
 
+            $providerVideo = Video::query()->where('user_id', (int) $user->id)->orderByDesc('id')->first();
+            if ($providerVideo && ! empty($providerVideo->url)) {
+                $serviceVideoUrl = asset('video/uploads/' . ltrim((string) $providerVideo->url, '/'));
+            }
+
+            $galleryImages = MoreImage::query()
+                ->where('user_id', (int) $user->id)
+                ->orderBy('id')
+                ->pluck('url')
+                ->filter()
+                ->map(fn ($url) => asset('img/uploads/' . ltrim((string) $url, '/')))
+                ->values()
+                ->all();
+
+            if (empty($galleryImages) && $primaryService) {
                 $galleryImages = MoreImage::where('service_id', (int) ($primaryService['id'] ?? 0))
                     ->orderBy('id')
                     ->pluck('url')
@@ -1854,11 +1988,11 @@ class PostController extends Controller
                     ->map(fn ($url) => asset('img/uploads/' . ltrim((string) $url, '/')))
                     ->values()
                     ->all();
+            }
 
-                foreach ($galleryImages as $galleryImage) {
-                    if (! in_array($galleryImage, $landingImages, true)) {
-                        $landingImages[] = $galleryImage;
-                    }
+            foreach ($galleryImages as $galleryImage) {
+                if (! in_array($galleryImage, $landingImages, true)) {
+                    $landingImages[] = $galleryImage;
                 }
             }
 
@@ -1956,11 +2090,52 @@ class PostController extends Controller
                 ->with('status', 'Ocurrio un error interno');
         }
 
-        $serviceType = ServiceType::all()->toArray();
-        $serviceTypes = ServiceTypeLink::where('service_id', $id)->get()->toArray();
-        $coverImage = CoverImage::where('service_id', $id)->get()->toArray();
-        $moreImages = MoreImage::where('service_id', $id)->get()->toArray();
-        $video = Video::where('service_id', $id)->get()->toArray();
+        $provider = User::findOrFail((int) $service[0]['user_id']);
+        $providerAddress = UserAddress::where('user_id', (int) $provider->id)->first();
+
+        $serviceType = ServiceType::orderBy('name')->get()->toArray();
+        $serviceTypes = ServiceTypeLink::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($id, $provider) {
+                $query->whereNull('user_id')
+                    ->where('service_id', (int) $id)
+                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
+            })
+            ->get()
+            ->toArray();
+
+        $coverImage = CoverImage::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($id, $provider) {
+                $query->whereNull('user_id')
+                    ->where('service_id', (int) $id)
+                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
+            })
+            ->orderByDesc('id')
+            ->get()
+            ->toArray();
+
+        $moreImages = MoreImage::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($id, $provider) {
+                $query->whereNull('user_id')
+                    ->where('service_id', (int) $id)
+                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
+            })
+            ->orderBy('id')
+            ->get()
+            ->toArray();
+
+        $video = Video::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($id, $provider) {
+                $query->whereNull('user_id')
+                    ->where('service_id', (int) $id)
+                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
+            })
+            ->orderByDesc('id')
+            ->get()
+            ->toArray();
 
         return view('post.forms.form_service_update', [
             'user' => $user,
@@ -1974,6 +2149,9 @@ class PostController extends Controller
             'coverImage' => $coverImage,
             'service' => $service,
             'video' => $video,
+            'provider' => $provider,
+            'providerAddress' => $providerAddress,
+            'providerProfileTitle' => $this->providerProfileTitle($provider, Service::find((int) $id)),
         ]);
     }
 
@@ -2001,65 +2179,87 @@ class PostController extends Controller
                 ->with('status', 'Ocurrio un error interno');
         }
 
-        $dataForDb = [];
-        $title = $request->input('title');
-        $description = $request->input('description');
-        $availability = $request->input('availability');
-        $documentNumber = $request->input('document_number');
-        $pageUrl = $request->input('page_url');
-        $serviceTypes = $request->input('service_type');
+        $provider = User::findOrFail((int) $service->user_id);
+        $profileTitle = trim((string) $request->input('title', ''));
+        $description = trim((string) $request->input('description', ''));
+        $availability = trim((string) $request->input('availability', ''));
+        $pageUrl = $this->normalizeWebsiteUrl((string) $request->input('page_url', ''));
+        $serviceTypes = $this->normalizePositiveIds($request->input('service_type', []));
 
-        $address = $request->input('address');
-        $city = $request->input('city');
-        $postalCode = $request->input('postal_code');
-        $province = $request->input('province');
-        $country = $request->input('country');
-        $latitude = $request->input('latitude');
-        $longitude = $request->input('longitude');
+        $address = trim((string) $request->input('address', ''));
+        $placeId = trim((string) $request->input('address_place_id', ''));
+        $streetName = trim((string) $request->input('address_street_name', ''));
+        $streetNumber = trim((string) $request->input('address_street_number', ''));
+        $neighborhood = trim((string) $request->input('address_neighborhood', ''));
+        $city = trim((string) $request->input('address_city', ''));
+        $postalCode = trim((string) $request->input('address_postal_code', ''));
+        $province = trim((string) $request->input('address_province', ''));
+        $state = trim((string) $request->input('address_state', ''));
+        $country = trim((string) $request->input('address_country', ''));
+        $latitude = trim((string) $request->input('address_lat', ''));
+        $longitude = trim((string) $request->input('address_lng', ''));
 
-        if (! empty($title)) {
-            $dataForDb['title'] = $title;
-        }
-        if (! empty($description)) {
-            $dataForDb['description'] = $description;
-        }
-        if (! empty($availability)) {
-            $dataForDb['availability'] = $availability;
-        }
-        if (! empty($documentNumber)) {
-            $dataForDb['document_number'] = $documentNumber;
-        }
-        if (! empty($pageUrl)) {
-            $dataForDb['page_url'] = $pageUrl;
+        $provider->provider_title = $profileTitle !== '' ? $profileTitle : null;
+        $provider->provider_description = $description !== '' ? $description : null;
+        $provider->provider_availability = $availability !== '' ? $availability : null;
+        $provider->provider_page_url = $pageUrl;
+        $provider->address = $address !== '' ? $address : $provider->address;
+
+        $logoFile = $request->file('photo');
+        if ($logoFile) {
+            $processedPhoto = $this->processProviderProfilePhoto($logoFile, (int) $provider->id);
+            if (! $processedPhoto['success']) {
+                return redirect()->back()->with('error', $processedPhoto['error'])->withInput();
+            }
+
+            if (! empty($provider->photo) && $provider->photo !== $processedPhoto['file_name']) {
+                $this->deleteStoredFile('img/photo_profile', (string) $provider->photo);
+            }
+
+            $provider->photo = $processedPhoto['file_name'];
         }
 
-        if (! empty($dataForDb)) {
-            Service::where('id', $serviceId)->update($dataForDb);
+        $provider->save();
+
+        $addressRecord = UserAddress::firstOrNew(['user_id' => (int) $provider->id]);
+        $currentAddress = trim((string) ($addressRecord->address ?? $provider->address ?? ''));
+        $addressChanged = $address !== '' && $address !== $currentAddress;
+        $keepExistingGeoData = $placeId === '' && ! $addressChanged && $addressRecord->exists;
+
+        $addressRecord->address = $address !== '' ? $address : null;
+
+        if (! $keepExistingGeoData) {
+            $addressRecord->street_name = $placeId !== '' ? ($streetName !== '' ? $streetName : null) : null;
+            $addressRecord->street_number = $placeId !== '' ? ($streetNumber !== '' ? $streetNumber : null) : null;
+            $addressRecord->neighborhood = $placeId !== '' ? ($neighborhood !== '' ? $neighborhood : null) : null;
+            $addressRecord->city = $placeId !== '' ? ($city !== '' ? $city : null) : null;
+            $addressRecord->province = $placeId !== '' ? ($province !== '' ? $province : null) : null;
+            $addressRecord->state = $placeId !== '' ? ($state !== '' ? $state : null) : null;
+            $addressRecord->postal_code = $placeId !== '' ? ($postalCode !== '' ? $postalCode : null) : null;
+            $addressRecord->country = $placeId !== '' ? ($country !== '' ? $country : null) : null;
+            $addressRecord->latitude = $placeId !== '' ? ($latitude !== '' ? $latitude : null) : null;
+            $addressRecord->longitude = $placeId !== '' ? ($longitude !== '' ? $longitude : null) : null;
         }
 
+        $hasAddressData = $addressRecord->address !== null
+            || $addressRecord->latitude !== null
+            || $addressRecord->longitude !== null;
+
+        if ($hasAddressData) {
+            $addressRecord->save();
+        } elseif ($addressRecord->exists) {
+            $addressRecord->delete();
+        }
+
+        ServiceTypeLink::where('user_id', (int) $provider->id)->delete();
         if (! empty($serviceTypes)) {
-            ServiceTypeLink::where('service_id', $serviceId)->delete();
             foreach ($serviceTypes as $value) {
                 ServiceTypeLink::create([
+                    'user_id' => (int) $provider->id,
                     'service_id' => $serviceId,
                     'service_type_id' => $value,
                 ]);
             }
-        }
-
-        if ($address || $city || $postalCode || $province || $country || $latitude || $longitude) {
-            ServiceAddress::updateOrCreate(
-                ['service_id' => $serviceId],
-                [
-                    'address' => $address ?? '',
-                    'city' => $city ?? '',
-                    'province' => $province ?? '',
-                    'postal_code' => $postalCode ?? '',
-                    'country' => $country ?? '',
-                    'latitude' => $latitude ?? '',
-                    'longitude' => $longitude ?? '',
-                ]
-            );
         }
 
         $imagePath = public_path('img/uploads');
@@ -2071,7 +2271,12 @@ class PostController extends Controller
             @mkdir($videoPath, 0755, true);
         }
 
-        $existingCoverImage = CoverImage::where('service_id', $serviceId)->first();
+        $existingCoverImage = CoverImage::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceId) {
+                $query->whereNull('user_id')->where('service_id', $serviceId);
+            })
+            ->first();
         $coverImage = $request->file('cover_image');
         if ($coverImage && $coverImage->isValid()) {
             $storedImage = $this->storeUploadedImage($coverImage, $imagePath);
@@ -2079,10 +2284,18 @@ class PostController extends Controller
                 return redirect()->back()->with('error', $storedImage['error']);
             }
 
-            CoverImage::updateOrCreate(
-                ['service_id' => $serviceId],
-                ['url' => $storedImage['file_name']]
-            );
+            if ($existingCoverImage) {
+                $existingCoverImage->url = $storedImage['file_name'];
+                $existingCoverImage->user_id = (int) $provider->id;
+                $existingCoverImage->service_id = $existingCoverImage->service_id ?: $serviceId;
+                $existingCoverImage->save();
+            } else {
+                CoverImage::create([
+                    'url' => $storedImage['file_name'],
+                    'user_id' => (int) $provider->id,
+                    'service_id' => $serviceId,
+                ]);
+            }
 
             if ($existingCoverImage && $existingCoverImage->url !== $storedImage['file_name']) {
                 $this->deleteStoredFile('img/uploads', $existingCoverImage->url);
@@ -2103,12 +2316,18 @@ class PostController extends Controller
 
                 MoreImage::create([
                     'url' => $storedImage['file_name'],
+                    'user_id' => (int) $provider->id,
                     'service_id' => $serviceId,
                 ]);
             }
         }
 
-        $existingVideo = Video::where('service_id', $serviceId)->first();
+        $existingVideo = Video::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceId) {
+                $query->whereNull('user_id')->where('service_id', $serviceId);
+            })
+            ->first();
         $video = $request->file('video');
         if ($video) {
             $storedVideo = $this->storeUploadedVideo($video, $videoPath);
@@ -2116,21 +2335,45 @@ class PostController extends Controller
                 return redirect()->back()->with('error', $storedVideo['error']);
             }
 
-            Video::updateOrCreate(
-                ['service_id' => $serviceId],
-                ['url' => $storedVideo['file_name']]
-            );
+            if ($existingVideo) {
+                $existingVideo->url = $storedVideo['file_name'];
+                $existingVideo->user_id = (int) $provider->id;
+                $existingVideo->service_id = $existingVideo->service_id ?: $serviceId;
+                $existingVideo->save();
+            } else {
+                Video::create([
+                    'url' => $storedVideo['file_name'],
+                    'user_id' => (int) $provider->id,
+                    'service_id' => $serviceId,
+                ]);
+            }
 
             if ($existingVideo && $existingVideo->url !== $storedVideo['file_name']) {
                 $this->deleteStoredFile('video/uploads', $existingVideo->url);
             }
         }
 
-        $this->deleteOwnedMoreImages('service_id', $serviceId, $request->input('delete_more_images', []));
+        $deleteMoreImageIds = $this->normalizePositiveIds($request->input('delete_more_images', []));
+        if (! empty($deleteMoreImageIds)) {
+            $images = MoreImage::query()
+                ->whereIn('id', $deleteMoreImageIds)
+                ->where(function ($query) use ($provider, $serviceId) {
+                    $query->where('user_id', (int) $provider->id)
+                        ->orWhere(function ($nested) use ($serviceId) {
+                            $nested->whereNull('user_id')->where('service_id', $serviceId);
+                        });
+                })
+                ->get();
+
+            foreach ($images as $image) {
+                $this->deleteStoredFile('img/uploads', (string) $image->url);
+                $image->delete();
+            }
+        }
 
         return redirect()
             ->to('/post/services')
-            ->with('status', 'Actualizado correctamente');
+            ->with('status', 'Ficha del proveedor actualizada correctamente');
     }
 
     public function createService(Request $request)
@@ -2293,6 +2536,133 @@ class PostController extends Controller
         }
 
         return null;
+    }
+
+    private function validatePropertyCreatePayload(Request $request, int $typeId): void
+    {
+        if ($typeId !== 1) {
+            return;
+        }
+
+        $rules = $this->housePropertyValidationRules(true, $request);
+        $messages = $this->housePropertyValidationMessages();
+        $attributes = $this->housePropertyValidationAttributes();
+
+        $validator = validator($request->all(), $rules, $messages, $attributes);
+        $this->addHousePropertyValidationAfterHooks($validator, $request, true);
+        $validator->validate();
+    }
+
+    private function validatePropertyUpdatePayload(Request $request, int $typeId): void
+    {
+        if ($typeId !== 1) {
+            return;
+        }
+
+        $rules = $this->housePropertyValidationRules(false, $request);
+        $messages = $this->housePropertyValidationMessages();
+        $attributes = $this->housePropertyValidationAttributes();
+
+        $validator = validator($request->all(), $rules, $messages, $attributes);
+        $this->addHousePropertyValidationAfterHooks($validator, $request, false);
+        $validator->validate();
+    }
+
+    private function housePropertyValidationRules(bool $isCreate, Request $request): array
+    {
+        $category = (int) $request->input('category');
+        $saleRules = $category === 2 ? ['required', 'regex:/^\d[\d.,\s]*$/'] : ['nullable', 'regex:/^\d[\d.,\s]*$/'];
+        $rentalRules = $category === 1 ? ['required', 'regex:/^\d[\d.,\s]*$/'] : ['nullable', 'regex:/^\d[\d.,\s]*$/'];
+
+        return [
+            'locality' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:255'],
+            'category' => ['required', 'in:1,2'],
+            'sale_price' => $saleRules,
+            'rental_price' => $rentalRules,
+            'typology' => ['required', 'integer', 'min:1'],
+            'state_conservation' => ['required', 'integer', 'min:1'],
+            'facade' => ['required', 'integer', 'min:1'],
+            'reason_for_sale' => $category === 2 ? ['required', 'integer', 'min:1'] : ['nullable', 'integer', 'min:1'],
+            'meters_built' => ['required', 'regex:/^\d[\d.,\s]*$/'],
+            'number_of_plants' => ['required', 'integer', 'min:1'],
+            'bedrooms' => ['required', 'integer', 'min:1'],
+            'bathrooms' => ['required', 'integer', 'min:1'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string'],
+            'cover_image' => $isCreate ? ['required', 'file', 'mimes:jpg,jpeg,png,webp'] : ['nullable', 'file', 'mimes:jpg,jpeg,png,webp'],
+            'more_images' => $isCreate ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
+            'more_images.*' => ['file', 'mimes:jpg,jpeg,png,webp'],
+        ];
+    }
+
+    private function housePropertyValidationMessages(): array
+    {
+        return [
+            'required' => 'El campo :attribute es obligatorio.',
+            'integer' => 'El campo :attribute debe ser un numero entero valido.',
+            'min' => 'El campo :attribute debe ser mayor que cero.',
+            'regex' => 'El campo :attribute debe contener un valor numerico valido.',
+            'in' => 'Selecciona una opcion valida para :attribute.',
+            'cover_image.mimes' => 'La imagen de portada debe ser JPG, JPEG, PNG o WEBP.',
+            'more_images.required' => 'Debes subir al menos una imagen adicional.',
+            'more_images.array' => 'Las imagenes adicionales deben enviarse como una lista valida.',
+            'more_images.min' => 'Debes subir al menos una imagen adicional.',
+            'more_images.*.mimes' => 'Cada imagen adicional debe ser JPG, JPEG, PNG o WEBP.',
+        ];
+    }
+
+    private function housePropertyValidationAttributes(): array
+    {
+        return [
+            'locality' => 'localidad',
+            'address' => 'direccion',
+            'category' => 'operacion',
+            'sale_price' => 'precio de venta',
+            'rental_price' => 'precio de alquiler',
+            'typology' => 'tipologia',
+            'state_conservation' => 'estado de conservacion',
+            'facade' => 'fachada del inmueble',
+            'reason_for_sale' => 'situacion de venta',
+            'meters_built' => 'm2 construidos',
+            'number_of_plants' => 'plantas del chalet',
+            'bedrooms' => 'numero de dormitorios',
+            'bathrooms' => 'numero de banos',
+            'title' => 'titulo',
+            'description' => 'descripcion',
+            'cover_image' => 'imagen de portada',
+            'more_images' => 'imagenes adicionales',
+        ];
+    }
+
+    private function addHousePropertyValidationAfterHooks($validator, Request $request, bool $isCreate): void
+    {
+        $validator->after(function ($validator) use ($request, $isCreate): void {
+            $category = (int) $request->input('category');
+
+            if ($category === 2 && $this->normalizeDecimalValue($request->input('sale_price')) === null) {
+                $validator->errors()->add('sale_price', 'Debes indicar un precio de venta valido.');
+            }
+
+            if ($category === 1 && $this->normalizeDecimalValue($request->input('rental_price')) === null) {
+                $validator->errors()->add('rental_price', 'Debes indicar un precio de alquiler valido.');
+            }
+
+            if ($this->normalizeDecimalValue($request->input('meters_built')) === null) {
+                $validator->errors()->add('meters_built', 'Debes indicar los m2 construidos con un valor numerico valido.');
+            }
+
+            if ($isCreate) {
+                $moreImages = $request->file('more_images', []);
+                $validImages = collect(is_array($moreImages) ? $moreImages : [$moreImages])
+                    ->filter(fn ($file) => $file && $file->isValid())
+                    ->count();
+
+                if ($validImages < 1) {
+                    $validator->errors()->add('more_images', 'Debes subir al menos una imagen adicional valida.');
+                }
+            }
+        });
     }
 
     private function generatePropertyReference(): string

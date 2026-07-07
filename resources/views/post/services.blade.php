@@ -7,7 +7,7 @@
 @endsection
 
 @section('subheading')
-    {{ ($isProviderView ?? false) ? 'Gestiona tu ficha de servicios, categorias y multimedia' : 'Gestiona los proveedores de servicios publicados y sus detalles' }}
+    {{ ($isProviderView ?? false) ? 'Gestiona tu ficha de servicios, categorías y multimedia' : 'Gestiona los proveedores de servicios publicados y sus detalles' }}
 @endsection
 
 @section('header_actions')
@@ -156,78 +156,17 @@
                         @if ($landingPageUrl !== '')
                             <a class="service-website" href="{{ $landingPageUrl }}" target="_blank" rel="noopener">Visita nuestra pagina web</a>
                         @endif
-                    </div>
-
-                    <div class="card service-list">
-                        <div class="service-list-header">
-                            <div>
-                                <h3>Ficha de servicios</h3>
-                                <p>{{ $services->total() }} perfil{{ $services->total() === 1 ? '' : 'es' }} asociado{{ $services->total() === 1 ? '' : 's' }}</p>
-                            </div>
-                        </div>
-                        <div class="service-items">
-                            @forelse ($services as $service)
-                                <article class="service-item" data-card-id="service-{{ $service['id'] }}">
-                                    <div class="service-item-header">
-                                        <div>
-                                            <h4>{{ $service['title'] }}</h4>
-                                            <p>{{ $service['description'] ?: 'Sin descripción.' }}</p>
-                                        </div>
-                                        <div class="entity-actions icon-actions">
-                                            <a class="icon-action accent" href="{{ url('/post/services/update_form/' . $service['id']) }}" title="Editar" aria-label="Editar">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 20h9"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-                                                </svg>
-                                            </a>
-                                            <button type="button" class="icon-action danger" data-delete-service="{{ $service['id'] }}" title="Eliminar" aria-label="Eliminar">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 6V4h8v2"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 6l-1 14H6L5 6"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 11v6M14 11v6"/>
-                                                </svg>
-                                            </button>
-                                            <a class="icon-action neutral" href="{{ url('/result_service/' . $service['id']) }}" title="Ver servicio" aria-label="Ver servicio" target="_blank" rel="noopener">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 3h7v7"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 14L21 3"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 14v7a2 2 0 0 1-2 2h-7"/>
-                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10v11a2 2 0 0 0 2 2h11"/>
-                                                </svg>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="service-item-meta">
-                                        <div class="service-item-tags">
-                                            @if (! empty($service['types']))
-                                                @foreach ($service['types'] as $type)
-                                                    <span>{{ $type }}</span>
-                                                @endforeach
-                                            @else
-                                                <span>Sin categoría</span>
-                                            @endif
-                                        </div>
-                                        <div class="service-item-details">
-                                            <span>{{ $service['availability'] ? 'Disponibilidad: ' . $service['availability'] : 'Disponibilidad por confirmar' }}</span>
-                                            @if ($service['updated_at'])
-                                                <span>Actualizado {{ $service['updated_at'] }}</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </article>
-                            @empty
-                                <div class="empty-state">
-                                <h3>Sin ficha de servicios</h3>
-                                    <p>Crea tu ficha para indicar los servicios que ofreces y cargar tu multimedia.</p>
-                                    <a class="primary" href="{{ url('/post/create_form/service') }}">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"/>
-                                        </svg>
-                                        <span>Crear ficha</span>
-                                    </a>
-                                </div>
-                            @endforelse
+                        <div class="service-description-types">
+                            <h4>Tipos de servicio</h4>
+                            @if (! empty($providerServiceTypes))
+                                <ul class="service-offered-list">
+                                    @foreach ($providerServiceTypes as $type)
+                                        <li>{{ $type }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="service-offered-empty">Sin categorías registradas.</p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -262,19 +201,6 @@
                             </a>
                         @else
                             <span class="service-whatsapp is-disabled">WhatsApp no disponible</span>
-                        @endif
-                    </div>
-
-                    <div class="card service-offered">
-                        <h3>Servicios ofrecidos</h3>
-                        @if (! empty($providerServiceTypes))
-                            <ul class="service-offered-list">
-                                @foreach ($providerServiceTypes as $type)
-                                    <li>{{ $type }}</li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <p class="service-offered-empty">Sin categorías registradas.</p>
                         @endif
                     </div>
 

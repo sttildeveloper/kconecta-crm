@@ -53,9 +53,24 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PageController extends Controller
 {
+    private function normalizeWebsiteUrl(?string $url): ?string
+    {
+        $normalized = trim((string) $url);
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (Str::startsWith($normalized, ['http://', 'https://'])) {
+            return $normalized;
+        }
+
+        return 'https://' . ltrim($normalized, '/');
+    }
+
     public function index()
     {
         Carbon::setLocale('es');
@@ -601,21 +616,42 @@ class PageController extends Controller
         $serviceAddresses = empty($serviceIds)
             ? collect()
             : ServiceAddress::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $coverImages = empty($serviceIds)
-            ? collect()
-            : CoverImage::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $videos = empty($serviceIds)
-            ? collect()
-            : Video::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $moreImagesByService = empty($serviceIds)
-            ? collect()
-            : MoreImage::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id');
-        $serviceTypeLinks = empty($serviceIds)
-            ? collect()
-            : ServiceTypeLink::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id');
+        $coverImages = CoverImage::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceIds) {
+                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            })
+            ->get();
+        $videos = Video::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceIds) {
+                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            })
+            ->get();
+        $moreImages = MoreImage::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceIds) {
+                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            })
+            ->orderBy('id')
+            ->get();
+        $serviceTypeLinks = ServiceTypeLink::query()
+            ->where('user_id', (int) $provider->id)
+            ->orWhere(function ($query) use ($serviceIds) {
+                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            })
+            ->get();
+
+        $coverByServiceId = $coverImages->whereNull('user_id')->keyBy('service_id');
+        $providerCover = $coverImages->firstWhere('user_id', (int) $provider->id);
+        $videoByServiceId = $videos->whereNull('user_id')->keyBy('service_id');
+        $providerVideo = $videos->firstWhere('user_id', (int) $provider->id);
+        $moreImagesByService = $moreImages->whereNull('user_id')->groupBy('service_id');
+        $providerMoreImages = $moreImages->where('user_id', (int) $provider->id)->values();
+        $typeLinksByService = $serviceTypeLinks->whereNull('user_id')->groupBy('service_id');
+        $providerTypeLinks = $serviceTypeLinks->where('user_id', (int) $provider->id)->values();
 
         $allServiceTypeIds = $serviceTypeLinks
-            ->flatten()
             ->pluck('service_type_id')
             ->map(fn ($typeId) => (int) $typeId)
             ->unique()
@@ -655,6 +691,14 @@ class PageController extends Controller
             ? implode(', ', $profileAddressParts)
             : trim((string) ($provider->address ?? ''));
 
+        $providerProfileTitle = trim((string) ($provider->provider_title ?? ''));
+        if ($providerProfileTitle === '') {
+            $providerProfileTitle = trim((string) ($provider->provider_description ?? ''));
+        }
+        if ($providerProfileTitle === '') {
+            $providerProfileTitle = $providerDisplayName;
+        }
+
         $serviceCards = [];
         foreach ($services as $service) {
             $serviceAddress = $serviceAddresses->get((int) $service->id);
@@ -666,19 +710,19 @@ class PageController extends Controller
             ], fn ($value) => trim((string) $value) !== ''));
             $addressLabel = ! empty($addressParts) ? implode(', ', $addressParts) : $profileAddressLabel;
 
-            $typeNames = collect($serviceTypeLinks->get((int) $service->id, []))
+            $typeNames = collect($typeLinksByService->get((int) $service->id, []))
                 ->map(fn ($link) => $serviceTypesById->get((int) $link->service_type_id)?->name)
                 ->filter()
                 ->unique()
                 ->values()
                 ->all();
 
-            $cover = $coverImages->get((int) $service->id);
-            $video = $videos->get((int) $service->id);
+            $cover = $coverByServiceId->get((int) $service->id);
+            $video = $videoByServiceId->get((int) $service->id);
 
             $serviceCards[] = [
                 'id' => (int) $service->id,
-                'title' => trim((string) ($service->title ?? '')) !== '' ? (string) $service->title : $providerDisplayName,
+                'title' => trim((string) ($service->title ?? '')) !== '' ? (string) $service->title : $providerProfileTitle,
                 'description' => (string) ($service->description ?? ''),
                 'availability' => (string) ($service->availability ?? ''),
                 'page_url' => (string) ($service->page_url ?? ''),
@@ -699,10 +743,24 @@ class PageController extends Controller
         $primaryService = $serviceCards[0] ?? null;
         $primaryServiceId = $primaryService['id'] ?? null;
         $galleryImages = [];
-        if ($primaryService && ! empty($primaryService['cover_image_url'])) {
+        if ($providerCover && ! empty($providerCover->url)) {
+            $galleryImages[] = asset('img/uploads/' . ltrim((string) $providerCover->url, '/'));
+        } elseif ($primaryService && ! empty($primaryService['cover_image_url'])) {
             $galleryImages[] = $primaryService['cover_image_url'];
         }
-        if ($primaryServiceId) {
+        if ($providerMoreImages->isNotEmpty()) {
+            foreach ($providerMoreImages as $image) {
+                $file = trim((string) ($image->url ?? ''));
+                if ($file === '') {
+                    continue;
+                }
+
+                $url = asset('img/uploads/' . ltrim($file, '/'));
+                if (! in_array($url, $galleryImages, true)) {
+                    $galleryImages[] = $url;
+                }
+            }
+        } elseif ($primaryServiceId) {
             foreach ($moreImagesByService->get((int) $primaryServiceId, collect()) as $image) {
                 $file = trim((string) ($image->url ?? ''));
                 if ($file === '') {
@@ -729,22 +787,26 @@ class PageController extends Controller
             $galleryImages[] = asset('img/image-icon-1280x960.png');
         }
 
-        $aggregatedServiceTypes = collect($serviceCards)
-            ->pluck('service_types')
-            ->flatten()
+        $providerTypeNames = $providerTypeLinks
+            ->map(fn ($link) => $serviceTypesById->get((int) $link->service_type_id)?->name)
             ->filter()
             ->unique()
             ->values()
             ->all();
 
+        $aggregatedServiceTypes = ! empty($providerTypeNames)
+            ? $providerTypeNames
+            : collect($serviceCards)->pluck('service_types')->flatten()->filter()->unique()->values()->all();
+
         $resolvedLatitude = $primaryService['latitude'] ?? ($profileAddress?->latitude ?? '');
         $resolvedLongitude = $primaryService['longitude'] ?? ($profileAddress?->longitude ?? '');
         $resolvedAddressLabel = $primaryService['address_label'] ?? $profileAddressLabel;
-        $providerDescription = trim((string) ($primaryService['description'] ?? ''));
+        $providerDescription = trim((string) ($provider->provider_description ?? ''));
         if ($providerDescription === '') {
-            $providerDescription = $services->count() > 0
-                ? 'Proveedor de servicios con ' . $services->count() . ' servicio(s) publicado(s) en Kconecta.'
-                : 'Proveedor de servicios registrado en Kconecta.';
+            $providerDescription = trim((string) ($primaryService['description'] ?? ''));
+        }
+        if ($providerDescription === '') {
+            $providerDescription = 'Proveedor de servicios registrado en Kconecta.';
         }
 
         $providerUpdatedAt = $services->max('updated_at') ?: $provider->updated_at;
@@ -770,10 +832,14 @@ class PageController extends Controller
                 'average_stars' => (float) ($ratingSummary['average_stars'] ?? 0),
                 'ratings_count' => (int) ($ratingSummary['ratings_count'] ?? 0),
                 'service_types' => $aggregatedServiceTypes,
-                'service_count' => count($serviceCards),
+                'service_count' => count($aggregatedServiceTypes),
                 'gallery_images' => $galleryImages,
-                'primary_page_url' => (string) ($primaryService['page_url'] ?? ''),
-                'primary_video_url' => (string) ($primaryService['video_url'] ?? ''),
+                'title' => $providerProfileTitle,
+                'availability' => (string) ($provider->provider_availability ?: ($primaryService['availability'] ?? '')),
+                'primary_page_url' => $this->normalizeWebsiteUrl((string) ($provider->provider_page_url ?: ($primaryService['page_url'] ?? ''))) ?? '',
+                'primary_video_url' => $providerVideo && ! empty($providerVideo->url)
+                    ? asset('video/uploads/' . ltrim((string) $providerVideo->url, '/'))
+                    : (string) ($primaryService['video_url'] ?? ''),
                 'services' => $serviceCards,
             ],
         ]);
@@ -903,6 +969,11 @@ class PageController extends Controller
             return redirect('/');
         }
 
+        $user = User::find($service->user_id);
+        if ($user && (int) $user->user_level_id === User::LEVEL_SERVICE_PROVIDER) {
+            return $this->resultProvider((string) $user->id);
+        }
+
         $item = $service->toArray();
         $item['updated_at_text'] = $this->formatUpdatedAt($service->updated_at);
 
@@ -930,7 +1001,6 @@ class PageController extends Controller
             }
         }
 
-        $user = User::find($service->user_id);
         $item['user'] = $user?->toArray() ?? [];
 
         if ($user) {
