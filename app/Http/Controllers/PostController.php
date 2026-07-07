@@ -54,6 +54,7 @@ use App\Models\WheeledAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PostController extends Controller
@@ -89,6 +90,110 @@ class PostController extends Controller
             ->value('id');
 
         return $serviceId ? (int) $serviceId : null;
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        static $cache = [];
+
+        $cacheKey = $table . '.' . $column;
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $cache[$cacheKey] = Schema::hasTable($table) && Schema::hasColumn($table, $column);
+
+        return $cache[$cacheKey];
+    }
+
+    private function providerProfileFieldAvailable(string $field): bool
+    {
+        return $this->tableHasColumn('user', $field);
+    }
+
+    private function providerMediaQuery(string $modelClass, int $providerId, int $serviceId)
+    {
+        $model = new $modelClass();
+        $query = $modelClass::query();
+
+        if ($this->tableHasColumn($model->getTable(), 'user_id')) {
+            $query->where('user_id', $providerId)
+                ->orWhere(function ($nested) use ($serviceId) {
+                    $nested->whereNull('user_id')->where('service_id', $serviceId);
+                });
+
+            return $query;
+        }
+
+        return $query->where('service_id', $serviceId);
+    }
+
+    private function providerMediaPayload(string $table, int $providerId, int $serviceId, array $payload): array
+    {
+        $payload['service_id'] = $serviceId;
+
+        if ($this->tableHasColumn($table, 'user_id')) {
+            $payload['user_id'] = $providerId;
+        }
+
+        return $payload;
+    }
+
+    private function providerServiceTypeIds(int $providerId, array $providerServiceIds): array
+    {
+        $query = ServiceTypeLink::query();
+
+        if ($this->tableHasColumn('service_types', 'user_id')) {
+            $query->where('user_id', $providerId)
+                ->orWhere(function ($nested) use ($providerServiceIds) {
+                    $nested->whereNull('user_id')
+                        ->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
+                });
+        } else {
+            $query->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
+        }
+
+        return $query->pluck('service_type_id')
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    private function replaceProviderServiceTypes(int $providerId, int $serviceId, array $serviceTypeIds): void
+    {
+        $query = ServiceTypeLink::query();
+
+        if ($this->tableHasColumn('service_types', 'user_id')) {
+            $query->where('user_id', $providerId);
+        } else {
+            $query->where('service_id', $serviceId);
+        }
+
+        $query->delete();
+
+        foreach ($serviceTypeIds as $typeId) {
+            ServiceTypeLink::create($this->providerMediaPayload('service_types', $providerId, $serviceId, [
+                'service_type_id' => $typeId,
+            ]));
+        }
+    }
+
+    private function fillProviderPublicProfile(User $provider, array $attributes): void
+    {
+        $fieldMap = [
+            'provider_title' => 'provider_title',
+            'provider_description' => 'provider_description',
+            'provider_availability' => 'provider_availability',
+            'provider_page_url' => 'provider_page_url',
+        ];
+
+        foreach ($fieldMap as $attribute => $column) {
+            if (! $this->providerProfileFieldAvailable($column)) {
+                continue;
+            }
+
+            $provider->{$attribute} = $attributes[$attribute] ?? null;
+        }
     }
 
     private function normalizeWebsiteUrl(?string $url): ?string
@@ -1915,15 +2020,7 @@ class PostController extends Controller
             ];
 
             $providerServiceIds = Service::where('user_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all();
-            $typeIds = ServiceTypeLink::query()
-                ->where('user_id', (int) $user->id)
-                ->orWhere(function ($query) use ($providerServiceIds) {
-                    $query->whereNull('user_id')->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
-                })
-                ->pluck('service_type_id')
-                ->unique()
-                ->map(fn ($id) => (int) $id)
-                ->all();
+            $typeIds = $this->providerServiceTypeIds((int) $user->id, $providerServiceIds);
             if (! empty($typeIds)) {
                 $providerServiceTypes = ServiceType::whereIn('id', $typeIds)->orderBy('name')->pluck('name')->all();
             }
@@ -1938,7 +2035,9 @@ class PostController extends Controller
             $serviceVideoUrl = '';
             $serviceAddressLabel = $providerProfile['address'] ?? '';
 
-            $providerCover = CoverImage::query()->where('user_id', (int) $user->id)->orderByDesc('id')->first();
+            $providerCover = $this->providerMediaQuery(CoverImage::class, (int) $user->id, (int) ($primaryService['id'] ?? 0))
+                ->orderByDesc('id')
+                ->first();
             if ($providerCover && ! empty($providerCover->url)) {
                 $heroImage = asset('img/uploads/' . ltrim((string) $providerCover->url, '/'));
                 $landingImages = [$heroImage];
@@ -1966,13 +2065,14 @@ class PostController extends Controller
                 }
             }
 
-            $providerVideo = Video::query()->where('user_id', (int) $user->id)->orderByDesc('id')->first();
+            $providerVideo = $this->providerMediaQuery(Video::class, (int) $user->id, (int) ($primaryService['id'] ?? 0))
+                ->orderByDesc('id')
+                ->first();
             if ($providerVideo && ! empty($providerVideo->url)) {
                 $serviceVideoUrl = asset('video/uploads/' . ltrim((string) $providerVideo->url, '/'));
             }
 
-            $galleryImages = MoreImage::query()
-                ->where('user_id', (int) $user->id)
+            $galleryImages = $this->providerMediaQuery(MoreImage::class, (int) $user->id, (int) ($primaryService['id'] ?? 0))
                 ->orderBy('id')
                 ->pluck('url')
                 ->filter()
@@ -2094,45 +2194,21 @@ class PostController extends Controller
         $providerAddress = UserAddress::where('user_id', (int) $provider->id)->first();
 
         $serviceType = ServiceType::orderBy('name')->get()->toArray();
-        $serviceTypes = ServiceTypeLink::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($id, $provider) {
-                $query->whereNull('user_id')
-                    ->where('service_id', (int) $id)
-                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
-            })
+        $serviceTypes = $this->providerMediaQuery(ServiceTypeLink::class, (int) $provider->id, (int) $id)
             ->get()
             ->toArray();
 
-        $coverImage = CoverImage::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($id, $provider) {
-                $query->whereNull('user_id')
-                    ->where('service_id', (int) $id)
-                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
-            })
+        $coverImage = $this->providerMediaQuery(CoverImage::class, (int) $provider->id, (int) $id)
             ->orderByDesc('id')
             ->get()
             ->toArray();
 
-        $moreImages = MoreImage::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($id, $provider) {
-                $query->whereNull('user_id')
-                    ->where('service_id', (int) $id)
-                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
-            })
+        $moreImages = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, (int) $id)
             ->orderBy('id')
             ->get()
             ->toArray();
 
-        $video = Video::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($id, $provider) {
-                $query->whereNull('user_id')
-                    ->where('service_id', (int) $id)
-                    ->where('service_id', (int) $this->providerPrimaryServiceId($provider));
-            })
+        $video = $this->providerMediaQuery(Video::class, (int) $provider->id, (int) $id)
             ->orderByDesc('id')
             ->get()
             ->toArray();
@@ -2206,10 +2282,12 @@ class PostController extends Controller
         $latitude = trim((string) $request->input('address_lat', ''));
         $longitude = trim((string) $request->input('address_lng', ''));
 
-        $provider->provider_title = $profileTitle !== '' ? $profileTitle : null;
-        $provider->provider_description = $description !== '' ? $description : null;
-        $provider->provider_availability = $availability !== '' ? $availability : null;
-        $provider->provider_page_url = $pageUrl;
+        $this->fillProviderPublicProfile($provider, [
+            'provider_title' => $profileTitle !== '' ? $profileTitle : null,
+            'provider_description' => $description !== '' ? $description : null,
+            'provider_availability' => $availability !== '' ? $availability : null,
+            'provider_page_url' => $pageUrl,
+        ]);
         $provider->address = $address !== '' ? $address : $provider->address;
 
         $provider->save();
@@ -2244,15 +2322,10 @@ class PostController extends Controller
             $addressRecord->delete();
         }
 
-        ServiceTypeLink::where('user_id', (int) $provider->id)->delete();
         if (! empty($serviceTypes)) {
-            foreach ($serviceTypes as $value) {
-                ServiceTypeLink::create([
-                    'user_id' => (int) $provider->id,
-                    'service_id' => $serviceId,
-                    'service_type_id' => $value,
-                ]);
-            }
+            $this->replaceProviderServiceTypes((int) $provider->id, $serviceId, $serviceTypes);
+        } else {
+            $this->replaceProviderServiceTypes((int) $provider->id, $serviceId, []);
         }
 
         $imagePath = public_path('img/uploads');
@@ -2264,12 +2337,7 @@ class PostController extends Controller
             @mkdir($videoPath, 0755, true);
         }
 
-        $existingCoverImage = CoverImage::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceId) {
-                $query->whereNull('user_id')->where('service_id', $serviceId);
-            })
-            ->first();
+        $existingCoverImage = $this->providerMediaQuery(CoverImage::class, (int) $provider->id, $serviceId)->first();
         $coverImage = $request->file('cover_image');
         if ($coverImage && $coverImage->isValid()) {
             $storedImage = $this->storeUploadedImage($coverImage, $imagePath);
@@ -2280,15 +2348,15 @@ class PostController extends Controller
             $previousCoverUrl = $existingCoverImage?->url;
             if ($existingCoverImage) {
                 $existingCoverImage->url = $storedImage['file_name'];
-                $existingCoverImage->user_id = (int) $provider->id;
+                if ($this->tableHasColumn('cover_image', 'user_id')) {
+                    $existingCoverImage->user_id = (int) $provider->id;
+                }
                 $existingCoverImage->service_id = $existingCoverImage->service_id ?: $serviceId;
                 $existingCoverImage->save();
             } else {
-                CoverImage::create([
+                CoverImage::create($this->providerMediaPayload('cover_image', (int) $provider->id, $serviceId, [
                     'url' => $storedImage['file_name'],
-                    'user_id' => (int) $provider->id,
-                    'service_id' => $serviceId,
-                ]);
+                ]));
             }
 
             if ($previousCoverUrl && $previousCoverUrl !== $storedImage['file_name']) {
@@ -2308,20 +2376,13 @@ class PostController extends Controller
                     return redirect()->back()->with('error', $storedImage['error']);
                 }
 
-                MoreImage::create([
+                MoreImage::create($this->providerMediaPayload('more_images', (int) $provider->id, $serviceId, [
                     'url' => $storedImage['file_name'],
-                    'user_id' => (int) $provider->id,
-                    'service_id' => $serviceId,
-                ]);
+                ]));
             }
         }
 
-        $existingVideo = Video::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceId) {
-                $query->whereNull('user_id')->where('service_id', $serviceId);
-            })
-            ->first();
+        $existingVideo = $this->providerMediaQuery(Video::class, (int) $provider->id, $serviceId)->first();
         $video = $request->file('video');
         if ($video) {
             $storedVideo = $this->storeUploadedVideo($video, $videoPath);
@@ -2332,15 +2393,15 @@ class PostController extends Controller
             $previousVideoUrl = $existingVideo?->url;
             if ($existingVideo) {
                 $existingVideo->url = $storedVideo['file_name'];
-                $existingVideo->user_id = (int) $provider->id;
+                if ($this->tableHasColumn('video', 'user_id')) {
+                    $existingVideo->user_id = (int) $provider->id;
+                }
                 $existingVideo->service_id = $existingVideo->service_id ?: $serviceId;
                 $existingVideo->save();
             } else {
-                Video::create([
+                Video::create($this->providerMediaPayload('video', (int) $provider->id, $serviceId, [
                     'url' => $storedVideo['file_name'],
-                    'user_id' => (int) $provider->id,
-                    'service_id' => $serviceId,
-                ]);
+                ]));
             }
 
             if ($previousVideoUrl && $previousVideoUrl !== $storedVideo['file_name']) {
@@ -2350,14 +2411,8 @@ class PostController extends Controller
 
         $deleteMoreImageIds = $this->normalizePositiveIds($request->input('delete_more_images', []));
         if (! empty($deleteMoreImageIds)) {
-            $images = MoreImage::query()
+            $images = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, $serviceId)
                 ->whereIn('id', $deleteMoreImageIds)
-                ->where(function ($query) use ($provider, $serviceId) {
-                    $query->where('user_id', (int) $provider->id)
-                        ->orWhere(function ($nested) use ($serviceId) {
-                            $nested->whereNull('user_id')->where('service_id', $serviceId);
-                        });
-                })
                 ->get();
 
             foreach ($images as $image) {
