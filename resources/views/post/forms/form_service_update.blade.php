@@ -1,187 +1,425 @@
 @extends('layouts.backoffice')
 
-@section('title', 'Kconecta - Actualizar proveedor de servicio')
+@section('title', 'Kconecta - Editar ficha del proveedor')
 
 @section('heading')
     Editar proveedor de servicio
 @endsection
 
 @section('subheading')
-    Actualiza los datos del proveedor de servicio
+    Actualiza la informacion publica del proveedor
 @endsection
 
 @section('header_actions')
-    <a class="secondary" href="{{ url('/post/services') }}">Ver proveedores</a>
+    <a class="secondary" href="{{ url('/post/services') }}">Ver proveedor</a>
 @endsection
+
 @section('styles')
-<link rel="stylesheet" href="<?= base_url()."css/app/forms.css" ?>">
-<link rel="stylesheet" href="<?= base_url()."css/app/map_address.css" ?>">
-<link rel="stylesheet" href="<?= base_url()."css/ui/input_text.css" ?>">
-<link rel="stylesheet" href="<?= base_url()."css/ui/input_radio.css" ?>">
-<link rel="stylesheet" href="<?= base_url()."css/ui/input_checkbox.css" ?>">
-<link rel="stylesheet" href="<?= base_url()."css/page/property-form.css" ?>">
+    <link rel="stylesheet" href="{{ asset('css/app/user_update.css') }}">
+    <style>
+        .provider-edit-shell {
+            display: grid;
+            gap: 1.35rem;
+        }
+
+        .provider-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.2rem 0;
+        }
+
+        .provider-topbar h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            color: var(--dash-text);
+        }
+
+        .provider-topbar p {
+            margin: 0.2rem 0 0;
+            color: var(--dash-muted);
+            font-size: 0.9rem;
+        }
+
+        .provider-edit-form {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .provider-edit-card {
+            background: var(--dash-card);
+            border: 1px solid var(--dash-border);
+            border-radius: 1rem;
+            padding: 1.25rem 1.35rem;
+            box-shadow: 0 12px 26px rgba(12, 21, 43, 0.08);
+        }
+
+        .provider-edit-card h3 {
+            margin: 0 0 0.9rem;
+            font-size: 1rem;
+            color: var(--dash-text);
+        }
+
+        .provider-summary__logo {
+            width: 92px;
+            height: 92px;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .provider-summary__logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .provider-summary__meta {
+            display: grid;
+            gap: 0.2rem;
+        }
+
+        .provider-summary__meta strong {
+            color: var(--dash-text);
+            font-size: 1rem;
+        }
+
+        .provider-summary__meta span {
+            color: var(--dash-muted);
+            font-size: 0.9rem;
+        }
+
+        .provider-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .provider-form-field {
+            display: grid;
+            gap: 0.4rem;
+            font-size: 0.88rem;
+            color: var(--dash-muted);
+        }
+
+        .provider-form-field--full {
+            grid-column: 1 / -1;
+        }
+
+        .provider-form-field label,
+        .provider-form-field > span {
+            font-weight: 700;
+            color: var(--dash-text);
+        }
+
+        .provider-form-field input,
+        .provider-form-field textarea {
+            border: 1px solid var(--dash-border);
+            border-radius: 0.8rem;
+            padding: 0.72rem 0.88rem;
+            background: #fff;
+            color: var(--dash-text);
+            font-size: 0.95rem;
+        }
+
+        .provider-form-field textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .provider-form-field small {
+            color: var(--dash-muted);
+            font-size: 0.78rem;
+        }
+
+        .provider-service-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem 1rem;
+        }
+
+        .provider-service-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+            padding: 0.15rem 0;
+            color: var(--dash-text);
+            font-size: 0.93rem;
+        }
+
+        .provider-service-option input {
+            margin-top: 0.2rem;
+        }
+
+        .provider-media-stack {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .provider-media-panel {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 0.95rem;
+            background: #fcfeff;
+            padding: 1rem;
+        }
+
+        .provider-media-panel h4 {
+            margin: 0 0 0.8rem;
+            color: var(--dash-text);
+            font-size: 0.95rem;
+        }
+
+        .provider-cover-preview {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 0.9rem;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .provider-cover-preview img {
+            display: block;
+            width: 100%;
+            max-height: 260px;
+            object-fit: cover;
+        }
+
+        .provider-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.95rem;
+        }
+
+        .provider-gallery-item {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .provider-gallery-item img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            border-radius: 0.8rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .provider-gallery-delete {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.88rem;
+            color: var(--dash-muted);
+        }
+
+        .provider-video-preview video {
+            width: 100%;
+            border-radius: 0.9rem;
+            background: #111827;
+        }
+
+        .provider-empty {
+            margin: 0;
+            color: var(--dash-muted);
+            font-size: 0.9rem;
+        }
+
+        .provider-file-field {
+            display: grid;
+            gap: 0.45rem;
+            margin-top: 0.9rem;
+        }
+
+        .provider-submit-row {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .provider-submit-row button {
+            border: none;
+            background: var(--dash-accent);
+            color: #fff;
+            padding: 0.8rem 1.65rem;
+            border-radius: 999px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(99, 196, 202, 0.3);
+        }
+
+        .provider-submit-row button:disabled {
+            opacity: 0.75;
+            cursor: wait;
+        }
+
+        @media (max-width: 1100px) {
+            .provider-service-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 900px) {
+            .provider-form-grid,
+            .provider-service-grid,
+            .provider-gallery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 @endsection
 
 @section('content')
+    @php
+        $persistedTypeIds = collect($serviceTypes)
+            ->pluck('service_type_id')
+            ->map(fn ($value) => (int) $value)
+            ->all();
 
-<form action="{{ url('/post/services/update/save') }}" method="post" enctype="multipart/form-data">
-    @csrf
-    <div class="container-title-page">
-        <h2>Actualizar &raquo; <span>Servicio</span></h2>
-    </div>
-    <div class="container-main">
+        $selectedTypeIds = collect(old('service_type', $persistedTypeIds))
+            ->map(fn ($value) => (int) $value)
+            ->all();
 
-        <input type="hidden" name="service_id" value="<?= $service[0]["id"] ?>">
-        <h2 class="title-main-row-section">Datos del usuario</h2>
-        <div class="container-row-form box">
-            <label for="" class="label-col-100">
-                <span class="title-label">Disponibilidad *</span>
-                <input type="text" class="input" name="availability" value="<?= $service[0]["availability"] ?>" required>
-            </label>
-            <label for="">
-                <span class="title-label">Sitio web</span>
-                <input type="text" class="input" placeholder="" value="<?= $service[0]["page_url"] ?>" name="page_url">
-            </label>
-        </div>
-        <div class="container-row-form-col-1 box">
-            <div class="div-col-1">
-                <label class="service-description-textarea" for="">
-                    <span class="title-label">Descripci&oacute;n *</span>
-                    <textarea class="textarea" name="description" rows="8" required><?= $service[0]["description"] ?></textarea>
-                </label>
-            </div>
-        </div>
-        <h2 class="title-main-row-section">Tipo de servicio</h2>
-        <div class="container-row-form-col-1 box">
-            <div class="div-col-3">
-                <!-- <span class="title-label">Tipo de servicio *</span> -->
-                <?php $col_type_service_id = array_column($serviceTypes, "service_type_id"); foreach($serviceType as $st){ ?>
-                <label class="radio label-radio-checkbox-col-100">
-                    <input type="checkbox" <?= in_array($st["id"], $col_type_service_id) ? "checked" : "" ?> class="checkbox-input-ui" hidden="" name="service_type[]" value="<?= $st["id"] ?>" />
-                    <span class="checkmark-checkbox-input-ui"></span>
-                    <?= $st["name"] ?>
-                </label>
-                <?php } ?>
+        $coverUrl = ! empty($coverImage[0]['url'])
+            ? asset('img/uploads/' . $coverImage[0]['url'])
+            : asset('img/image-icon-1280x960.png');
+    @endphp
+
+    <div class="provider-edit-shell">
+        <div class="provider-topbar">
+            <div>
+                <h2>Actualizar servicio</h2>
+                <p>Edita los datos visibles, los tipos de servicio y la multimedia del proveedor.</p>
             </div>
         </div>
 
+        <form id="provider-profile-form" class="provider-edit-form" action="{{ url('/post/services/update/save') }}" method="post" enctype="multipart/form-data" novalidate>
+            @csrf
+            <input type="hidden" name="service_id" value="{{ $service[0]['id'] }}">
 
-        <h2 class="title-main-row-section">Fotos y v&iacute;deos </h2>
-        <div class="container-row-form-images box">
-            <div class="container-main-template-input-simple">
-                <div class="container-image">
-                    <?php if(!empty($coverImage)){ ?>
-                        <img src="<?= base_url("img/uploads/").$coverImage[0]["url"] ?>" alt="Placeholder image" id="preview_cover_image">
-                    <?php }else{ ?>
-                        <img src="<?= base_url("img/image-icon-1280x960.png") ?>" alt="Placeholder image" id="preview_cover_image">
-                    <?php } ?>
-                </div>
-                <label for="cover_image">
-                    <div class="btn-upload-image">
-                        Subir imagen de portada *
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48"><g fill="none"><path fill="#ffffff" d="M44 24a2 2 0 1 0-4 0zM24 8a2 2 0 1 0 0-4zm15 32H9v4h30zM8 39V9H4v30zm32-15v15h4V24zM9 8h15V4H9zm0 32a1 1 0 0 1-1-1H4a5 5 0 0 0 5 5zm30 4a5 5 0 0 0 5-5h-4a1 1 0 0 1-1 1zM8 9a1 1 0 0 1 1-1V4a5 5 0 0 0-5 5z"/><path stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="m6 35l10.693-9.802a2 2 0 0 1 2.653-.044L32 36m-4-5l4.773-4.773a2 2 0 0 1 2.615-.186L42 31m-5-13V6m-5 5l5-5l5 5"/></g></svg>
+            <section class="provider-edit-card">
+                <h3>Datos del anunciante</h3>
+                <div class="provider-form-grid">
+                    <div class="provider-form-field">
+                        <span>Titulo publico *</span>
+                        <input type="text" name="title" value="{{ old('title', $providerProfileTitle) }}" required>
                     </div>
-                    <input type="file" name="cover_image" id="cover_image" class="input-simple-main-template" accept="image/png, image/jpeg, image/jpg, image/webp">
-                </label>
-            </div>
-            
-            <div class="container-main-template-input-simple">
-                <div class="container-images" id="container-images">
-                    <?php foreach($moreImages as $img){ ?>
-                        <div class="container-main-view-block-image">
-                            <div class="container-image-view-more-image">
-                                <img src='<?= base_url("img/uploads/"). $img["url"] ?>' alt='Placeholder image' />
-                            </div>
-                            <div class="container-button-actions">
-                                <button class="button btn-delete-more-image" type="button" data-id="<?= $img["id"] ?>">Eliminar</button>
-                            </div>
+                    <div class="provider-form-field">
+                        <span>Sitio web</span>
+                        <input type="url" name="page_url" value="{{ old('page_url', $provider->provider_page_url ?? $service[0]['page_url'] ?? '') }}" placeholder="https://">
+                    </div>
+                    <div class="provider-form-field provider-form-field--full">
+                        <span>Descripcion publica *</span>
+                        <textarea name="description" rows="6" required>{{ old('description', $provider->provider_description ?? $service[0]['description'] ?? '') }}</textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section class="provider-edit-card">
+                <h3>Tipo de servicio</h3>
+                <div class="provider-service-grid">
+                    @foreach ($serviceType as $type)
+                        <label class="provider-service-option">
+                            <input type="checkbox" name="service_type[]" value="{{ $type['id'] }}" {{ in_array((int) $type['id'], $selectedTypeIds, true) ? 'checked' : '' }}>
+                            <span>{{ $type['name'] }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </section>
+
+            <section class="provider-edit-card">
+                <h3>Fotos y videos</h3>
+                <div class="provider-media-stack">
+                    <div class="provider-media-panel">
+                        <h4>Portada actual</h4>
+                        <div class="provider-cover-preview">
+                            <img id="cover-image-preview" src="{{ $coverUrl }}" alt="Portada del proveedor">
                         </div>
-                    <?php } ?>
-                </div>
-                <label for="more_images">
-                    <div class="btn-upload-image">
-                        Agregar imagen
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48"><g fill="none"><path fill="#ffffff" d="M44 24a2 2 0 1 0-4 0zM24 8a2 2 0 1 0 0-4zm15 32H9v4h30zM8 39V9H4v30zm32-15v15h4V24zM9 8h15V4H9zm0 32a1 1 0 0 1-1-1H4a5 5 0 0 0 5 5zm30 4a5 5 0 0 0 5-5h-4a1 1 0 0 1-1 1zM8 9a1 1 0 0 1 1-1V4a5 5 0 0 0-5 5z"/><path stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="m6 35l10.693-9.802a2 2 0 0 1 2.653-.044L32 36m-4-5l4.773-4.773a2 2 0 0 1 2.615-.186L42 31m-5-13V6m-5 5l5-5l5 5"/></g></svg>
+                        <div class="provider-file-field">
+                            <label class="provider-form-field">
+                                <span>Subir imagen de portada</span>
+                                <input id="cover-image-input" type="file" name="cover_image" accept="image/png,image/jpeg,image/jpg,image/webp">
+                            </label>
+                        </div>
                     </div>
-                    <input type="file" id="more_images" class="input-simple-main-template" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
-                </label>    
+
+                    <div class="provider-media-panel">
+                        <h4>Galeria actual</h4>
+                        @if (! empty($moreImages))
+                            <div class="provider-gallery-grid">
+                                @foreach ($moreImages as $image)
+                                    <div class="provider-gallery-item">
+                                        <img src="{{ asset('img/uploads/' . $image['url']) }}" alt="Imagen del proveedor">
+                                        <label class="provider-gallery-delete">
+                                            <input type="checkbox" name="delete_more_images[]" value="{{ $image['id'] }}">
+                                            <span>Eliminar</span>
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="provider-empty">No hay imagenes adicionales.</p>
+                        @endif
+
+                        <div class="provider-file-field">
+                            <label class="provider-form-field">
+                                <span>Agregar imagenes</span>
+                                <input type="file" name="more_images[]" multiple accept="image/png,image/jpeg,image/jpg,image/webp">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="provider-media-panel">
+                        <h4>Video actual</h4>
+                        <div class="provider-video-preview">
+                            @if (! empty($video[0]['url']))
+                                <video src="{{ asset('video/uploads/' . $video[0]['url']) }}" controls></video>
+                            @else
+                                <p class="provider-empty">No hay video cargado.</p>
+                            @endif
+                        </div>
+                        <div class="provider-file-field">
+                            <label class="provider-form-field">
+                                <span>Subir video de presentacion</span>
+                                <input type="file" name="video" accept=".mp4,.mov,.avi,.mpeg,video/mp4,video/quicktime,video/x-msvideo,video/mpeg">
+                                <small>Se mantiene el flujo actual de validacion y guardado del video.</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="provider-submit-row">
+                <button type="submit" id="provider-profile-submit-btn">Guardar y publicar</button>
             </div>
 
-            <div class="container-main-template-input-simple">
-                <div class="container-video" id="container-video">
-                    <?php if (!empty($video)){
-                        echo "<video src='". base_url("video/uploads/".$video[0]["url"]) ."' id='preview_video' width='500' controls></video>";
-                    }else{
-                        echo "<img src='".base_url("img/play-button-circle-icon.webp")."' alt='video' />";    
-                        echo "<video src='' id='preview_video' width='500' controls style='display: none;'></video>";
-                    } 
-                    ?>
-                </div>
-                <label for="video">
-                    <div class="btn-upload-image">
-                        Subir video (max. 150MB) (opcional)
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48"><g fill="none"><path fill="#ffffff" d="M44 24a2 2 0 1 0-4 0zM24 8a2 2 0 1 0 0-4zm15 32H9v4h30zM8 39V9H4v30zm32-15v15h4V24zM9 8h15V4H9zm0 32a1 1 0 0 1-1-1H4a5 5 0 0 0 5 5zm30 4a5 5 0 0 0 5-5h-4a1 1 0 0 1-1 1zM8 9a1 1 0 0 1 1-1V4a5 5 0 0 0-5 5z"/><path stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="m6 35l10.693-9.802a2 2 0 0 1 2.653-.044L32 36m-4-5l4.773-4.773a2 2 0 0 1 2.615-.186L42 31m-5-13V6m-5 5l5-5l5 5"/></g></svg>
-                    </div>
-                    <input type="file" name="video" id="video" class="input-simple-main-template" accept=".mp4,.mov,.avi,.mpeg,video/mp4,video/quicktime,video/x-msvideo,video/mpeg">
-                </label>    
-            </div>
-        </div>
-        
-        
-        <div class="box">
-            <button class="button container-button-save" type="submit">Guardar y publicar</button>
-        </div>
+            <input type="hidden" name="availability" value="{{ old('availability', $provider->provider_availability ?? $service[0]['availability'] ?? '24/7') }}">
+        </form>
     </div>
-</form>
-<div class="modal" id="modal-view-map-select">
-    <div class="modal-background"></div>
-    <div class="modal-content box">
-        <div class="message-title-map">
-            <h3>Seleccione ubicaci&oacute;n</h3>
-            <p>Arrastre el marcador a la ubicaci&oacute;n exacta de la propiedad.</p>
-        </div>
-        <div class="container-map-google">
-            <div id="map"></div>
-        </div>
-        <div class="container-details-map">
-            <div class="container-row-value">
-                <span class="name-attr">Calle:</span>
-                <span class="value-attr" id="route-map"></span>
-            </div>
-            <div class="container-row-value">
-                <span class="name-attr">Ciudad:</span>
-                <span class="value-attr" id="city-map"></span>
-            </div>
-            <div class="container-row-value">
-                <span class="name-attr">Provincia:</span>
-                <span class="value-attr" id="state-map"></span>
-            </div>
-            <div class="container-row-value">
-                <span class="name-attr">Pais: </span>
-                <span class="value-attr" id="country-map"></span>
-            </div>
-        </div>
-        <div class="container-controls-map">
-            <button class="button" onclick="closeModal(document.getElementById('modal-view-map-select'))">Cerrar</button>
-            <button class="button" id="my-location">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#666666" d="M12 2c-4.4 0-8 3.6-8 8c0 5.4 7 11.5 7.3 11.8c.2.1.5.2.7.2s.5-.1.7-.2C13 21.5 20 15.4 20 10c0-4.4-3.6-8-8-8m0 17.7c-2.1-2-6-6.3-6-9.7c0-3.3 2.7-6 6-6s6 2.7 6 6s-3.9 7.7-6 9.7M12 6c-2.2 0-4 1.8-4 4s1.8 4 4 4s4-1.8 4-4s-1.8-4-4-4m0 6c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2"/></svg>  
-                Mi ubicaci&oacute;n
-            </button>
-        </div>
-    </div>
-    <button class="button modal-close"></button>
-</div>
 @endsection
 
 @section('scripts')
-<script src="<?= base_url()."js/preview_image.js" ?>"></script>
-<script>
-    // preview_image_auto("more_images", "container-images");
-    preview_image("cover_image", "preview_cover_image");
-    preview_video("video", "preview_video");
-</script>
-<script src="<?= base_url("js/form_update_image.js") ?>"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{ $mapsKey }}&libraries=places"></script>
-<script src="<?= base_url("js/google_maps.js") ?>"></script>
+    <script>
+        (() => {
+            const form = document.getElementById('provider-profile-form');
+            const submitBtn = document.getElementById('provider-profile-submit-btn');
+            const coverInput = document.getElementById('cover-image-input');
+            const coverPreview = document.getElementById('cover-image-preview');
 
+            coverInput?.addEventListener('change', () => {
+                const file = coverInput.files && coverInput.files[0];
+                if (file && coverPreview) {
+                    coverPreview.src = URL.createObjectURL(file);
+                }
+            });
+
+            form?.addEventListener('submit', () => {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Guardando...';
+                }
+            });
+        })();
+    </script>
 @endsection

@@ -2185,6 +2185,13 @@ class PostController extends Controller
         $availability = trim((string) $request->input('availability', ''));
         $pageUrl = $this->normalizeWebsiteUrl((string) $request->input('page_url', ''));
         $serviceTypes = $this->normalizePositiveIds($request->input('service_type', []));
+        if (! empty($serviceTypes)) {
+            $serviceTypes = ServiceType::query()
+                ->whereIn('id', $serviceTypes)
+                ->pluck('id')
+                ->map(fn ($value) => (int) $value)
+                ->all();
+        }
 
         $address = trim((string) $request->input('address', ''));
         $placeId = trim((string) $request->input('address_place_id', ''));
@@ -2204,20 +2211,6 @@ class PostController extends Controller
         $provider->provider_availability = $availability !== '' ? $availability : null;
         $provider->provider_page_url = $pageUrl;
         $provider->address = $address !== '' ? $address : $provider->address;
-
-        $logoFile = $request->file('photo');
-        if ($logoFile) {
-            $processedPhoto = $this->processProviderProfilePhoto($logoFile, (int) $provider->id);
-            if (! $processedPhoto['success']) {
-                return redirect()->back()->with('error', $processedPhoto['error'])->withInput();
-            }
-
-            if (! empty($provider->photo) && $provider->photo !== $processedPhoto['file_name']) {
-                $this->deleteStoredFile('img/photo_profile', (string) $provider->photo);
-            }
-
-            $provider->photo = $processedPhoto['file_name'];
-        }
 
         $provider->save();
 
@@ -2284,6 +2277,7 @@ class PostController extends Controller
                 return redirect()->back()->with('error', $storedImage['error']);
             }
 
+            $previousCoverUrl = $existingCoverImage?->url;
             if ($existingCoverImage) {
                 $existingCoverImage->url = $storedImage['file_name'];
                 $existingCoverImage->user_id = (int) $provider->id;
@@ -2297,8 +2291,8 @@ class PostController extends Controller
                 ]);
             }
 
-            if ($existingCoverImage && $existingCoverImage->url !== $storedImage['file_name']) {
-                $this->deleteStoredFile('img/uploads', $existingCoverImage->url);
+            if ($previousCoverUrl && $previousCoverUrl !== $storedImage['file_name']) {
+                $this->deleteStoredFile('img/uploads', $previousCoverUrl);
             }
         }
 
@@ -2335,6 +2329,7 @@ class PostController extends Controller
                 return redirect()->back()->with('error', $storedVideo['error']);
             }
 
+            $previousVideoUrl = $existingVideo?->url;
             if ($existingVideo) {
                 $existingVideo->url = $storedVideo['file_name'];
                 $existingVideo->user_id = (int) $provider->id;
@@ -2348,8 +2343,8 @@ class PostController extends Controller
                 ]);
             }
 
-            if ($existingVideo && $existingVideo->url !== $storedVideo['file_name']) {
-                $this->deleteStoredFile('video/uploads', $existingVideo->url);
+            if ($previousVideoUrl && $previousVideoUrl !== $storedVideo['file_name']) {
+                $this->deleteStoredFile('video/uploads', $previousVideoUrl);
             }
         }
 
