@@ -301,16 +301,13 @@
             <section class="provider-edit-card">
                 <h3>Datos del anunciante</h3>
                 <div class="provider-form-grid">
-                    <div class="provider-form-field">
-                        <span>Titulo publico *</span>
-                        <input type="text" name="title" value="{{ old('title', $providerProfileTitle) }}" required>
-                    </div>
+                    <input type="hidden" name="title" value="{{ old('title', $providerProfileTitle) }}">
                     <div class="provider-form-field">
                         <span>Sitio web</span>
                         <input type="url" name="page_url" value="{{ old('page_url', $provider->provider_page_url ?? $service[0]['page_url'] ?? '') }}" placeholder="https://">
                     </div>
                     <div class="provider-form-field provider-form-field--full">
-                        <span>Descripcion publica *</span>
+                        <span>Descripcion *</span>
                         <textarea name="description" rows="6" required>{{ old('description', $provider->provider_description ?? $service[0]['description'] ?? '') }}</textarea>
                     </div>
                 </div>
