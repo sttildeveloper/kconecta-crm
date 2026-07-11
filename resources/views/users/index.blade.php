@@ -2,6 +2,10 @@
 
 @section('title', 'Kconecta - Usuarios')
 
+@section('styles')
+    <link rel="stylesheet" href="{{ asset('css/app/users.css') }}">
+@endsection
+
 @section('heading')
     Usuarios
 @endsection
@@ -12,12 +16,30 @@
 
 @section('content')
     <div class="users-list-page">
+        @if (session('status'))
+            <div class="page-card provider-import-feedback success-feedback">
+                <p>{{ session('status') }}</p>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="page-card provider-import-feedback error-feedback">
+                <p>{{ session('error') }}</p>
+            </div>
+        @endif
+
         <div class="page-card">
             <div class="section-header">
                 <div>
                     <h2>Listado</h2>
                     <p>{{ $users->total() }} usuarios en total</p>
                 </div>
+                @if ($isAdmin ?? false)
+                    <div class="provider-import-trigger">
+                        <span>Altas masivas de proveedores</span>
+                        <a href="#provider-import-card" class="secondary">Importar proveedores</a>
+                    </div>
+                @endif
             </div>
 
             <form class="filter-bar" method="GET" action="{{ url('/users') }}">
@@ -50,6 +72,121 @@
                 </div>
             </form>
         </div>
+
+        @if ($isAdmin ?? false)
+            @php
+                $importSummary = $providerImportPreview['summary'] ?? null;
+                $importReport = collect($providerImportPreview['report'] ?? []);
+                $readyRows = $importSummary ? (($importSummary['created'] ?? 0) + ($importSummary['updated'] ?? 0)) : 0;
+            @endphp
+            <div class="page-card provider-import-card" id="provider-import-card">
+                <div class="section-header">
+                    <div>
+                        <h2>Importar Proveedores</h2>
+                        <p>Sube un CSV, revisa duplicados y confirma solo cuando el resumen sea correcto.</p>
+                    </div>
+                </div>
+
+                <form class="provider-import-form" method="POST" action="{{ url('/users/providers/import/preview') }}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="level" value="{{ $filters['level'] ?? \App\Models\User::LEVEL_SERVICE_PROVIDER }}">
+                    <label class="filter-group provider-import-file">
+                        <span>Archivo CSV</span>
+                        <input id="providers_csv" type="file" name="providers_csv" accept=".csv,text/csv">
+                        <span class="provider-import-file-ui" aria-hidden="true">
+                            <span class="provider-import-file-button">Seleccionar archivo</span>
+                            <span class="provider-import-file-name" data-provider-file-name>Ningún archivo seleccionado</span>
+                        </span>
+                    </label>
+                    <div class="filter-actions">
+                        <button type="submit">Analizar CSV</button>
+                    </div>
+                </form>
+
+                @error('providers_csv')
+                    <p class="provider-import-error">{{ $message }}</p>
+                @enderror
+
+                @if ($importSummary)
+                    <div class="provider-import-preview">
+                        <div class="provider-import-preview-head">
+                            <div>
+                                <h3>Resumen previo</h3>
+                                <p>
+                                    Archivo: <strong>{{ $providerImportPreview['original_name'] ?? 'CSV temporal' }}</strong>
+                                    · Analizado {{ $providerImportPreview['uploaded_at'] ?? '' }}
+                                </p>
+                            </div>
+                            <div class="provider-import-risk">
+                                <strong>{{ $readyRows }}</strong>
+                                <span>listos para importar</span>
+                            </div>
+                        </div>
+
+                        <div class="provider-import-stats">
+                            <article>
+                                <strong>{{ $importSummary['rows'] ?? 0 }}</strong>
+                                <span>filas leidas</span>
+                            </article>
+                            <article>
+                                <strong>{{ $readyRows }}</strong>
+                                <span>altas posibles</span>
+                            </article>
+                            <article>
+                                <strong>{{ $importSummary['conflicts'] ?? 0 }}</strong>
+                                <span>duplicados/conflictos</span>
+                            </article>
+                            <article>
+                                <strong>{{ $importSummary['skipped'] ?? 0 }}</strong>
+                                <span>saltadas</span>
+                            </article>
+                            <article>
+                                <strong>{{ $importSummary['errors'] ?? 0 }}</strong>
+                                <span>errores</span>
+                            </article>
+                        </div>
+
+                        <div class="provider-import-table-wrap">
+                            <table class="provider-import-table">
+                                <thead>
+                                    <tr>
+                                        <th>Empresa</th>
+                                        <th>Direccion</th>
+                                        <th>E-mail</th>
+                                        <th>Telefono fijo</th>
+                                        <th>Whatsapp</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($importReport as $row)
+                                        <tr class="import-row-{{ $row['resultado'] }}">
+                                            <td>{{ $row['empresa'] ?: 'Null' }}</td>
+                                            <td>{{ $row['direccion'] ?? 'Null' }}</td>
+                                            <td>{{ $row['email'] ?? 'Null' }}</td>
+                                            <td>{{ $row['telefono_fijo'] ?? 'Null' }}</td>
+                                            <td>{{ $row['whatsapp'] ?? 'Null' }}</td>
+                                            <td>{{ $row['observaciones'] }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="provider-import-actions">
+                            <form method="POST" action="{{ url('/users/providers/import/cancel') }}">
+                                @csrf
+                                <button type="submit" class="secondary danger-soft">Cancelar</button>
+                            </form>
+                            <form method="POST" action="{{ url('/users/providers/import/commit') }}">
+                                @csrf
+                                <button type="submit" {{ $readyRows === 0 ? 'disabled' : '' }}>Proceder</button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <div class="users-table-wrap">
             <div class="users-table-head" role="row">
@@ -213,6 +350,18 @@
         (() => {
             const buttons = document.querySelectorAll('[data-toggle-user]');
             const deleteButtons = document.querySelectorAll('[data-delete-user]');
+            const providerCsvInput = document.getElementById('providers_csv');
+            const providerFileName = document.querySelector('[data-provider-file-name]');
+
+            if (providerCsvInput && providerFileName) {
+                providerCsvInput.addEventListener('change', () => {
+                    const selectedFile = providerCsvInput.files && providerCsvInput.files[0]
+                        ? providerCsvInput.files[0].name
+                        : 'Ningún archivo seleccionado';
+                    providerFileName.textContent = selectedFile;
+                });
+            }
+
             buttons.forEach((button) => {
                 button.addEventListener('click', async () => {
                     const userId = button.dataset.toggleUser;

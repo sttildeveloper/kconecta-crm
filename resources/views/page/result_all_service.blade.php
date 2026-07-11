@@ -68,6 +68,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16"><path fill="#ffffff" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0"/></svg>
                             Buscar
                         </button>
+                        <button class="button clear-search-main" type="button" id="btn-clear-service-filters">
+                            Limpiar filtro
+                        </button>
                     </div>
                     <div class="container-form-inputs">
                         
@@ -141,8 +144,8 @@
                                 <!-- <div class="container-row-data">
                                     <h4>Servicios</h4>
                                     <?php 
-                                        if (!empty($pr["service_types"])){
-                                            foreach($pr["service_types"] as $st){?>          
+                                        if (!empty($pr["specialties"])){
+                                            foreach($pr["specialties"] as $st){?>          
                                                 <span>
                                                     <?= $st["name"] ?>
                                                 </span>
@@ -156,14 +159,14 @@
                                         href="https://wa.me/<?= $pr["user"][0]["phone"] ?>?text=Hola,%20me%20necesito%20tu%20servicio"
                                         class="whatsapp-btn-contact-link service-stats-whatsapp"
                                         data-provider-user-id="<?= (int) ($pr["user"][0]["id"] ?? 0) ?>"
-                                        data-service-id="<?= (int) ($pr["id"] ?? 0) ?>"
+                                        data-service-id="0"
                                         target="_blank"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16"><path fill="#ffffff" d="M11.42 9.49c-.19-.09-1.1-.54-1.27-.61s-.29-.09-.42.1s-.48.6-.59.73s-.21.14-.4 0a5.1 5.1 0 0 1-1.49-.92a5.3 5.3 0 0 1-1-1.29c-.11-.18 0-.28.08-.38s.18-.21.28-.32a1.4 1.4 0 0 0 .18-.31a.38.38 0 0 0 0-.33c0-.09-.42-1-.58-1.37s-.3-.32-.41-.32h-.4a.72.72 0 0 0-.5.23a2.1 2.1 0 0 0-.65 1.55A3.6 3.6 0 0 0 5 8.2A8.3 8.3 0 0 0 8.19 11c.44.19.78.3 1.05.39a2.5 2.5 0 0 0 1.17.07a1.93 1.93 0 0 0 1.26-.88a1.67 1.67 0 0 0 .11-.88c-.05-.07-.17-.12-.36-.21"/><path fill="#ffffff" d="M13.29 2.68A7.36 7.36 0 0 0 8 .5a7.44 7.44 0 0 0-6.41 11.15l-1 3.85l3.94-1a7.4 7.4 0 0 0 3.55.9H8a7.44 7.44 0 0 0 5.29-12.72M8 14.12a6.1 6.1 0 0 1-3.15-.87l-.22-.13l-2.34.61l.62-2.28l-.14-.23a6.18 6.18 0 0 1 9.6-7.65a6.12 6.12 0 0 1 1.81 4.37A6.19 6.19 0 0 1 8 14.12"/></svg>
                                         WhatsApp
                                     </a>
                                     <?php } ?>
-                                    <a href="<?= site_url("result_service/".$pr["id"]) ?>" class="redirect-view">
+                                    <a href="<?= site_url("result_provider/".$pr["id"]) ?>" class="redirect-view">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32"><path fill="#ffffff" d="M30.94 15.66A16.69 16.69 0 0 0 16 5A16.69 16.69 0 0 0 1.06 15.66a1 1 0 0 0 0 .68A16.69 16.69 0 0 0 16 27a16.69 16.69 0 0 0 14.94-10.66a1 1 0 0 0 0-.68M16 25c-5.3 0-10.9-3.93-12.93-9C5.1 10.93 10.7 7 16 7s10.9 3.93 12.93 9C26.9 21.07 21.3 25 16 25"/><path fill="#ffffff" d="M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4"/></svg>
                                         Ver más
                                     </a>
@@ -193,11 +196,13 @@
                     <div class="container-column-view-data-map-macro">
                         <?php foreach($provinceCities as $key => $pc){ ?>
                             <div class="container-column-view-data-map">
-                                <h4 class="link-h4-filter-addres" data-province="<?= $key ?>"><?= $key ?></h4>
+                                <button type="button" class="link-h4-filter-addres" data-province="<?= $key ?>"><?= $key ?></button>
                                 <ul>
                                     <?php foreach($pc as $cit){ ?>
-                                    <li class="link-li-filter-addres" data-city="<?= $cit["city"] ?>" data-province="<?= $key ?>">
-                                        <span><?= $cit["city"] ?></span> &raquo;<span><?= $cit["total"] ?></span>
+                                    <li>
+                                        <button type="button" class="link-li-filter-addres" data-city="<?= $cit["city"] ?>" data-province="<?= $key ?>">
+                                            <span><?= $cit["city"] ?></span> &raquo;<span><?= $cit["total"] ?></span>
+                                        </button>
                                     </li>
                                     <?php } ?>
                                 </ul>
@@ -446,7 +451,7 @@
                                     <span class="service-rating-chip__stars">${Number(location.ratings_count || 0) > 0 ? `${Number(location.average_stars || 0).toFixed(1)} <span class="service-rating-star-icon">★</span>` : `Sin valoraciones`}</span>
                                     <span class="service-rating-chip__count">${Number(location.ratings_count || 0) > 0 ? `(${Number(location.ratings_count)} reseñas)` : ``}</span>
                                 </div>
-                                <a href="/result_service/${location.id}" class="a-redirect-view">
+                                <a href="${location.provider_url || `/result_provider/${location.provider_user_id}`}" class="a-redirect-view">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32"><path fill="#ffffff" d="M30.94 15.66A16.69 16.69 0 0 0 16 5A16.69 16.69 0 0 0 1.06 15.66a1 1 0 0 0 0 .68A16.69 16.69 0 0 0 16 27a16.69 16.69 0 0 0 14.94-10.66a1 1 0 0 0 0-.68M16 25c-5.3 0-10.9-3.93-12.93-9C5.1 10.93 10.7 7 16 7s10.9 3.93 12.93 9C26.9 21.07 21.3 25 16 25"/><path fill="#ffffff" d="M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4"/></svg>
                                     Ver detalle
                                 </a>
@@ -535,7 +540,7 @@
                                 <span class="service-rating-chip__stars">${Number(location.ratings_count || 0) > 0 ? `${Number(location.average_stars || 0).toFixed(1)} <span class="service-rating-star-icon">★</span>` : `Sin valoraciones`}</span>
                                 <span class="service-rating-chip__count">${Number(location.ratings_count || 0) > 0 ? `(${Number(location.ratings_count)} reseñas)` : ``}</span>
                             </div>
-                            <a href="/result_service/${location.id}" class="a-redirect-view">
+                            <a href="${location.provider_url || `/result_provider/${location.provider_user_id}`}" class="a-redirect-view">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32"><path fill="#ffffff" d="M30.94 15.66A16.69 16.69 0 0 0 16 5A16.69 16.69 0 0 0 1.06 15.66a1 1 0 0 0 0 .68A16.69 16.69 0 0 0 16 27a16.69 16.69 0 0 0 14.94-10.66a1 1 0 0 0 0-.68M16 25c-5.3 0-10.9-3.93-12.93-9C5.1 10.93 10.7 7 16 7s10.9 3.93 12.93 9C26.9 21.07 21.3 25 16 25"/><path fill="#ffffff" d="M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4"/></svg>
                                 Ver detalle
                             </a>
@@ -663,6 +668,7 @@
     document.addEventListener('DOMContentLoaded', bindServiceWhatsappTrackingFromList);
 
     const form_filter = document.getElementById("form-filter-result");
+    const btn_clear_service_filters = document.getElementById("btn-clear-service-filters");
     const controll_inputs_filters = ()=>{
         const inputs = form_filter.querySelectorAll("input");
         inputs.forEach((input) =>{
@@ -678,6 +684,24 @@
         e.preventDefault();
         controll_inputs_filters();
     })
+
+    if (btn_clear_service_filters){
+        btn_clear_service_filters.addEventListener("click", ()=>{
+            document.getElementById("input-page-nav").value = "1";
+            document.getElementById("city").value = "";
+            document.getElementById("province").value = "";
+            document.getElementById("latitude").value = "";
+            document.getElementById("longitude").value = "";
+            document.getElementById("zoom").value = "";
+            document.getElementById("address").value = "Barcelona";
+
+            form_filter.querySelectorAll('input[name="sti[]"]').forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+
+            controll_inputs_filters();
+        });
+    }
 
     function obtenerCoordenadas(ciudad, provincia, pais) {
         if (!window.google || !window.google.maps) {
