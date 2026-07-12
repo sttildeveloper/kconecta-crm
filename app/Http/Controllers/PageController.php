@@ -32,7 +32,6 @@ use App\Models\RentalType;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\StateConservation;
 use App\Models\TerrainUse;
 use App\Models\TerrainQualification;
@@ -48,11 +47,13 @@ use App\Models\UserAddress;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
 use App\Models\WheeledAccess;
+use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PageController extends Controller
@@ -362,7 +363,7 @@ class PageController extends Controller
         $longitude = $request->query('longitude');
         $zoom = $request->query('zoom');
 
-        $serviceTypeIds = [];
+        $providerIdsForTypes = [];
 
         if (! empty($sti)) {
             if (is_array($sti)) {
@@ -371,17 +372,16 @@ class PageController extends Controller
                 $sti = [(int) $sti];
             }
 
-            $serviceTypeIds = ServiceTypeLink::query()
-                ->whereIn('service_type_id', $sti)
-                ->pluck('service_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
+            $providerIdsForTypes = app(ProviderServiceTypeService::class)->providerIdsForTypeIds($sti);
         }
 
-        $servicesQuery = Service::query();
-
-        if (! empty($serviceTypeIds)) {
-            $servicesQuery->whereIn('id', $serviceTypeIds);
+        $providersQuery = User::query()
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
+        if (! empty($providerIdsForTypes)) {
+            $providersQuery->whereIn('id', $providerIdsForTypes);
+        }
+        if (Schema::hasColumn('user', 'is_active')) {
+            $providersQuery->where('is_active', 1);
         }
 
         if (! empty($city) || ! empty($province)) {
@@ -398,9 +398,9 @@ class PageController extends Controller
 
             $ids = $addressQuery->pluck('user_id')->map(fn ($id) => (int) $id)->all();
             if (! empty($ids)) {
-                $servicesQuery->whereIn('user_id', $ids);
+                $providersQuery->whereIn('id', $ids);
             } else {
-                $servicesQuery->where('user_id', 0);
+                $providersQuery->where('id', 0);
             }
         } elseif (! empty($address)) {
             $addressParts = explode(',', $address);
@@ -422,9 +422,9 @@ class PageController extends Controller
                 ->all();
 
             if (! empty($ids)) {
-                $servicesQuery->whereIn('user_id', $ids);
+                $providersQuery->whereIn('id', $ids);
             } else {
-                $servicesQuery->where('user_id', 0);
+                $providersQuery->where('id', 0);
             }
         } else {
             $ids = UserAddress::query()
@@ -442,37 +442,25 @@ class PageController extends Controller
                 ->all();
 
             if (! empty($ids)) {
-                $servicesQuery->whereIn('user_id', $ids);
+                $providersQuery->whereIn('id', $ids);
             } else {
-                $servicesQuery->where('user_id', 0);
+                $providersQuery->where('id', 0);
             }
         }
 
         $quantityDataView = 15;
         $numberPosition = (int) ($request->query('page') ?: 1);
 
-        $servicesAll = $servicesQuery->orderByDesc('id')->get();
-        $quantityBlockNav = (int) round($servicesAll->count() / $quantityDataView);
-        $servicesPage = $servicesAll
+        $providersAll = $providersQuery->orderByDesc('id')->get();
+        $quantityBlockNav = (int) ceil(max(1, $providersAll->count()) / $quantityDataView);
+        $providersPage = $providersAll
             ->slice(($quantityDataView * $numberPosition) - $quantityDataView, $quantityDataView)
             ->values();
 
-        $quantity = $servicesPage->count();
+        $quantity = $providersPage->count();
         $matchedProviderLocations = [];
-        foreach ($servicesAll as $service) {
-            $providerUserId = (int) $service->user_id;
-            if (isset($matchedProviderLocations[$providerUserId])) {
-                continue;
-            }
-
-            $serviceAddress = ServiceAddress::query()
-                ->where('service_id', (int) $service->id)
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->where('latitude', '<>', '')
-                ->where('longitude', '<>', '')
-                ->first();
-
+        foreach ($providersAll as $provider) {
+            $providerUserId = (int) $provider->id;
             $userAddress = UserAddress::query()
                 ->where('user_id', $providerUserId)
                 ->whereNotNull('latitude')
@@ -481,14 +469,13 @@ class PageController extends Controller
                 ->where('longitude', '<>', '')
                 ->first();
 
-            $resolvedAddress = $serviceAddress ?: $userAddress;
-            if (! $resolvedAddress) {
+            if (! $userAddress) {
                 continue;
             }
 
             $matchedProviderLocations[$providerUserId] = [
-                'province' => trim((string) ($resolvedAddress->province ?? '')),
-                'city' => trim((string) ($resolvedAddress->city ?? '')),
+                'province' => trim((string) ($userAddress->province ?? '')),
+                'city' => trim((string) ($userAddress->city ?? '')),
             ];
         }
 
@@ -542,26 +529,19 @@ class PageController extends Controller
             ->all();
 
         $updatedServices = [];
-        foreach ($servicesPage as $service) {
-            $item = $service->toArray();
-            $item['updated_at_text'] = $this->formatUpdatedAt($service->updated_at);
+        foreach ($providersPage as $provider) {
+            $item = [
+                'id' => (int) $provider->id,
+                'updated_at_text' => $this->formatUpdatedAt($provider->updated_at),
+                'cover_image' => ['url' => ''],
+                'user' => [$provider->toArray()],
+                'user_address' => UserAddress::where('user_id', $provider->id)->get()->toArray(),
+            ];
 
-            $coverImage = CoverImage::where('service_id', $service->id)->first();
-            $item['cover_image'] = $coverImage ? $coverImage->toArray() : ['url' => ''];
-
-            $item['user'] = $this->wrapSingle(User::find($service->user_id));
-            $item['user_address'] = UserAddress::where('user_id', $service->user_id)->get()->toArray();
-
-            $serviceTypeLinks = ServiceTypeLink::where('service_id', $service->id)
-                ->pluck('service_type_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-
-            if (! empty($serviceTypeLinks)) {
-                $item['service_types'] = ServiceType::whereIn('id', $serviceTypeLinks)->get()->toArray();
-            } else {
-                $item['service_types'] = [];
-            }
+            $serviceTypeLinks = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $provider->id);
+            $item['specialties'] = ! empty($serviceTypeLinks)
+                ? ServiceType::whereIn('id', $serviceTypeLinks)->get()->toArray()
+                : [];
 
             $updatedServices[] = $item;
         }
@@ -635,12 +615,7 @@ class PageController extends Controller
             })
             ->orderBy('id')
             ->get();
-        $serviceTypeLinks = ServiceTypeLink::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceIds) {
-                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-            })
-            ->get();
+        $providerTypeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $provider->id);
 
         $coverByServiceId = $coverImages->whereNull('user_id')->keyBy('service_id');
         $providerCover = $coverImages->firstWhere('user_id', (int) $provider->id);
@@ -648,11 +623,10 @@ class PageController extends Controller
         $providerVideo = $videos->firstWhere('user_id', (int) $provider->id);
         $moreImagesByService = $moreImages->whereNull('user_id')->groupBy('service_id');
         $providerMoreImages = $moreImages->where('user_id', (int) $provider->id)->values();
-        $typeLinksByService = $serviceTypeLinks->whereNull('user_id')->groupBy('service_id');
-        $providerTypeLinks = $serviceTypeLinks->where('user_id', (int) $provider->id)->values();
+        $typeLinksByService = collect($services)->mapWithKeys(fn ($service) => [(int) $service->id => $providerTypeIds]);
+        $providerTypeLinks = collect($providerTypeIds);
 
-        $allServiceTypeIds = $serviceTypeLinks
-            ->pluck('service_type_id')
+        $allServiceTypeIds = collect($providerTypeIds)
             ->map(fn ($typeId) => (int) $typeId)
             ->unique()
             ->values()
@@ -711,7 +685,7 @@ class PageController extends Controller
             $addressLabel = ! empty($addressParts) ? implode(', ', $addressParts) : $profileAddressLabel;
 
             $typeNames = collect($typeLinksByService->get((int) $service->id, []))
-                ->map(fn ($link) => $serviceTypesById->get((int) $link->service_type_id)?->name)
+                ->map(fn ($typeId) => $serviceTypesById->get((int) $typeId)?->name)
                 ->filter()
                 ->unique()
                 ->values()
@@ -734,7 +708,7 @@ class PageController extends Controller
                 'video_url' => $video && ! empty($video->url)
                     ? asset('video/uploads/' . ltrim((string) $video->url, '/'))
                     : null,
-                'service_types' => $typeNames,
+                'specialties' => $typeNames,
                 'latitude' => $serviceAddress?->latitude ?: ($profileAddress?->latitude ?? ''),
                 'longitude' => $serviceAddress?->longitude ?: ($profileAddress?->longitude ?? ''),
             ];
@@ -788,15 +762,15 @@ class PageController extends Controller
         }
 
         $providerTypeNames = $providerTypeLinks
-            ->map(fn ($link) => $serviceTypesById->get((int) $link->service_type_id)?->name)
+            ->map(fn ($typeId) => $serviceTypesById->get((int) $typeId)?->name)
             ->filter()
             ->unique()
             ->values()
             ->all();
 
-        $aggregatedServiceTypes = ! empty($providerTypeNames)
+        $aggregatedSpecialties = ! empty($providerTypeNames)
             ? $providerTypeNames
-            : collect($serviceCards)->pluck('service_types')->flatten()->filter()->unique()->values()->all();
+            : collect($serviceCards)->pluck('specialties')->flatten()->filter()->unique()->values()->all();
 
         $resolvedLatitude = $primaryService['latitude'] ?? ($profileAddress?->latitude ?? '');
         $resolvedLongitude = $primaryService['longitude'] ?? ($profileAddress?->longitude ?? '');
@@ -831,8 +805,8 @@ class PageController extends Controller
                 'updated_at_text' => $this->formatUpdatedAt($providerUpdatedAt),
                 'average_stars' => (float) ($ratingSummary['average_stars'] ?? 0),
                 'ratings_count' => (int) ($ratingSummary['ratings_count'] ?? 0),
-                'service_types' => $aggregatedServiceTypes,
-                'service_count' => count($aggregatedServiceTypes),
+                'specialties' => $aggregatedSpecialties,
+                'service_count' => count($aggregatedSpecialties),
                 'gallery_images' => $galleryImages,
                 'title' => $providerProfileTitle,
                 'availability' => (string) ($provider->provider_availability ?: ($primaryService['availability'] ?? '')),
@@ -1013,12 +987,12 @@ class PageController extends Controller
             }
         }
 
-        $item['service_types'] = [];
-        $serviceTypeLinks = ServiceTypeLink::where('service_id', $service->id)->get();
-        foreach ($serviceTypeLinks as $serviceTypeLink) {
-            $serviceType = ServiceType::find($serviceTypeLink->service_type_id);
+        $item['specialties'] = [];
+        $serviceTypeLinks = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $service->user_id);
+        foreach ($serviceTypeLinks as $serviceTypeId) {
+            $serviceType = ServiceType::find($serviceTypeId);
             if ($serviceType) {
-                $item['service_types'][] = $serviceType->toArray();
+                $item['specialties'][] = $serviceType->toArray();
             }
         }
 

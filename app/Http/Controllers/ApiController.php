@@ -18,10 +18,10 @@ use App\Models\PsSharedFriends;
 use App\Models\PsViewsDetail;
 use App\Models\PsViewsSearch;
 use App\Models\PsWhatsappClicks;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserFree;
@@ -29,6 +29,7 @@ use App\Http\Requests\StoreServiceRatingByCodeRequest;
 use App\Http\Requests\StoreServiceRatingRequest;
 use App\Http\Requests\StoreServiceWorkCodeRequest;
 use App\Services\EmailService;
+use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -366,27 +367,23 @@ class ApiController extends Controller
             ->get();
 
         $addressCounter = [];
+        $providerIdsForTypeFilter = [];
+        if (! empty($serviceTypeId)) {
+            $providerIdsForTypeFilter = app(ProviderServiceTypeService::class)->providerIdsForTypeIds([(int) $serviceTypeId]);
+        }
 
         foreach ($addressRows as $row) {
             $userId = $row->user_id;
-            $stateServiceType = true;
+            $provider = User::query()
+                ->where('id', (int) $userId)
+                ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+                ->first();
 
-            if (! empty($serviceTypeId)) {
-                $service = Service::query()
-                    ->where('user_id', $userId)
-                    ->first();
-
-                if (! $service) {
-                    continue;
-                }
-
-                $stateServiceType = ServiceTypeLink::query()
-                    ->where('service_type_id', $serviceTypeId)
-                    ->where('service_id', $service->id)
-                    ->exists();
+            if (! $provider) {
+                continue;
             }
 
-            if (! $stateServiceType) {
+            if (! empty($providerIdsForTypeFilter) && ! in_array((int) $userId, $providerIdsForTypeFilter, true)) {
                 continue;
             }
 
@@ -556,13 +553,9 @@ class ApiController extends Controller
                 $sti = [(int) $sti];
             }
 
-            $serviceTypeIds = ServiceTypeLink::query()
-                ->whereIn('service_type_id', $sti)
-                ->pluck('service_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
+            $providerIdsForTypes = app(ProviderServiceTypeService::class)->providerIdsForTypeIds($sti);
 
-            if (empty($serviceTypeIds)) {
+            if (empty($providerIdsForTypes)) {
                 return response()->json([
                     'success' => true,
                     'data' => [],
@@ -575,13 +568,29 @@ class ApiController extends Controller
             }
         }
 
-        $servicesQuery = Service::query()->orderBy('id');
-        if (! empty($serviceTypeIds)) {
-            $servicesQuery->whereIn('id', $serviceTypeIds);
-        }
-        $services = $servicesQuery->get(['id', 'user_id', 'title']);
+        $providerQuery = User::query()
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->orderBy('id');
 
-        if ($services->isEmpty()) {
+        if (Schema::hasColumn('user', 'is_active')) {
+            $providerQuery->where('is_active', 1);
+        }
+
+        if (! empty($providerIdsForTypes ?? [])) {
+            $providerQuery->whereIn('id', $providerIdsForTypes);
+        }
+
+        $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone'];
+        if (Schema::hasColumn('user', 'mobile_phone')) {
+            $userColumns[] = 'mobile_phone';
+        }
+        if (Schema::hasColumn('user', 'landline_phone')) {
+            $userColumns[] = 'landline_phone';
+        }
+
+        $providers = $providerQuery->get($userColumns);
+
+        if ($providers->isEmpty()) {
             return response()->json([
                 'success' => true,
                 'data' => [],
@@ -593,8 +602,7 @@ class ApiController extends Controller
             ]);
         }
 
-        $serviceIds = $services->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-        $providerIds = $services->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $providerIds = $providers->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
         $ratingsSummaryByProvider = [];
         if (! empty($providerIds)) {
@@ -613,15 +621,6 @@ class ApiController extends Controller
                 ->all();
         }
 
-        $serviceAddresses = ServiceAddress::query()
-            ->whereIn('service_id', $serviceIds)
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '')
-            ->get()
-            ->keyBy(fn ($row) => (int) $row->service_id);
-
         $userAddresses = UserAddress::query()
             ->whereIn('user_id', $providerIds)
             ->whereNotNull('latitude')
@@ -631,33 +630,8 @@ class ApiController extends Controller
             ->get()
             ->keyBy(fn ($row) => (int) $row->user_id);
 
-        $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone'];
-        if (Schema::hasColumn('user', 'mobile_phone')) {
-            $userColumns[] = 'mobile_phone';
-        }
-        if (Schema::hasColumn('user', 'landline_phone')) {
-            $userColumns[] = 'landline_phone';
-        }
-
-        $usersById = User::query()
-            ->whereIn('id', $providerIds)
-            ->get($userColumns)
-            ->keyBy(fn ($row) => (int) $row->id);
-
-        $serviceTypeIdsByService = ServiceTypeLink::query()
-            ->whereIn('service_id', $serviceIds)
-            ->get(['service_id', 'service_type_id'])
-            ->groupBy('service_id')
-            ->map(function ($rows) {
-                return $rows
-                    ->pluck('service_type_id')
-                    ->map(fn ($id) => (int) $id)
-                    ->unique()
-                    ->values()
-                    ->all();
-            });
-
-        $allResolvedServiceTypeIds = $serviceTypeIdsByService
+        $serviceTypeIdsByProvider = app(ProviderServiceTypeService::class)->typeIdsForProviders($providerIds);
+        $allResolvedServiceTypeIds = $serviceTypeIdsByProvider
             ->flatten()
             ->map(fn ($id) => (int) $id)
             ->unique()
@@ -670,11 +644,6 @@ class ApiController extends Controller
             ->get(['id', 'name'])
             ->keyBy(fn ($row) => (int) $row->id);
 
-        $coversByServiceId = CoverImage::query()
-            ->whereIn('service_id', $serviceIds)
-            ->get(['service_id', 'url'])
-            ->keyBy(fn ($row) => (int) $row->service_id);
-
         $addressFilter = trim($address);
         $addressSeed = '';
         if ($addressFilter !== '') {
@@ -683,18 +652,16 @@ class ApiController extends Controller
         }
 
         $dataProviders = [];
-        foreach ($services as $service) {
-            $serviceAddress = $serviceAddresses->get((int) $service->id);
-            $userAddress = $userAddresses->get((int) $service->user_id);
-
-            $resolvedCoordinates = $serviceAddress ?: $userAddress;
-            if (! $resolvedCoordinates) {
+        foreach ($providers as $provider) {
+            $providerUserId = (int) $provider->id;
+            $userAddress = $userAddresses->get($providerUserId);
+            if (! $userAddress) {
                 continue;
             }
 
-            $resolvedCity = trim((string) ((optional($serviceAddress)->city) ?: (optional($userAddress)->city ?? '')));
-            $resolvedProvince = trim((string) ((optional($serviceAddress)->province) ?: (optional($userAddress)->province ?? '')));
-            $resolvedAddress = trim((string) ((optional($serviceAddress)->address) ?: (optional($userAddress)->address ?? '')));
+            $resolvedCity = trim((string) ($userAddress->city ?? ''));
+            $resolvedProvince = trim((string) ($userAddress->province ?? ''));
+            $resolvedAddress = trim((string) ($userAddress->address ?? ''));
 
             if (! empty($city) && strcasecmp($resolvedCity, trim((string) $city)) !== 0) {
                 continue;
@@ -711,78 +678,56 @@ class ApiController extends Controller
                 }
             }
 
-            $providerUserId = (int) $service->user_id;
-            $serviceId = (int) $service->id;
-            $user = $usersById->get($providerUserId);
-
-            $userName = '';
-            $userLogoUrl = '';
-            if ($user) {
-                $userName = $user->user_name ?: trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
-                if (! empty($user->photo)) {
-                    $userLogoUrl = asset('img/photo_profile/' . ltrim((string) $user->photo, '/'));
-                }
+            $specialtyIds = $serviceTypeIdsByProvider->get($providerUserId, []);
+            if (! empty($sti)) {
+                $specialtyIds = array_values(array_intersect(
+                    $specialtyIds,
+                    array_map('intval', (array) $sti)
+                ));
             }
-
-            $serviceTypeLinks = $serviceTypeIdsByService->get($serviceId, []);
-            $serviceTypes = collect($serviceTypeLinks)
+            $specialties = collect($specialtyIds)
                 ->map(fn ($typeId) => $serviceTypesById->get((int) $typeId))
                 ->filter()
                 ->map(fn ($type) => ['id' => (int) $type->id, 'name' => $type->name])
                 ->values()
                 ->all();
 
-            $cover = $coversByServiceId->get($serviceId);
-
-            $phone = $user?->phone ?: ($user?->mobile_phone ?: $user?->landline_phone);
+            $providerName = $provider->user_name ?: trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+            $userLogoUrl = ! empty($provider->photo)
+                ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
+                : null;
+            $phone = $provider->phone ?: ($provider->mobile_phone ?: $provider->landline_phone);
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
             $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio') : null;
 
-            if (! isset($dataProviders[$providerUserId])) {
-                $dataProviders[$providerUserId] = [
-                    // Keep `id` as a representative public service id for detail navigation compatibility.
-                    'id' => $serviceId,
-                    'service_id' => $serviceId,
-                    'provider_user_id' => $providerUserId,
-                    'title' => $userName ?: 'Servicio',
-                    'logo_url' => $userLogoUrl ?: null,
-                    'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
-                    'average_stars' => (float) ($ratingsSummaryByProvider[$providerUserId]['average_stars'] ?? 0.0),
-                    'ratings_count' => (int) ($ratingsSummaryByProvider[$providerUserId]['ratings_count'] ?? 0),
-                    'lat' => $resolvedCoordinates->latitude,
-                    'lng' => $resolvedCoordinates->longitude,
-                    'latitude' => $resolvedCoordinates->latitude,
-                    'longitude' => $resolvedCoordinates->longitude,
-                    'address' => $resolvedAddress,
-                    'city' => $resolvedCity,
-                    'province' => $resolvedProvince,
-                    'phone' => $phone,
-                    'whatsapp_phone' => $whatsappPhone ?: null,
-                    'whatsapp_url' => $whatsappUrl,
-                    'service_type_ids' => $serviceTypeLinks,
-                    'service_types' => $serviceTypes,
-                ];
-
-                continue;
-            }
-
-            $mergedTypeIds = collect(array_merge(
-                $dataProviders[$providerUserId]['service_type_ids'],
-                $serviceTypeLinks
-            ))->map(fn ($id) => (int) $id)->unique()->values()->all();
-
-            $dataProviders[$providerUserId]['service_type_ids'] = $mergedTypeIds;
-            $dataProviders[$providerUserId]['service_types'] = collect($mergedTypeIds)
-                ->map(fn ($typeId) => $serviceTypesById->get((int) $typeId))
-                ->filter()
-                ->map(fn ($type) => ['id' => (int) $type->id, 'name' => $type->name])
-                ->values()
-                ->all();
-
-            if (empty($dataProviders[$providerUserId]['cover_image_url']) && $cover && ! empty($cover->url)) {
-                $dataProviders[$providerUserId]['cover_image_url'] = asset('img/uploads/' . ltrim((string) $cover->url, '/'));
-            }
+            $dataProviders[$providerUserId] = [
+                'id' => $providerUserId,
+                'service_id' => null,
+                'provider_user_id' => $providerUserId,
+                'title' => $providerName ?: 'Proveedor',
+                'logo_url' => $userLogoUrl,
+                'cover_image_url' => null,
+                'average_stars' => (float) ($ratingsSummaryByProvider[$providerUserId]['average_stars'] ?? 0.0),
+                'ratings_count' => (int) ($ratingsSummaryByProvider[$providerUserId]['ratings_count'] ?? 0),
+                'lat' => $userAddress->latitude,
+                'lng' => $userAddress->longitude,
+                'latitude' => $userAddress->latitude,
+                'longitude' => $userAddress->longitude,
+                'address' => $resolvedAddress,
+                'city' => $resolvedCity,
+                'province' => $resolvedProvince,
+                'phone' => $phone,
+                'whatsapp_phone' => $whatsappPhone ?: null,
+                'whatsapp_url' => $whatsappUrl,
+                'specialty_ids' => $specialtyIds,
+                'specialties' => $specialties,
+                'service_type_ids' => $specialtyIds,
+                'service_types' => $specialties,
+                'has_public_service_detail' => false,
+                'provider_url' => url('/result_provider/' . $providerUserId),
+                'published_service_count' => 0,
+            ];
         }
 
         $dataProperties = array_values($dataProviders);
@@ -812,17 +757,10 @@ class ApiController extends Controller
                 : array_values(array_filter([(int) $sti], fn ($id) => $id > 0));
         }
 
-        $matchingServiceIds = [];
         if (! empty($requestedServiceTypeIds)) {
-            $matchingServiceIds = ServiceTypeLink::query()
-                ->whereIn('service_type_id', $requestedServiceTypeIds)
-                ->pluck('service_id')
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
+            $providerIdsForTypeFilter = app(ProviderServiceTypeService::class)->providerIdsForTypeIds($requestedServiceTypeIds);
 
-            if (empty($matchingServiceIds)) {
+            if (empty($providerIdsForTypeFilter)) {
                 return response()->json([
                     'success' => true,
                     'data' => [],
@@ -842,26 +780,7 @@ class ApiController extends Controller
             $providerQuery->where('is_active', 1);
         }
 
-        if (! empty($matchingServiceIds)) {
-            $providerIdsForTypeFilter = Service::query()
-                ->whereIn('id', $matchingServiceIds)
-                ->pluck('user_id')
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-            if (empty($providerIdsForTypeFilter)) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [],
-                    'meta' => null,
-                    'message' => null,
-                    'errors' => null,
-                    'status' => 200,
-                ]);
-            }
-
+        if (! empty($providerIdsForTypeFilter ?? [])) {
             $providerQuery->whereIn('id', $providerIdsForTypeFilter);
         }
 
@@ -878,55 +797,17 @@ class ApiController extends Controller
         }
 
         $providerIds = $providers->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-        $providerServices = Service::query()
-            ->whereIn('user_id', $providerIds)
-            ->orderBy('id')
-            ->get(['id', 'user_id']);
-        $providerServiceIds = $providerServices->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-
-        $servicesByProvider = $providerServices
-            ->groupBy('user_id')
-            ->map(fn ($rows) => $rows->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'user_id' => (int) $row->user_id,
-            ])->values());
-
-        $serviceAddresses = empty($providerServiceIds)
-            ? collect()
-            : ServiceAddress::query()
-                ->whereIn('service_id', $providerServiceIds)
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->where('latitude', '<>', '')
-                ->where('longitude', '<>', '')
-                ->get()
-                ->keyBy(fn ($row) => (int) $row->service_id);
-
         $userAddresses = UserAddress::query()
             ->whereIn('user_id', $providerIds)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->where('latitude', '<>', '')
-            ->where('longitude', '<>', '')
-            ->get()
-            ->keyBy(fn ($row) => (int) $row->user_id);
+                ->where('longitude', '<>', '')
+                ->get()
+                ->keyBy(fn ($row) => (int) $row->user_id);
 
-        $serviceTypeIdsByService = empty($providerServiceIds)
-            ? collect()
-            : ServiceTypeLink::query()
-                ->whereIn('service_id', $providerServiceIds)
-                ->get(['service_id', 'service_type_id'])
-                ->groupBy('service_id')
-                ->map(function ($rows) {
-                    return $rows
-                        ->pluck('service_type_id')
-                        ->map(fn ($id) => (int) $id)
-                        ->unique()
-                        ->values()
-                        ->all();
-                });
-
-        $allServiceTypeIds = $serviceTypeIdsByService
+        $serviceTypeIdsByProvider = app(ProviderServiceTypeService::class)->typeIdsForProviders($providerIds);
+        $allServiceTypeIds = $serviceTypeIdsByProvider
             ->flatten()
             ->map(fn ($id) => (int) $id)
             ->unique()
@@ -940,13 +821,6 @@ class ApiController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->keyBy(fn ($row) => (int) $row->id);
-
-        $coversByServiceId = empty($providerServiceIds)
-            ? collect()
-            : CoverImage::query()
-                ->whereIn('service_id', $providerServiceIds)
-                ->get(['service_id', 'url'])
-                ->keyBy(fn ($row) => (int) $row->service_id);
 
         $ratingsSummaryByProvider = DB::table('service_provider_ratings')
             ->selectRaw('provider_user_id, AVG(stars) as average_stars, COUNT(*) as ratings_count')
@@ -971,110 +845,42 @@ class ApiController extends Controller
         $items = [];
         foreach ($providers as $provider) {
             $providerUserId = (int) $provider->id;
-            $providerServicesRows = $servicesByProvider->get($providerUserId, collect());
-            $firstPublishedServiceId = null;
-            $matchingServiceId = null;
-            $resolvedCoordinates = null;
-            $resolvedAddressRow = null;
-            $cover = null;
-
-            foreach ($providerServicesRows as $serviceRow) {
-                $serviceId = (int) $serviceRow['id'];
-                if ($firstPublishedServiceId === null) {
-                    $firstPublishedServiceId = $serviceId;
-                }
-
-                $serviceMatchesType = empty($requestedServiceTypeIds)
-                    || ! empty(array_intersect($requestedServiceTypeIds, $serviceTypeIdsByService->get($serviceId, [])));
-                if (! $serviceMatchesType) {
-                    continue;
-                }
-
-                $serviceAddress = $serviceAddresses->get($serviceId);
-                $userAddress = $userAddresses->get($providerUserId);
-                $candidateCoordinates = $serviceAddress ?: $userAddress;
-                if (! $candidateCoordinates) {
-                    continue;
-                }
-
-                $candidateCity = trim((string) ((optional($serviceAddress)->city) ?: (optional($userAddress)->city ?? '')));
-                $candidateProvince = trim((string) ((optional($serviceAddress)->province) ?: (optional($userAddress)->province ?? '')));
-                $candidateAddress = trim((string) ((optional($serviceAddress)->address) ?: (optional($userAddress)->address ?? '')));
-
-                if ($city !== '' && strcasecmp($candidateCity, $city) !== 0) {
-                    continue;
-                }
-                if ($province !== '' && strcasecmp($candidateProvince, $province) !== 0) {
-                    continue;
-                }
-                if ($address !== '') {
-                    $haystack = mb_strtolower($candidateAddress . ' ' . $candidateCity . ' ' . $candidateProvince);
-                    $needleA = mb_strtolower($address);
-                    $needleB = mb_strtolower($addressSeed);
-                    if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
-                        continue;
-                    }
-                }
-
-                $matchingServiceId = $serviceId;
-                $resolvedCoordinates = $candidateCoordinates;
-                $resolvedAddressRow = (object) [
-                    'address' => $candidateAddress,
-                    'city' => $candidateCity,
-                    'province' => $candidateProvince,
-                ];
-                $cover = $coversByServiceId->get($serviceId);
-                break;
-            }
-
-            if ($matchingServiceId === null) {
-                $userAddress = $userAddresses->get($providerUserId);
-                if (! empty($requestedServiceTypeIds)) {
-                    continue;
-                }
-                if (! $userAddress) {
-                    continue;
-                }
-
-                $candidateCity = trim((string) ($userAddress->city ?? ''));
-                $candidateProvince = trim((string) ($userAddress->province ?? ''));
-                $candidateAddress = trim((string) ($userAddress->address ?? ''));
-
-                if ($city !== '' && strcasecmp($candidateCity, $city) !== 0) {
-                    continue;
-                }
-                if ($province !== '' && strcasecmp($candidateProvince, $province) !== 0) {
-                    continue;
-                }
-                if ($address !== '') {
-                    $haystack = mb_strtolower($candidateAddress . ' ' . $candidateCity . ' ' . $candidateProvince);
-                    $needleA = mb_strtolower($address);
-                    $needleB = mb_strtolower($addressSeed);
-                    if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
-                        continue;
-                    }
-                }
-
-                $resolvedCoordinates = $userAddress;
-                $resolvedAddressRow = (object) [
-                    'address' => $candidateAddress,
-                    'city' => $candidateCity,
-                    'province' => $candidateProvince,
-                ];
-            }
-
-            if (! $resolvedCoordinates || ! $resolvedAddressRow) {
+            $userAddress = $userAddresses->get($providerUserId);
+            if (! $userAddress) {
                 continue;
+            }
+
+            $candidateCity = trim((string) ($userAddress->city ?? ''));
+            $candidateProvince = trim((string) ($userAddress->province ?? ''));
+            $candidateAddress = trim((string) ($userAddress->address ?? ''));
+
+            if ($city !== '' && strcasecmp($candidateCity, $city) !== 0) {
+                continue;
+            }
+            if ($province !== '' && strcasecmp($candidateProvince, $province) !== 0) {
+                continue;
+            }
+            if ($address !== '') {
+                $haystack = mb_strtolower($candidateAddress . ' ' . $candidateCity . ' ' . $candidateProvince);
+                $needleA = mb_strtolower($address);
+                $needleB = mb_strtolower($addressSeed);
+                if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
+                    continue;
+                }
             }
 
             $providerName = $provider->user_name ?: trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
             $logoUrl = ! empty($provider->photo)
                 ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
                 : null;
-            $serviceTypeIds = $matchingServiceId !== null
-                ? $serviceTypeIdsByService->get($matchingServiceId, [])
-                : [];
-            $serviceTypes = collect($serviceTypeIds)
+            $specialtyIds = $serviceTypeIdsByProvider->get($providerUserId, []);
+            if (! empty($sti)) {
+                $specialtyIds = array_values(array_intersect(
+                    $specialtyIds,
+                    array_map('intval', (array) $sti)
+                ));
+            }
+            $specialties = collect($specialtyIds)
                 ->map(fn ($typeId) => $serviceTypesById->get((int) $typeId))
                 ->filter()
                 ->map(fn ($type) => ['id' => (int) $type->id, 'name' => $type->name])
@@ -1096,25 +902,26 @@ class ApiController extends Controller
                 'logo_url' => $logoUrl,
                 'average_stars' => (float) ($ratingsSummaryByProvider[$providerUserId]['average_stars'] ?? 0.0),
                 'ratings_count' => (int) ($ratingsSummaryByProvider[$providerUserId]['ratings_count'] ?? 0),
-                'lat' => $resolvedCoordinates->latitude,
-                'lng' => $resolvedCoordinates->longitude,
-                'latitude' => $resolvedCoordinates->latitude,
-                'longitude' => $resolvedCoordinates->longitude,
-                'address' => $resolvedAddressRow->address,
-                'city' => $resolvedAddressRow->city,
-                'province' => $resolvedAddressRow->province,
+                'lat' => $userAddress->latitude,
+                'lng' => $userAddress->longitude,
+                'latitude' => $userAddress->latitude,
+                'longitude' => $userAddress->longitude,
+                'address' => $candidateAddress,
+                'city' => $candidateCity,
+                'province' => $candidateProvince,
                 'phone' => $phone,
                 'whatsapp_phone' => $whatsappPhone ?: null,
                 'whatsapp_url' => $whatsappUrl,
-                'has_public_service_detail' => $matchingServiceId !== null,
-                'service_id' => $matchingServiceId,
-                'cover_image_url' => $cover && ! empty($cover->url)
-                    ? asset('img/uploads/' . ltrim((string) $cover->url, '/'))
-                    : null,
-                'service_type_ids' => $serviceTypeIds,
-                'service_types' => $serviceTypes,
-                'published_service_count' => $providerServicesRows->count(),
-                'first_published_service_id' => $firstPublishedServiceId,
+                'has_public_service_detail' => false,
+                'service_id' => null,
+                'cover_image_url' => null,
+                'specialty_ids' => $specialtyIds,
+                'specialties' => $specialties,
+                'service_type_ids' => $specialtyIds,
+                'service_types' => $specialties,
+                'published_service_count' => 0,
+                'first_published_service_id' => null,
+                'provider_url' => url('/result_provider/' . $providerUserId),
             ];
         }
 
@@ -1144,8 +951,8 @@ class ApiController extends Controller
         $video = Video::query()->where('service_id', (int) $service->id)->first();
         $moreImages = MoreImage::query()->where('service_id', (int) $service->id)->get();
 
-        $serviceTypeLinks = ServiceTypeLink::query()->where('service_id', (int) $service->id)->pluck('service_type_id')->map(fn ($typeId) => (int) $typeId)->all();
-        $serviceTypes = empty($serviceTypeLinks) ? [] : ServiceType::query()->whereIn('id', $serviceTypeLinks)->orderBy('name')->get(['id', 'name'])->map(fn ($t) => ['id' => (int) $t->id, 'name' => $t->name])->values()->all();
+        $specialtyIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $service->user_id);
+        $specialties = empty($specialtyIds) ? [] : ServiceType::query()->whereIn('id', $specialtyIds)->orderBy('name')->get(['id', 'name'])->map(fn ($t) => ['id' => (int) $t->id, 'name' => $t->name])->values()->all();
 
         $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $service->user_id);
 
@@ -1192,7 +999,9 @@ class ApiController extends Controller
             'whatsapp_phone' => $whatsappPhone ?: null,
             'whatsapp_url' => $whatsappUrl,
             'email' => $user?->email,
-            'service_types' => $serviceTypes,
+            'specialty_ids' => $specialtyIds,
+            'specialties' => $specialties,
+            'service_types' => $specialties,
             'gallery' => $gallery,
         ];
 
