@@ -59,6 +59,9 @@ Route::middleware(['auth', 'provider_or_agent_verified'])->group(function () {
     Route::get('/post/blogs/delete', [BlogController::class, 'delete']);
 
     Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users/providers/import/preview', [UserController::class, 'previewProviderImport']);
+    Route::post('/users/providers/import/commit', [UserController::class, 'commitProviderImport']);
+    Route::post('/users/providers/import/cancel', [UserController::class, 'cancelProviderImport']);
     Route::get('/users/toggle', [UserController::class, 'toggleStatus']);
     Route::get('/users/edit/{id}', [UserController::class, 'editAdmin']);
     Route::get('/users/{id}', [UserController::class, 'userView']);

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Property;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
-use App\Models\ServiceTypeLink;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -15,17 +15,23 @@ use App\Models\MoreImage;
 use App\Models\ServiceProviderRating;
 use App\Models\ServiceWorkCode;
 use App\Models\Video;
+use App\Services\ProviderCsvImportService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use App\Services\ProviderServiceTypeService;
 
 class UserController extends Controller
 {
+    private const PROVIDER_IMPORT_SESSION_KEY = 'provider_import_preview';
+
     private function userTypeLabels(): array
     {
         return [
@@ -218,7 +224,102 @@ class UserController extends Controller
             'users' => $users,
             'filters' => $filters,
             'levelOptions' => $levelOptions,
+            'providerImportPreview' => session(self::PROVIDER_IMPORT_SESSION_KEY),
         ]);
+    }
+
+    public function previewProviderImport(Request $request, ProviderCsvImportService $providerCsvImportService): RedirectResponse
+    {
+        $this->ensureAdminUser($request);
+
+        $validated = $request->validate([
+            'providers_csv' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        $this->clearProviderImportPreview();
+
+        $uploadedFile = $validated['providers_csv'];
+        $storedPath = $uploadedFile->storeAs(
+            'provider-imports',
+            'preview_' . now()->format('Ymd_His') . '_' . Str::random(12) . '.csv',
+            'local'
+        );
+
+        $absolutePath = Storage::disk('local')->path($storedPath);
+        try {
+            $analysis = $providerCsvImportService->analyzeFile($absolutePath, false, true);
+        } catch (\Throwable $exception) {
+            Storage::disk('local')->delete($storedPath);
+
+            return redirect($this->usersIndexUrl([
+                'level' => (string) $request->input('level', User::LEVEL_SERVICE_PROVIDER),
+            ]))->with('error', 'No se pudo analizar el CSV: ' . $exception->getMessage());
+        }
+
+        $preview = [
+            'storage_path' => $storedPath,
+            'original_name' => $uploadedFile->getClientOriginalName(),
+            'uploaded_at' => now()->format('d/m/Y H:i'),
+            'summary' => $analysis['summary'],
+            'report' => $analysis['report'],
+        ];
+
+        session([self::PROVIDER_IMPORT_SESSION_KEY => $preview]);
+
+        return redirect($this->usersIndexUrl([
+            'level' => (string) $request->input('level', User::LEVEL_SERVICE_PROVIDER),
+        ]))->with('status', 'CSV analizado. Revisa el resumen antes de proceder.');
+    }
+
+    public function commitProviderImport(Request $request, ProviderCsvImportService $providerCsvImportService): RedirectResponse
+    {
+        $this->ensureAdminUser($request);
+
+        $preview = session(self::PROVIDER_IMPORT_SESSION_KEY);
+        if (! is_array($preview) || empty($preview['storage_path'])) {
+            return redirect($this->usersIndexUrl())
+                ->with('error', 'No hay ninguna importacion pendiente de confirmacion.');
+        }
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($preview['storage_path'])) {
+            $request->session()->forget(self::PROVIDER_IMPORT_SESSION_KEY);
+
+            return redirect($this->usersIndexUrl())
+                ->with('error', 'El archivo temporal ya no esta disponible. Sube el CSV de nuevo.');
+        }
+
+        $absolutePath = $disk->path($preview['storage_path']);
+        try {
+            $analysis = $providerCsvImportService->analyzeFile($absolutePath, true, true);
+        } catch (\Throwable $exception) {
+            return redirect($this->usersIndexUrl())
+                ->with('error', 'No se pudo completar la importacion: ' . $exception->getMessage());
+        }
+
+        $disk->delete($preview['storage_path']);
+        $request->session()->forget(self::PROVIDER_IMPORT_SESSION_KEY);
+
+        $summary = $analysis['summary'];
+        $message = sprintf(
+            'Importacion completada. Nuevos: %d. Actualizados: %d. Saltados: %d. Conflictos: %d. Errores: %d.',
+            $summary['created'],
+            $summary['updated'],
+            $summary['skipped'],
+            $summary['conflicts'],
+            $summary['errors']
+        );
+
+        return redirect($this->usersIndexUrl())->with('status', $message);
+    }
+
+    public function cancelProviderImport(Request $request): RedirectResponse
+    {
+        $this->ensureAdminUser($request);
+        $this->clearProviderImportPreview();
+
+        return redirect($this->usersIndexUrl())
+            ->with('status', 'Importacion cancelada. No se realizaron cambios.');
     }
 
     public function userView(string $id)
@@ -241,15 +342,7 @@ class UserController extends Controller
         $propertyCount = Property::where('user_id', $profileUser->id)->count();
         $serviceIds = Service::where('user_id', $profileUser->id)->pluck('id')->all();
         $serviceCount = count($serviceIds);
-        $serviceTypeIds = empty($serviceIds)
-            ? []
-            : ServiceTypeLink::whereIn('service_id', $serviceIds)
-                ->pluck('service_type_id')
-                ->map(fn ($id) => (int) $id)
-                ->filter(fn ($id) => $id > 0)
-                ->unique()
-                ->values()
-                ->all();
+        $serviceTypeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $profileUser->id);
         $serviceTypeNames = empty($serviceTypeIds)
             ? []
             : ServiceType::whereIn('id', $serviceTypeIds)
@@ -577,7 +670,7 @@ class UserController extends Controller
                 MoreImage::whereIn('service_id', $serviceIds)->delete();
                 Video::whereIn('service_id', $serviceIds)->delete();
                 ServiceAddress::whereIn('service_id', $serviceIds)->delete();
-                ServiceTypeLink::whereIn('service_id', $serviceIds)->delete();
+                ProviderService::where('provider_id', (int) $user->id)->delete();
 
                 Service::whereIn('id', $serviceIds)->delete();
             }
@@ -606,6 +699,40 @@ class UserController extends Controller
         });
 
         return response()->json(['status' => 200]);
+    }
+
+    private function ensureAdminUser(Request $request): User
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(401);
+        }
+
+        if ((int) $user->user_level_id !== User::LEVEL_ADMIN) {
+            abort(403);
+        }
+
+        return $user;
+    }
+
+    private function usersIndexUrl(array $query = []): string
+    {
+        $query = array_filter($query, fn ($value) => $value !== null && $value !== '');
+        if (empty($query)) {
+            $query = ['level' => User::LEVEL_SERVICE_PROVIDER];
+        }
+
+        return url('/users') . '?' . http_build_query($query);
+    }
+
+    private function clearProviderImportPreview(): void
+    {
+        $preview = session(self::PROVIDER_IMPORT_SESSION_KEY);
+        if (is_array($preview) && ! empty($preview['storage_path'])) {
+            Storage::disk('local')->delete($preview['storage_path']);
+        }
+
+        session()->forget(self::PROVIDER_IMPORT_SESSION_KEY);
     }
 
     private function processProfilePhoto(\Illuminate\Http\UploadedFile $file, int $userId): string
