@@ -596,23 +596,45 @@ class PageController extends Controller
         $serviceAddresses = empty($serviceIds)
             ? collect()
             : ServiceAddress::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $coverImages = CoverImage::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceIds) {
-                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-            })
-            ->get();
-        $videos = Video::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceIds) {
-                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-            })
-            ->get();
-        $moreImages = MoreImage::query()
-            ->where('user_id', (int) $provider->id)
-            ->orWhere(function ($query) use ($serviceIds) {
-                $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-            })
+        $coverImageHasUserId = Schema::hasColumn('cover_image', 'user_id');
+        $videoHasUserId = Schema::hasColumn('video', 'user_id');
+        $moreImageHasUserId = Schema::hasColumn('more_images', 'user_id');
+
+        $coverImagesQuery = CoverImage::query();
+        if ($coverImageHasUserId) {
+            $coverImagesQuery
+                ->where('user_id', (int) $provider->id)
+                ->orWhere(function ($query) use ($serviceIds) {
+                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+                });
+        } else {
+            $coverImagesQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+        }
+        $coverImages = $coverImagesQuery->get();
+
+        $videosQuery = Video::query();
+        if ($videoHasUserId) {
+            $videosQuery
+                ->where('user_id', (int) $provider->id)
+                ->orWhere(function ($query) use ($serviceIds) {
+                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+                });
+        } else {
+            $videosQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+        }
+        $videos = $videosQuery->get();
+
+        $moreImagesQuery = MoreImage::query();
+        if ($moreImageHasUserId) {
+            $moreImagesQuery
+                ->where('user_id', (int) $provider->id)
+                ->orWhere(function ($query) use ($serviceIds) {
+                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+                });
+        } else {
+            $moreImagesQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+        }
+        $moreImages = $moreImagesQuery
             ->orderBy('id')
             ->get();
         $providerTypeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $provider->id);
