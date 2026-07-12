@@ -107,6 +107,27 @@
     font-size:.92rem;
 }
 
+.provider-import-trigger .provider-import-trigger-button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:42px;
+    padding:.6rem 1.2rem;
+    border-radius:999px;
+    border:1px solid var(--dash-border);
+    background:#fff;
+    color:#12325d;
+    font-weight:700;
+    text-decoration:none;
+    box-shadow:0 10px 18px rgba(12, 21, 43, 0.06);
+    transition:filter .2s ease, transform .2s ease;
+}
+
+.provider-import-trigger .provider-import-trigger-button:hover{
+    filter:brightness(.98);
+    transform:translateY(-1px);
+}
+
 .provider-import-card{
     margin-top:1.5rem;
 }

@@ -37,7 +37,7 @@
                 @if ($isAdmin ?? false)
                     <div class="provider-import-trigger">
                         <span>Altas masivas de proveedores</span>
-                        <a href="#provider-import-card" class="secondary">Importar proveedores</a>
+                        <a href="#provider-import-card" class="secondary provider-import-trigger-button">Importar proveedores</a>
                     </div>
                 @endif
             </div>
