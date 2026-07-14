@@ -289,6 +289,12 @@ class UserController extends Controller
                 ->with('error', 'El archivo temporal ya no esta disponible. Sube el CSV de nuevo.');
         }
 
+        if (! empty($preview['summary']['blocked']) || (int) ($preview['summary']['missing_coordinates'] ?? 0) > 0) {
+            return redirect($this->usersIndexUrl([
+                'level' => (string) User::LEVEL_SERVICE_PROVIDER,
+            ]))->with('error', 'No se puede proceder con la importacion mientras el CSV tenga proveedores sin coordenadas. Sanea el archivo y vuelve a subirlo.');
+        }
+
         $absolutePath = $disk->path($preview['storage_path']);
         try {
             $analysis = $providerCsvImportService->analyzeFile($absolutePath, true, true);

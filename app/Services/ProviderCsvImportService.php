@@ -36,7 +36,9 @@ class ProviderCsvImportService
             'skipped' => 0,
             'conflicts' => 0,
             'unmapped' => 0,
+            'missing_coordinates' => 0,
             'errors' => 0,
+            'blocked' => false,
         ];
 
         $report = [];
@@ -64,6 +66,9 @@ class ProviderCsvImportService
                     $issues[] = "Especialidad sin catalogo: {$missingLabel}";
                 }
             }
+            if (($normalized['latitude'] ?? null) === null || ($normalized['longitude'] ?? null) === null) {
+                $issues[] = 'Faltan coordenadas';
+            }
             if ($action === 'conflict') {
                 $issues[] = 'Proveedor existente detectado; usa --update-existing para sincronizarlo';
             }
@@ -71,6 +76,9 @@ class ProviderCsvImportService
             if (! empty($issues)) {
                 if ($action === 'conflict') {
                     $summary['conflicts']++;
+                } elseif (in_array('Faltan coordenadas', $issues, true)) {
+                    $summary['missing_coordinates']++;
+                    $summary['blocked'] = true;
                 } elseif (empty($normalized['type_ids'])) {
                     $summary['unmapped']++;
                 } else {
@@ -461,7 +469,11 @@ class ProviderCsvImportService
 
     private function buildObservations(array $row, array $issues): string
     {
-        unset($issues);
+        $issues = array_values(array_unique(array_filter($issues)));
+
+        if ($issues !== []) {
+            return implode(' | ', $issues);
+        }
 
         if (($row['latitude'] ?? null) === null || ($row['longitude'] ?? null) === null) {
             return 'Faltan coordenadas';

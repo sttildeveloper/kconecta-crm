@@ -78,6 +78,8 @@
                 $importSummary = $providerImportPreview['summary'] ?? null;
                 $importReport = collect($providerImportPreview['report'] ?? []);
                 $readyRows = $importSummary ? (($importSummary['created'] ?? 0) + ($importSummary['updated'] ?? 0)) : 0;
+                $missingCoordinateRows = $importSummary['missing_coordinates'] ?? 0;
+                $importBlocked = (bool) ($importSummary['blocked'] ?? false) || $missingCoordinateRows > 0;
             @endphp
             <div class="page-card provider-import-card" id="provider-import-card">
                 <div class="section-header">
@@ -137,6 +139,10 @@
                                 <span>duplicados/conflictos</span>
                             </article>
                             <article>
+                                <strong>{{ $missingCoordinateRows }}</strong>
+                                <span>sin coordenadas</span>
+                            </article>
+                            <article>
                                 <strong>{{ $importSummary['skipped'] ?? 0 }}</strong>
                                 <span>saltadas</span>
                             </article>
@@ -145,6 +151,12 @@
                                 <span>errores</span>
                             </article>
                         </div>
+
+                        @if ($importBlocked)
+                            <p class="provider-import-error">
+                                Warning: el CSV contiene proveedores sin coordenadas. Corrige esas filas y vuelve a subir el archivo. Mientras tanto, la importacion queda bloqueada.
+                            </p>
+                        @endif
 
                         <div class="provider-import-table-wrap">
                             <table class="provider-import-table">
@@ -180,7 +192,7 @@
                             </form>
                             <form method="POST" action="{{ url('/users/providers/import/commit') }}">
                                 @csrf
-                                <button type="submit" {{ $readyRows === 0 ? 'disabled' : '' }}>Proceder</button>
+                                <button type="submit" {{ $readyRows === 0 || $importBlocked ? 'disabled' : '' }}>Proceder</button>
                             </form>
                         </div>
                     </div>
