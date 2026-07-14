@@ -432,11 +432,6 @@ class PageController extends Controller
                 ->whereNotNull('longitude')
                 ->where('latitude', '<>', '')
                 ->where('longitude', '<>', '')
-                ->where(function ($query) {
-                    $query->where('address', 'like', '%barcelona%')
-                        ->orWhere('province', 'like', '%barcelona%')
-                        ->orWhere('city', 'like', '%barcelona%');
-                })
                 ->pluck('user_id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
@@ -457,7 +452,7 @@ class PageController extends Controller
             ->slice(($quantityDataView * $numberPosition) - $quantityDataView, $quantityDataView)
             ->values();
 
-        $quantity = $providersPage->count();
+        $quantity = $providersAll->count();
         $matchedProviderLocations = [];
         foreach ($providersAll as $provider) {
             $providerUserId = (int) $provider->id;
