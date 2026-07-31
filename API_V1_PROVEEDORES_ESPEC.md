@@ -1,4 +1,23 @@
-## API v1 Proveedores (`/api/agent/services`)
+## API v1 Proveedores (`/api/agent/services`) - Legacy
+
+### Estado de vigencia
+- Esta especificacion queda marcada como `legacy`.
+- Regla de negocio vigente:
+- el `Proveedor de servicios` no publica servicios individuales.
+- El proveedor mantiene exclusivamente su ficha publica:
+- datos personales/publicos,
+- logo/foto,
+- direccion,
+- tipos de servicio que ofrece,
+- galeria,
+- video,
+- valoraciones y metricas.
+- Cualquier continuidad de `/api/agent/services` debe entenderse solo como compatibilidad transitoria mientras se migra a endpoints centrados en `perfil de proveedor`.
+- Estado del modelo de datos relacionado a tipos:
+- catalogo oficial: `service_type`
+- relacion oficial proveedor ↔ tipo: `provider_services`
+- nomenclatura canonica de lectura: `specialties` y `specialty_ids`
+- aliases legacy API todavia posibles: `service_types` y `service_type_ids`
 
 Autenticacion: `Authorization: Bearer <token>` con `auth:sanctum`.
 
@@ -23,7 +42,8 @@ Autenticacion: `Authorization: Bearer <token>` con `auth:sanctum`.
 - `delete_more_images[]` permite borrar imagenes adicionales por id.
 
 5. `DELETE /api/agent/services/{id}`
-- Elimina un servicio propio junto con sus relaciones (`cover`, `more_images`, `video`, `address`, `service_types`).
+- Elimina un servicio propio junto con sus relaciones (`cover`, `more_images`, `video`, `address`).
+- La relacion proveedor ↔ especialidades ya no depende de `service_types`; se resuelve por `provider_services`.
 
 ### Contrato de respuesta
 Todas las respuestas usan:

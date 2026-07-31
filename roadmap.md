@@ -1,11 +1,41 @@
 ﻿# Kconecta CRM - Roadmap
 
+## Plan activo (2026-07-31) - Refactor del home público
+- Documento maestro: `HOME_REFACTOR_PLAN.md`.
+- Objetivo: alinear el home con el nuevo diseño aprobado y convertirlo en la entrada pública para buscar y contactar proveedores sin registro.
+- Alcance principal: hero, servicios destacados, proceso, reseñas, tres artículos recientes del blog, captación de proveedores y footer.
+- Regla de blog: mostrar los tres artículos publicados más recientes por `created_at DESC`, con enlace a `/blogs`.
+- Regla de proveedor: registro inicial sin dirección; gestión de ubicación y coordenadas después de verificar el correo.
+- Estado: implementación y QA técnico local completados; pendiente revisión final de negocio.
+- Restricción operativa: sin `commit`, `push` ni despliegue hasta aprobación expresa.
+
+## Regla Canonica - Proveedor de Servicios
+- El `Proveedor de servicios` no publica servicios individuales.
+- Su funcionalidad objetivo es:
+- registro validado,
+- acceso autenticado al CRM,
+- mantenimiento de su ficha publica,
+- gestion de logo/foto, direccion, tipos de servicio, galeria, video y reputacion.
+- Las referencias historicas a `/post/services`, publicacion de servicios o CRUD de servicios de proveedor deben considerarse legacy mientras se completa la transicion funcional a la `ficha de proveedor`.
+
 ## Execution Mode (2026-06-04)
 - El plan activo de ejecucion del backlog pasa a ser por sprints.
 - Documento maestro para implementacion incremental:
 - `kconecta_backlog_roadmap.md`
 - `roadmap.md` se mantiene como contexto historico, operativo y de estado de produccion.
 - Cualquier nueva priorizacion funcional debe alinearse con los sprints definidos en el backlog de 90 dias.
+
+## Status Update (2026-06-07)
+- El trabajo de Sprint 1 (`Tickets e Incidencias`) avanzo solo en local y queda pausado antes de cualquier push:
+- commit local creado: `f24313d` (`feat(tickets): add sprint 1 support module`)
+- validacion local completada para `TicketTest`
+- sin despliegue productivo ni autodeploy disparado
+- La revision UX/validacion de formularios de propiedades se reanudo con enfoque uno a uno por tipo:
+- `Casa o chalet` recibio una primera pasada local de endurecimiento de validaciones en frontend/backend
+- el resto de tipos queda pendiente de continuar en futuras sesiones
+- Cambio de foco operativo:
+- prioridad inmediata pasa a ser la **subida de la app de ficha de proveedor al App Store de Apple**
+- backlog por sprints sigue vigente, pero queda temporalmente en pausa mientras se atiende el release movil iOS
 
 ## Status Update (2026-05-12)
 - Ratings/client-final release deployed to production from `main` (`07c3aae`).
@@ -68,10 +98,10 @@
 - Provider first-stage business rules (JM) applied in CRM flows:
 - provider signup no longer asks for document type/number
 - provider address is now optional in registration/profile update for this stage
-- provider service publish flow no longer blocks on missing validated address
+- legacy provider service publish flow no longer blocks on missing validated address
 - Online smoke result reported:
 - profile edit OK
-- provider services flow OK
+- legacy provider services flow OK
 - Remaining closure for this stage:
 - Gala and JM to run online business validation
 
@@ -139,7 +169,7 @@
 - mensaje real de limite
 - validacion previa
 - futura compresion frontend
-- Revisar si alta de servicios requiere el mismo hardening que propiedades.
+- desmontar el flujo legacy de alta de servicios y sustituirlo por mantenimiento de ficha de proveedor.
 - Ejecutar pasada final de normalizacion UTF-8 en vistas legacy con mojibake.
 
 ## Phase 2 - Security Hardening
@@ -173,7 +203,7 @@
 - Proveedor (fase 1 reglas JM):
 - registro proveedor adaptado en UI para no solicitar documento en alta
 - edicion de perfil proveedor sin bloqueo por direccion
-- publicacion/guardado de servicios proveedor sin bloqueo por direccion faltante
+- guardado legacy de servicios proveedor sin bloqueo por direccion faltante
 
 ## Phase 5 - Operational Reliability
 - Mejorar health checks y observabilidad de app + DB.
@@ -350,6 +380,27 @@
 - in-app account deletion
 - legal links exposure
 
+## Status Update (2026-07-12) - Provider import release incident and recovery
+- CRM admin provider import is now deployed with preview/confirm flow.
+- Production incident sequence after rollout:
+- `404` on `/users/providers/import/preview`.
+- missing class `App\Services\ProviderServiceTypeService` during import analysis.
+- imported providers not visible on public map.
+- `500` on `/result_provider/{id}` from map popup `Ver detalle`.
+- Root cause summary:
+- yes, hubo divergencia, pero en dos capas:
+- divergencia de codigo/despliegue entre lo validado en local y la imagen realmente activa en produccion.
+- divergencia de esquema legacy en produccion (`migrations.version` obligatorio, sin default), lo que rompia el registro automatico de migraciones aunque algunas se ejecutaran fisicamente.
+- Recovery path completed:
+- se empujaron y desplegaron las rutas/controladores/servicios faltantes del importador.
+- se reconcilio manualmente el estado de migraciones necesarias en produccion.
+- la discovery publica de proveedores se desacoplo de `service` y paso a resolver desde `user`, `user_address` y `provider_services`.
+- la ficha `/result_provider/{id}` quedo endurecida para convivir con tablas multimedia legacy sin columna `user_id`.
+- Outcome:
+- importador funcional.
+- proveedores visibles en mapa.
+- detalle publico funcional para proveedores importados.
+
 ## Status Update (2026-05-29) - Final client ratings dashboard API parity
 - Mobile parity backend gap closed for final client ratings dashboard hydration.
 - New authenticated endpoint available: GET /api/service-ratings/my-dashboard.
@@ -359,4 +410,31 @@
 - 401 UNAUTHENTICATED without token.
 - 403 ROLE_NOT_ALLOWED for non-final-client roles.
 - Regression coverage extended in ServiceRatingsApiTest; suite is green after changes.
+
+## Status Update (2026-07-26) - Public services home local milestone
+
+- Nuevo home público de servicios y profesionales implementado en local.
+- Usa el modelo canónico: proveedor, ficha única, `provider_services`, dirección y valoraciones reales.
+- Narrativa inmobiliaria eliminada del home sin borrar capacidades internas.
+- Búsqueda por servicio/zona, directorio alfabético, proximidad con coordenadas y fallback seguro.
+- Responsive, accesibilidad, build y pruebas en verde (`14` tests / `130` assertions).
+- Estado: sin commit, push ni despliegue.
+
+### Continuación inmediata
+
+1. Revisión visual/negocio.
+2. QA manual de geolocalización y contactos.
+3. Ajustes acordados.
+4. Regresión y capturas.
+5. Decisión de release y autorización antes de push.
+
+### Ejecución orquestada
+
+- DeepSeek: backend/data/tests.
+- Mistral: frontend/Blade/CSS/responsive.
+- Gemma: regresiones y reglas de negocio.
+- Qwen 3.5: cross-review y simplificación.
+- Agente principal: planificación, contexto, integración y verificación.
+
+`qwen3.5:9b` está instalado, pero su integración en el orquestador Laravel sigue pendiente. No debe considerarse worker activo hasta configurar y probarlo. Máximo seis rutas relevantes por worker.
 

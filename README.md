@@ -2,6 +2,37 @@
 
 CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 
+## Provider Canonical Rule
+- El `Proveedor de servicios` no publica servicios individuales.
+- El proveedor:
+- crea su cuenta desde un registro validado,
+- accede al CRM con sus credenciales,
+- completa su perfil publico,
+- gestiona solo su informacion de proveedor:
+- logo/foto,
+- direccion,
+- tipos de servicio que ofrece,
+- galeria de imagenes,
+- video,
+- y su reputacion/media.
+- Cualquier referencia historica en el repo a `publicar servicios`, `createService()` o CRUD de servicios de proveedor debe considerarse legacy u obsoleta frente a esta regla de negocio.
+
+## Provider Service Types Canonical Model
+- Catalogo oficial de tipos de servicio: tabla `service_type`.
+- Relacion oficial entre proveedor y tipos de servicio: tabla `provider_services`.
+- `provider_services` guarda:
+- `provider_id`
+- `service_type_id`
+- timestamps
+- Restriccion funcional:
+- no se permiten duplicados de la pareja `provider_id + service_type_id`.
+- Nomenclatura canonica en payloads internos y vistas:
+- `specialties`
+- `specialty_ids`
+- Compatibilidad transitoria en algunas respuestas API:
+- se conservan aliases `service_types` y `service_type_ids` mientras existan consumidores legacy.
+- La antigua tabla relacional `service_types` deja de formar parte del modelo vigente proveedor ↔ tipo de servicio.
+
 ## Repository
 - GitHub: `https://github.com/sttildeveloper/kconecta-crm`
 - Branch principal: `main`
@@ -40,6 +71,19 @@ App local:
 - `db_production.sql`
 - `media_production/`
 - `notes.md`
+
+## UTF-8 Restore Note
+- El proyecto trabaja con `utf8mb4` en Laravel y MySQL.
+- Si se importa un dump `.sql` desde PowerShell como texto, los caracteres especiales pueden degradarse (`España` -> `Espa?a` o `Espa??a`).
+- Para restaurar dumps locales, copiar primero el archivo al contenedor MySQL y ejecutar la importacion en bruto:
+
+```powershell
+docker compose cp "C:\ruta\al\db_production.sql" mysql:/tmp/db_production.sql
+docker compose exec -T mysql mysql -uroot -psecret -e "DROP DATABASE IF EXISTS kconecta_schema; CREATE DATABASE kconecta_schema CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+docker compose exec -T mysql sh -lc "mysql --default-character-set=utf8mb4 -uroot -psecret kconecta_schema < /tmp/db_production.sql"
+```
+
+- No usar `Get-Content ... | mysql` para restaurar dumps UTF-8 de produccion.
 
 ## Migration Note
 Se agrego una migracion para asegurar compatibilidad de hashes de password:
@@ -206,9 +250,12 @@ Notas:
 - Guia detallada: [VERSIONING.md](./VERSIONING.md)
 
 ## Current Priorities
+- completar la validacion visual y funcional del nuevo home de servicios implementado localmente el `2026-07-26`
+- mantener el desarrollo del home en local hasta recibir aprobacion expresa para `commit`/`push`
+- continuar el trabajo con revision orquestada entre DeepSeek, Mistral, Gemma y Qwen, usando contextos pequenos y responsabilidades separadas
 - endurecer seguridad del flujo de autenticacion legacy
 - alinear mensaje/limite real de video y preparar compresion frontend
-- revisar si `createService()` necesita el mismo hardening que propiedades
+- consolidar el modelo canonico de ficha de proveedor y retirar compatibilidades legacy cuando ya no existan consumidores
 - investigar y corregir drift entre referencias en BD y archivos fisicos de media
 - igualar formularios web y movil
 - definir pipeline consistente de video e imagenes para web y movil
@@ -223,3 +270,54 @@ Endpoints de registro nativo disponibles para la App Móvil:
 - Estado y plan: [tasks.md](./tasks.md)
 - Contexto operativo: [agent.md](./agent.md)
 - Roadmap operativo: [roadmap.md](./roadmap.md)
+
+## Local Home Redesign Checkpoint (2026-07-26)
+
+Estado: implementado y validado en local; pendiente de revisión final de negocio. No se realizó `commit`, `push` ni despliegue.
+
+El home público `/` se ha sustituido por el diseño aprobado orientado a profesionales de reformas, mantenimiento y reparaciones:
+
+- cabecera responsive, hero y búsqueda por especialidad/zona;
+- geolocalización solicitada solo al pulsar `Usar mi ubicación`;
+- cuadrícula de servicios con el logo oficial de Kconecta en el centro;
+- directorio alfabético con datos reales de proveedores, zonas, contactos y valoraciones;
+- proximidad únicamente cuando existen coordenadas válidas;
+- bloques `Así de fácil`, alta profesional y footer compacto;
+- sin referencias visuales a inmuebles, enfermería o sanidad.
+
+Implementación principal:
+
+- `app/Http/Controllers/PageController.php`
+- `resources/views/layouts/home.blade.php`
+- `resources/views/page/index.blade.php`
+- `resources/views/page/partials/home/`
+- `public/css/page/home.css`
+- `public/js/home.js`
+- `public/img/home-services-hero-v2.webp`
+- `tests/Feature/HomePageTest.php`
+
+Validación local:
+
+- URL: `http://localhost:8010/`
+- Laravel `12.44.0`
+- Pint, Blade cache, JavaScript y Vite build correctos
+- `14` tests / `130` assertions en verde
+- capturas en `screenshots/home-redesign-desktop-final.png` y `screenshots/home-redesign-mobile-final.png`
+
+Node local es `20.18.3`; Vite recomienda `20.19+` o `22.12+`. La compilación termina correctamente, pero conviene actualizar Node antes de futuras renovaciones.
+
+### Orquestación local de IA
+
+Disponibles en Ollama: `deepseek-coder-v2:16b`, `mistral-nemo:latest`, `gemma3:4b`, `qwen3.5:9b` y el legacy `qwen2.5-coder:14b`.
+
+El orquestador Laravel está configurado con DeepSeek, Mistral, Gemma y Qwen 3.5. Qwen participa como `worker-reviewer` para revisión transversal y simplificación post-integración.
+
+Reparto recomendado:
+
+- DeepSeek: backend, consultas y pruebas;
+- Mistral: Blade, CSS, responsive y accesibilidad;
+- Gemma: auditoría, nulos y regresiones;
+- Qwen 3.5: segunda revisión y simplificación cuando se integre;
+- agente principal: contexto, integración y validación final.
+
+Mantener un máximo de seis rutas por worker y evitar enviar o analizar el repositorio completo en cada modelo.

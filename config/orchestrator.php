@@ -41,5 +41,14 @@ return [
             'api_key' => env('ORCH_GEMMA_API_KEY'),
             'timeout_seconds' => (int) env('ORCH_GEMMA_TIMEOUT', 45),
         ],
+        'qwen' => [
+            'role' => 'worker-reviewer',
+            'description' => 'Revisión transversal, simplificación y coherencia entre backend y frontend.',
+            'provider' => env('ORCH_QWEN_PROVIDER', 'openai_compatible'),
+            'endpoint' => env('ORCH_QWEN_ENDPOINT'),
+            'model' => env('ORCH_QWEN_MODEL', 'qwen3.5:9b'),
+            'api_key' => env('ORCH_QWEN_API_KEY'),
+            'timeout_seconds' => (int) env('ORCH_QWEN_TIMEOUT', 60),
+        ],
     ],
 ];

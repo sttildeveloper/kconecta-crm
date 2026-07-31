@@ -1,5 +1,21 @@
 ﻿# AGENT.md - Kconecta CRM
 
+## Canonical Business Rule - Service Providers
+- Regla vigente y prioritaria:
+- el `Proveedor de servicios` no publica servicios individuales.
+- El proveedor solamente:
+- crea su cuenta tras registro validado,
+- accede al CRM autenticado,
+- completa y mantiene su ficha publica,
+- y gestiona su propia informacion:
+- logo/foto,
+- direccion,
+- tipos de servicio que ofrece,
+- galeria de imagenes,
+- video,
+- metricas y valoraciones.
+- Toda referencia legacy en este archivo o en el repo a `publicar servicios`, `createService()`, `/post/services` o CRUD de servicios de proveedor debe interpretarse como deuda tecnica/documental pendiente de sustitucion por el modelo de `ficha de proveedor`.
+
 ## Goal
 Operate and evolve `kconecta-crm` with focus on:
 - stable local Docker workflow,
@@ -20,6 +36,58 @@ Operate and evolve `kconecta-crm` with focus on:
 - Context checkpoint updated: `2026-05-07` (services map/local search fixes + details view split into partials, local validated)
 - Context checkpoint updated: `2026-05-12` (ratings release deployed in production + final client registration visibility restored)
 - Context checkpoint updated: `2026-05-21` (canonical provider logo API deployed for mobile profile parity)
+- Context checkpoint updated: `2026-06-07` (Sprint 1 tickets local-only + property form validation work paused + Apple App Store provider app release becomes active focus)
+- Context checkpoint updated: `2026-07-08` (provider specialties refactor completed locally with canonical pivot model)
+
+## Context checkpoint updated: 2026-07-08 (provider specialties canonical pivot)
+- Provider ↔ service-type relation refactor completed locally.
+- Canonical data model now is:
+- catalog table `service_type`
+- pivot table `provider_services`
+- `provider_services` fields:
+- `provider_id`
+- `service_type_id`
+- timestamps
+- Local legacy relation table `service_types` was removed from active use for provider specialties and dropped from local DB after backfill.
+- Canonical naming adopted in code paths touched by this refactor:
+- `specialties`
+- `specialty_ids`
+- Backward-compatible API aliases still remain in selected responses:
+- `service_types`
+- `service_type_ids`
+- Scope migrated to canonical source:
+- provider dashboard read/write of specialties
+- public/internal provider detail reads
+- public discovery/detail payload normalization
+- Local validation status:
+- feature tests covering provider/public discovery/admin catalog flows passed after refactor (`38` tests, `341` assertions in the targeted suite).
+- Important operational note:
+- the admin CRUD at `/admin/service-types` continues to manage only the catalog `service_type`; it is no longer the provider relation store.
+
+## Context checkpoint updated: 2026-06-07 (tickets local, property-form QA, Apple focus)
+- Sprint execution mode remains active with `kconecta_backlog_roadmap.md` as master implementation plan.
+- Sprint 1 `Tickets e Incidencias` progressed locally:
+- new local-only commit created: `f24313d` - `feat(tickets): add sprint 1 support module`
+- module status:
+- DB tables `tickets` and `ticket_messages` reconciled in local legacy migration flow
+- `TicketTest` passing locally after hardening (`7` tests / `37` assertions)
+- commit intentionally **not pushed** because `push` triggers autodeploy
+- Public property detail CSS overflow fix was applied locally for long text cards in:
+- `resources/views/page/details.blade.php`
+- `resources/views/page/partials/details/more_data.blade.php`
+- `public/css/page/details.css`
+- Property form validation review started one-by-one by property type.
+- `Casa o chalet` (`resources/views/post/forms/form_1.blade.php`) now has local-only first-pass validation hardening:
+- frontend summary block for invalid/missing required fields
+- additional dynamic required handling for key sale/rent fields
+- backend validation guard added in `PostController` for create/update of type `1`
+- local technical validation completed:
+- Blade cache rebuild OK
+- app runtime OK (`php artisan about`)
+- no production push performed
+- Strategic focus changed at session close:
+- next major objective is **prepare and ship the provider profile app to Apple App Store**
+- web/property validation work is paused after the first `Casa o chalet` pass and should be resumed later property-type by property-type
 
 ## Session Update (2026-05-12)
 - Production deploy completed from `main` at commit `07c3aae`.
@@ -28,7 +96,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Post-deploy health checks validated:
 - `GET /` -> `200`
 - `GET /register` -> `200`
-- `GET /post/services` -> `302` to `/login` (expected for guest user)
+- `GET /post/services` -> `302` to `/login` (expected for guest user, legacy route pending replacement by provider-profile management)
 - Production runtime validated with new details partials present:
 - `resources/views/page/partials/details/more_data.blade.php`
 - `resources/views/page/partials/details/share_login_modal.blade.php`
@@ -215,14 +283,14 @@ Operate and evolve `kconecta-crm` with focus on:
 
 ## Next Operational Focus
 - Complete manual local QA cycle with business user:
-- provider generates work code in `/post/services`
+- provider generates work code in the provider backoffice area (legacy implementation still referenced `/post/services`)
 - final client registers and verifies email
 - final client submits rating in public `result_service/{id}`
 - Promote ratings module from local validated state to production plan when business gives go.
 - Update context files and operational notes after major production validations.
 - Complete online business validation cycle by Gala and JM on latest provider/profile/service behavior.
 - Decide whether to normalize or migrate legacy `type_of_terrain` values in production later, once it is safe to remove compatibility leftovers.
-- Decide whether `createService()` should receive the same backend hardening as property create flow.
+- Replace legacy `createService()` assumptions with provider-profile-only flows.
 - Implement planned video upload hardening:
 - align frontend/backend messaging with real limits
 - validate video size before upload
@@ -263,7 +331,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - services create form for providers simplified:
 - removed duplicated user-data block
 - service address now resolved from provider profile (`user_address`) instead of form input
-- provider landing (`/post/services`) improved:
+- legacy provider landing (`/post/services`) improved:
 - gallery slider supports multiple images with prev/next controls and dots
 - first render stabilized to avoid post-login visual glitch before full style hydration
 - service detail public page fix:
@@ -279,7 +347,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - service publish/edit flow no longer blocks with "complete address in profile" message
 - current status reported by operator:
   - profile edit online OK
-  - provider services flow online OK
+  - legacy provider services flow online OK
   - Gala and JM will execute additional online validation
 
 ## Known Risks
@@ -292,7 +360,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - online recorrido final validado como correcto end-to-end.
 - modulo admin de usuarios:
 - corregido `500` en `GET /users/{id}` por conteo en columna incorrecta.
-- detalle de proveedor muestra correctamente publicaciones de servicio, tipos de servicio y tags no clicables.
+- detalle de proveedor muestra correctamente informacion visible heredada de registros legacy; objetivo funcional nuevo: ficha unica de proveedor sin publicaciones de servicio individuales.
 - persistencia de media confirmada en Dokploy para `img/uploads`, `video/uploads` y `img/photo_profile`.
 - Existing fallback login logic still accepts plaintext and rehashes on login.
 - Google Maps address UX depends on keeping both Dokploy env and Google Cloud API enablement aligned.
@@ -308,6 +376,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Legacy dumps may override expected Laravel schema if imported without review.
 - Production data can drift from local if sync is repeated without controls.
 - Some backoffice/service views still show legacy mojibake text (`...`) and require final UTF-8 cleanup pass.
+- API compatibility aliases for provider specialties (`service_types`, `service_type_ids`) still exist in selected payloads and should only be removed when all consumers are confirmed migrated to `specialties` / `specialty_ids`.
 
 - Context update `2026-04-23`:
 - `details.blade.php` estabilizado para evitar cards vacias en detalle publico (garaje/nave y casos sin datos).
@@ -492,6 +561,29 @@ Operate and evolve `kconecta-crm` with focus on:
 - Native app handoff prepared:
 - implementation prompt/contract delivered for iOS/Android integration of forgot/reset/delete/legal links.
 
+## Context checkpoint updated: 2026-07-12 (provider import + public map/detail incident resolved)
+- Se implemento y desplego la importacion masiva de proveedores desde CRM admin, con preview, deteccion de duplicados y confirmacion explicita.
+- Incidente observado en produccion tras el despliegue inicial:
+- `POST /users/providers/import/preview` devolvia `404`.
+- despues, la importacion fallo por clase faltante `App\Services\ProviderServiceTypeService`.
+- una vez importados, los proveedores no aparecian en el mapa publico.
+- cuando empezaron a aparecer, `GET /result_provider/{id}` devolvia `500` desde el boton `Ver detalle`.
+- Causa raiz:
+- hubo divergencia de codigo/despliegue: produccion estaba corriendo una imagen sin todas las rutas, acciones y servicios ya presentes en local/main para el flujo nuevo.
+- hubo tambien divergencia de esquema legacy: la tabla `migrations` en produccion no seguia el shape estandar de Laravel y exigia `version`, por lo que algunas migraciones quedaban ejecutadas fisicamente pero no registradas automaticamente.
+- adicionalmente, la ficha publica del proveedor asumía columnas `user_id` en `cover_image`, `video` y `more_images`, pero esa transicion de schema no estaba garantizada en produccion.
+- Resolucion aplicada:
+- push de rutas y acciones faltantes del importador a `main`.
+- push de `ProviderServiceTypeService`, `ProviderService` y migracion `provider_services`.
+- reconciliacion manual en produccion de migraciones ejecutadas fisicamente, debido al schema legacy de `migrations`.
+- cambio en mapa/busqueda publica para usar proveedores + `user_address` + `provider_services`, sin depender de `service` para la visibilidad publica.
+- hardening de `/result_provider/{id}` con `Schema::hasColumn(...)` para tolerar tablas multimedia legacy sin `user_id`.
+- Validacion final en produccion:
+- importador operativo.
+- proveedores visibles en mapa.
+- `Ver detalle` operativo sobre proveedores importados.
+- SSH directo al VPS validado desde la workstation del usuario con clave dedicada en `$HOME/.ssh/kconecta_prod_access`.
+
 ## Context checkpoint updated: 2026-05-29 (final-client ratings dashboard API for mobile)
 - Added authenticated endpoint GET /api/service-ratings/my-dashboard for user_level_id = 6 (final client).
 - Access control enforced with existing API contract:
@@ -501,4 +593,97 @@ Operate and evolve `kconecta-crm` with focus on:
 - atingsCount, providersRatedCount, verageStars, ecentRatings (latest 10 by updated_at desc).
 - provider_name fallback chain implemented: irst_name + last_name -> user_name -> email -> Proveedor #ID.
 - Feature tests expanded and passing for dashboard endpoint scenarios.
+
+## Context checkpoint updated: 2026-07-26 (new public services home, local pause)
+
+- Nuevo home público implementado localmente a partir del diseño aprobado por José María.
+- Disponible en `http://localhost:8010/`.
+- Validado en escritorio y móvil.
+- Sin `commit`, `push` ni despliegue.
+- La siguiente sesión debe continuar desde este estado y no reconstruir el home.
+
+### Alcance
+
+- `GET /` continúa usando `PageController@index`.
+- El home ahora prepara catálogo `service_type`, proveedores reales (`user_level_id = 4`), direcciones `user_address`, especialidades `provider_services` y valoraciones `service_provider_ratings`.
+- Se usan teléfono, correo, zona publicada y ficha real.
+- El home excluye la presentación de enfermería, sanidad, cuidados e inmobiliaria.
+- No se eliminaron módulos, datos ni rutas internas.
+- Layout: `resources/views/layouts/home.blade.php`.
+- Vista: `resources/views/page/index.blade.php`.
+- Parciales: `resources/views/page/partials/home/`.
+- CSS/JS: `public/css/page/home.css`, `public/js/home.js`.
+- Hero: `public/img/home-services-hero-v2.webp` (`92 KB`).
+- Capturas: `screenshots/home-redesign-desktop-final.png` y `screenshots/home-redesign-mobile-final.png`.
+
+### Ubicación
+
+- Directorio inicial alfabético sin distancias.
+- `getCurrentPosition` solo se llama desde el clic en `Usar mi ubicación`.
+- Con coordenadas se calculan distancias Haversine y se ordena por proximidad.
+- Ubicación manual mediante Google Geocoder cuando está disponible.
+- Rechazo/error conserva el fallback alfabético y la búsqueda manual.
+
+### Validación
+
+- Pint, `node --check`, Blade cache y Vite build: PASS.
+- Tests: `14` / `130` assertions, PASS.
+- Suites: `HomePageTest`, `ExampleTest`, `PublicDiscoveryApiTest`, `ProviderSingleServiceProfileTest`.
+- Home y hero: HTTP `200`.
+- HTML auditado sin inmuebles ni enfermería.
+
+### Runtime al pausar
+
+- Docker Desktop iniciado.
+- Contenedores: `kconecta-crm-app`, `kconecta-crm-mysql`.
+- Node `20.18.3`; Vite recomienda `20.19+` o `22.12+`.
+
+### Orquestación obligatoria para continuar
+
+- DeepSeek (`deepseek-coder-v2:16b`): backend, queries y tests.
+- Mistral (`mistral-nemo:latest`): Blade, CSS, responsive y accesibilidad.
+- Gemma (`gemma3:4b`): auditoría, edge cases y regresiones.
+- Qwen (`qwen3.5:9b`): revisión transversal y simplificación.
+- Agente principal: reducir contexto, repartir subtareas, integrar y validar.
+- Qwen está registrado como cuarto worker en `config/orchestrator.php` y en el entorno local.
+- Qwen actúa como `worker-reviewer` después de la integración principal.
+- Mantener `max_paths_per_worker = 6`; evitar inspecciones duplicadas.
+
+### Próxima sesión
+
+1. Revisar `http://localhost:8010/` con JM/Gala.
+2. Probar ubicación autorizada, rechazada y manual.
+3. Verificar contactos, categorías y fichas sobre datos locales.
+4. Aplicar ajustes acordados.
+5. Repetir pruebas, build y capturas.
+6. Solo con autorización expresa preparar commit; el push a `main` activa autodeploy.
+
+## Context checkpoint updated: 2026-07-31 (new home refactor plan)
+
+- Plan de producto e implementación documentado en `HOME_REFACTOR_PLAN.md`.
+- Nuevo diseño aprobado como siguiente iteración del home público.
+- Recursos disponibles en `public/img`: `hero-bg.webp` e `img-review-1.webp` a `img-review-3.webp`.
+- Blog del home: solo `status = 1`, máximo tres registros, orden `created_at DESC`, `id DESC` y botón a `/blogs`.
+- El alta de proveedor continúa sin dirección ni coordenadas.
+- El correo debe verificarse antes de acceder a la gestión del perfil.
+- La ubicación se completa posteriormente para búsquedas por cercanía y mapa.
+- No presentar testimonios ficticios como historias reales sin validación de negocio.
+- Estado: implementación y QA local completados; pendiente revisión final de negocio.
+- Sin `commit`, `push` ni despliegue hasta autorización expresa.
+
+## Context checkpoint updated: 2026-07-31 (home refactor implemented locally)
+
+- Nuevo home disponible en `http://localhost:8010/`.
+- Integrados `hero-bg.webp` e `img-review-1.webp` a `img-review-3.webp`.
+- Home alineado con la nueva composición: hero, tres servicios, proceso, reseñas, blog, captación de proveedores y footer.
+- `PageController@index` entrega los tres artículos `status = 1` más recientes por `created_at DESC`, `id DESC`.
+- `/blogs` usa el mismo orden cronológico.
+- Se preservó la búsqueda pública y la geolocalización solo tras acción explícita.
+- Se preservó el registro de proveedor sin dirección y el bloqueo del panel hasta verificar el correo.
+- Qwen 3.5 quedó integrado como `worker-reviewer` junto a DeepSeek, Mistral y Gemma.
+- Validación focal: `18` tests y `152` assertions en verde.
+- Blade cache, sintaxis PHP, JavaScript y HTTP `200`: OK.
+- Capturas locales: `screenshots/home-refactor-20260731-desktop.png` y `screenshots/home-refactor-20260731-mobile.png`.
+- Testimonios: contenido editorial local pendiente de validación por negocio antes de producción.
+- Sin `commit`, `push` ni despliegue.
 

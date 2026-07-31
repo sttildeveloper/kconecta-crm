@@ -1,33 +1,47 @@
-# 🚀 PUNTO DE RECUPERACIÓN (Mensaje de Orquestación para Mí Mismo)
+# Punto de recuperación para agentes locales
 
-**Atención (Futuro Yo):** Cuando leas esto, significa que el usuario ha regresado a la sesión o se reinició el contexto. Nuestro objetivo inmediato es construir la **Calculadora Avanzada (AVM)** en Laravel.
+## Checkpoint activo: 2026-07-26
 
-## 🎯 Estado Actual (Recién Finalizado)
-1. Ya importamos los precios base de M2 en la tabla `cadastral_prices` usando `cadastral:import`.
-2. El servicio `CadastralCalculationService` ya calcula medias y tiene fallback dinámico por municipio.
-3. En la página de inicio (`index.blade.php`) ya funciona el estimador rápido (JS) y ahora tiene un botón "Obtener estimación exacta" que redirige a `/calculadora-avanzada`.
+El objetivo activo es continuar la revisión y acabado del nuevo home público de servicios y profesionales de Kconecta.
 
-## 🛠️ Próximo Paso A Ejecutar Inmediatamente
+### Estado
 
-Debemos construir el motor de Tasación Avanzada. Sigue estrictamente este orden:
+- Implementación completa en local.
+- URL: `http://localhost:8010/`.
+- Sin commit, push ni despliegue.
+- Docker local activo.
+- Validación focal: `14` tests / `130` assertions.
+- Build, Pint, Blade cache y JavaScript correctos.
+- Capturas finales desktop/móvil disponibles en `screenshots/`.
 
-### 1. La Vista Frontend (Blade)
-- Crear archivo `resources/views/page/calculadora_avanzada.blade.php`.
-- Construir un formulario moderno y atractivo (preferiblemente tipo wizard paso a paso) que pregunte:
-  - Dirección (Autocomplete de Google) y M² construidos.
-  - Tipología (Piso, Ático, Bajo, Chalet independiente).
-  - Estado de conservación (A reformar, Buen estado, Obra nueva).
-  - Distribución (Habitaciones y Baños).
-  - Extras clave (Ascensor, Terraza, Garaje, Piscina).
-- Al final del formulario, debe haber un Call To Action (CTA) pidiendo Email o Teléfono para entregar la "Tasación Detallada" (generación de Leads).
+### Trabajo realizado
 
-### 2. El Backend y Algoritmo
-- En `routes/web.php` registrar la ruta GET `/calculadora-avanzada` que retorne la vista.
-- En `app/Services/CadastralCalculationService.php`, agregar el método `advancedEstimate(array $data)` que aplique los siguientes multiplicadores teóricos al valor base (el valor obtenido de `estimatePropertyValue`):
-  - Ático (+15%), Bajo interior (-10%), Chalet independiente (+20%).
-  - Estado a reformar (-20%), Obra nueva (+15%).
-  - Sin ascensor en piso (-15%).
-  - Garaje (+15.000€ a +25.000€ directos al total estimado).
-- En `app/Http/Controllers/Api/CadastralController.php`, agregar el endpoint `advancedEstimate` (o similar) que reciba los datos del formulario, valide y consuma el nuevo servicio.
+- Home inmobiliario sustituido por búsqueda de profesionales.
+- Datos reales desde `service_type`, `user`, `user_address`, `provider_services` y `service_provider_ratings`.
+- Directorio alfabético inicial sin distancias.
+- Geolocalización solo tras clic explícito.
+- Proximidad únicamente con coordenadas válidas.
+- Fallback manual y alfabético.
+- Responsive y accesibilidad básica.
+- Sin referencias visibles a inmuebles, enfermería o sanidad.
 
-**Instrucción Final para mí mismo:** Lee esta información al reintegrarte y pregunta al usuario si desea que comiences inyectando el código de la vista Blade (`calculadora_avanzada.blade.php`) o el algoritmo del Backend.
+### Próxima acción
+
+1. Revisar el home con JM/Gala.
+2. Probar ubicación autorizada, rechazada y manual.
+3. Verificar selector, contactos y fichas con datos reales.
+4. Aplicar ajustes acordados.
+5. Repetir pruebas, build y capturas.
+6. No hacer commit/push sin autorización expresa.
+
+## Orquestación requerida
+
+- DeepSeek: backend, queries y tests.
+- Mistral: Blade, CSS, responsive y accesibilidad.
+- Gemma: nulos, regresiones y reglas canónicas.
+- Qwen 3.5: segunda revisión y simplificación.
+- Agente principal: contexto reducido, integración y validación.
+
+`qwen3.5:9b` está instalado en Ollama, pero todavía no está configurado como worker en el orquestador Laravel. Integrarlo o decidir su sustitución tras una prueba comparativa.
+
+Mantener un máximo de seis rutas por worker y evitar que varios modelos repitan la misma inspección.

@@ -384,3 +384,41 @@ Para minimizar el riesgo de despliegue sobre producción y asegurar avances temp
 ## 8. Conclusión Final
 
 El roadmap propuesto proporciona a Kconecta una vía de crecimiento segura y predecible a 90 días. Al aislar los nuevos desarrollos mediante módulos independientes (como el de Tickets en el Sprint 1) y expandir progresivamente las interacciones del CRM de propiedades y monetización del Marketplace, el equipo técnico garantiza que el ecosistema productivo actual se conserve intacto. Esto acelera el ciclo de feedback del usuario de forma iterativa y con la certeza de mantener la estabilidad operativa de Kconecta.
+# Próxima iteración (2026-07-31) - Refactor visual y funcional del home
+
+- Plan detallado: `HOME_REFACTOR_PLAN.md`.
+- Reemplazar la composición local del checkpoint 2026-07-26 por el nuevo diseño aprobado.
+- Mantener búsqueda y contacto públicos sin registro.
+- Añadir grilla con los tres artículos publicados más recientes y acceso a `/blogs`.
+- Integrar `hero-bg.webp` y las tres imágenes de reseñas ya migradas.
+- Mantener el alta de proveedor sin dirección; la ubicación se completa tras verificar el correo.
+- Validar localmente antes de solicitar decisión de commit o release.
+
+# Nota canonica de producto
+- Regla vigente:
+- el `Proveedor de servicios` no publica servicios individuales.
+- El proveedor mantiene una ficha publica unica con su informacion, tipos de servicio, galeria, video y reputacion.
+- Cualquier item del backlog que aun asuma publicaciones o tablas de servicios del proveedor debe reinterpretarse o replanificarse bajo este modelo.
+
+## Checkpoint prioritario (2026-07-26) - Home público de profesionales
+
+- [x] Nuevo home implementado y validado en local.
+- [x] Home desacoplado de la presentación inmobiliaria.
+- [x] Directorio desde proveedores y especialidades canónicas.
+- [x] Geolocalización explícita con fallback seguro.
+- [x] Responsive, accesibilidad y pruebas focales.
+- [ ] Revisión JM/Gala.
+- [ ] QA manual de ubicación/contactos.
+- [ ] Ajustes finales.
+- [ ] Decisión de commit/release.
+
+### Regla para continuar
+
+- Trabajo orquestado con contexto reducido.
+- DeepSeek: backend/pruebas.
+- Mistral: frontend/responsive.
+- Gemma: auditoría/regresiones.
+- Qwen 3.5: revisión transversal después de integrarlo.
+- Agente principal: merge y validación.
+- No duplicar tareas salvo revisión crítica deliberada.
+- Máximo seis rutas de contexto por worker.

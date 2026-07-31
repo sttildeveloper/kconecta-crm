@@ -7,9 +7,7 @@ use Illuminate\Support\Str;
 
 class PlannerService
 {
-    public function __construct(private readonly ContextReducer $contextReducer)
-    {
-    }
+    public function __construct(private readonly ContextReducer $contextReducer) {}
 
     public function buildPlan(array $payload): array
     {
@@ -21,24 +19,31 @@ class PlannerService
 
         $subtasks = [
             [
-                'id' => $taskId . '-backend',
+                'id' => $taskId.'-backend',
                 'worker' => 'deepseek',
                 'role' => 'worker-backend',
                 'focus' => 'Validaciones, reglas, consultas y controladores.',
                 'repo_context_paths' => $paths,
             ],
             [
-                'id' => $taskId . '-frontend',
+                'id' => $taskId.'-frontend',
                 'worker' => 'mistral',
                 'role' => 'worker-frontend',
                 'focus' => 'Blade, JS, CSS y consistencia UI.',
                 'repo_context_paths' => $paths,
             ],
             [
-                'id' => $taskId . '-auditor',
+                'id' => $taskId.'-auditor',
                 'worker' => 'gemma',
                 'role' => 'worker-auditor',
                 'focus' => 'Nulos, edge cases y regresiones.',
+                'repo_context_paths' => $paths,
+            ],
+            [
+                'id' => $taskId.'-reviewer',
+                'worker' => 'qwen',
+                'role' => 'worker-reviewer',
+                'focus' => 'Revisión transversal, simplificación y coherencia entre backend y frontend.',
                 'repo_context_paths' => $paths,
             ],
         ];
@@ -52,4 +57,3 @@ class PlannerService
         ];
     }
 }
-

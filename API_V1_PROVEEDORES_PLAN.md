@@ -1,3 +1,20 @@
+## Estado de vigencia
+- Este documento describe un enfoque historico/legacy.
+- Regla de negocio vigente:
+- el `Proveedor de servicios` no publica servicios individuales.
+- El proveedor solo mantiene su ficha publica, media y tipos de servicio ofrecidos.
+- Por tanto, cualquier plan de CRUD sobre `/api/agent/services` debe considerarse obsoleto o sujeto a reconversion hacia endpoints de `perfil de proveedor`.
+- Estado canónico del dominio tras el refactor local:
+- catalogo de tipos: `service_type`
+- relacion proveedor ↔ tipo: `provider_services`
+- nomenclatura canonica: `specialties` y `specialty_ids`
+- aliases API legacy aun presentes en algunos endpoints: `service_types` y `service_type_ids`
+
+### Cierre de contexto posterior
+- La relacion `Proveedor ↔ Tipos de servicio` ya no debe modelarse ni persistirse mediante `service_types`.
+- Cualquier nueva implementacion debe leer y escribir especialidades del proveedor exclusivamente en `provider_services`.
+- El CRUD admin de servicios sigue perteneciendo al catalogo `service_type`.
+
 ### Estado
 - Etapa 1 (Autenticacion y acceso): **CERRADA** el 2026-05-14.
 - Evidencia automatizada:

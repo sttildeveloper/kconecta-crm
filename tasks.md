@@ -1,5 +1,57 @@
 # Kconecta CRM - Tasks
 
+## Plan activo (2026-07-31) - Refactor del home público
+- [x] Alcance funcional y técnico documentado en `HOME_REFACTOR_PLAN.md`.
+- [x] Recursos `hero-bg.webp` e `img-review-1.webp` a `img-review-3.webp` migrados a `public/img`.
+- [x] Incorporar los tres artículos publicados más recientes en `PageController@index`.
+- [x] Refactorizar estructura, layout y navegación del home según el diseño aprobado.
+- [x] Integrar hero, reseñas y grilla dinámica de consejos.
+- [x] Preservar búsqueda pública sin registro y geolocalización bajo acción explícita.
+- [x] Preservar registro de proveedor sin dirección y acceso al perfil solo después de verificar el correo.
+- [x] Ampliar pruebas de home, blog, registro y ubicación.
+- [x] Ejecutar QA local en escritorio y móvil.
+- [x] Presentar capturas locales para revisión JM/Gala.
+- [ ] No ejecutar `commit`, `push` ni despliegue sin autorización expresa.
+
+## Regla Canonica - Proveedor de Servicios
+- El `Proveedor de servicios` no publica servicios individuales.
+- El alcance funcional vigente del proveedor es:
+- registro validado,
+- acceso al CRM,
+- mantenimiento de ficha publica,
+- logo/foto,
+- direccion,
+- tipos de servicio que ofrece,
+- galeria,
+- video,
+- y valoraciones/metricas.
+- Las tareas legacy que mencionan `/post/services`, `createService()` o CRUD de servicios de proveedor deben reinterpretarse como deuda de transicion hacia la `ficha de proveedor`.
+
+## Session Update (2026-07-08) - Refactor tipos de servicio del proveedor
+- [x] Modelo canonico proveedor ↔ tipos de servicio consolidado localmente.
+- [x] Tabla pivote oficial creada:
+- [x] `provider_services` (`provider_id`, `service_type_id`, timestamps).
+- [x] Catalogo admin preservado en:
+- [x] `service_type`.
+- [x] Tabla legacy relacional retirada del flujo proveedor:
+- [x] `service_types`.
+- [x] Backfill local seguro ejecutado antes de retirar la tabla legacy.
+- [x] Lectura y guardado de especialidades del proveedor movidos a `provider_services`.
+- [x] Vistas y payloads internos alineados a nomenclatura canonica:
+- [x] `specialties`
+- [x] `specialty_ids`
+- [x] Compatibilidad transitoria preservada en respuestas API seleccionadas:
+- [x] `service_types`
+- [x] `service_type_ids`
+- [x] Regresion objetivo validada:
+- [x] `ProviderServicesApiTest`
+- [x] `PublicDiscoveryApiTest`
+- [x] `ServiceTypeManagementTest`
+- [x] `ProviderSingleServiceProfileTest`
+- [x] `AdminProviderDeletionTest`
+- [x] Resultado de la pasada dirigida:
+- [x] `38` tests, `341` assertions.
+
 ## Mobile API Registration Release (2026-06-28)
 - [x] Implementados endpoints nativos de registro para la app móvil bajo `/api/mobile/`:
   - [x] `POST /api/mobile/register-provider` (`user_level_id = 4`)
@@ -46,7 +98,7 @@
 - [ ] `Casa rustica`
 - [x] Cambio de prioridad acordado:
 - [x] pausa temporal del trabajo de sprints/backend web
-- [x] siguiente frente principal: preparar la app de proveedores de servicios para subida al **Apple App Store**
+- [x] siguiente frente principal: preparar la app de ficha de proveedor para subida al **Apple App Store**
 
 ## Nueva prioridad release iOS (2026-06-07) - App de proveedores a Apple App Store
 - [ ] Auditar estado actual de la app de proveedores para envio a App Store Connect.
@@ -63,7 +115,7 @@
 - [ ] login
 - [ ] perfil proveedor
 - [ ] logo proveedor
-- [ ] servicios proveedor
+- [ ] ficha publica del proveedor
 - [ ] metricas/ratings si forman parte del alcance del build
 - [ ] Preparar plan de subida sin afectar produccion web hasta validar build final.
 
@@ -376,8 +428,9 @@
 - [x] detalle publico de terreno muestra `Tipo de calificación` correctamente
 
 ### In Progress
-- [ ] Revision de si `createService()` necesita el mismo hardening que propiedades.
+- [ ] Retirar o reconvertir `createService()` y sus flujos asociados al modelo canonico de ficha de proveedor.
 - [ ] Limpieza final de textos mojibake/encoding en vistas legacy.
+- [ ] Retirar aliases API `service_types` y `service_type_ids` cuando los consumidores activos ya usen `specialties` y `specialty_ids`.
 
 ### Session Update (2026-04-22)
 - [x] Registro de proveedores alineado:
@@ -432,12 +485,12 @@
 - [ ] cambiar mensaje de `50MB` a limite real alineado
 - [ ] validar tamano antes de subir
 - [ ] comprimir video en frontend antes del submit
-- [ ] Endurecer `createService()` si se confirma que debe seguir la misma logica robusta que propiedades.
+- [ ] Eliminar la dependencia funcional de `createService()` en favor del mantenimiento de ficha de proveedor.
 - [ ] igualar formularios web y movil por tipo de propiedad.
 
 ### Closed
 - [x] Bloque de trabajo de `Terreno` dado por cerrado tras validacion online y documentacion operativa.
-- [x] API v1 proveedores (`/api/agent/services`) implementada con `auth:sanctum`, ownership estricto y CRUD completo.
+- [x] API v1 proveedores (`/api/agent/services`) implementada historicamente; queda marcada como legacy frente al modelo canonico de ficha de proveedor.
 - [x] Soporte `multipart` en create/update para `cover_image`, `more_images` y `video` en API v1 proveedores.
 - [x] Contrato JSON unificado para API v1 proveedores (`success`, `data`, `meta`, `message`, `errors`).
 - [x] Pruebas feature base agregadas para auth, permisos por rol, ownership y CRUD proveedor.
@@ -460,6 +513,7 @@
 - Mantener este archivo como fuente de verdad para estado y proximos pasos.
 - No reimportar dumps legacy en produccion sin validacion de esquema.
 - No subir dumps, backups ni secretos al repo.
+- Restore local de dumps productivos: usar copia binaria al contenedor MySQL + `mysql --default-character-set=utf8mb4`; no usar `Get-Content ... | mysql`.
 - `todo.md` sigue como archivo local sin trackear; no mezclarlo en commits funcionales.
 - `.codex_tmp` sigue local y sin trackear; no mezclarlo en commits.
 - Para inspeccion rapida de produccion, preferir Hostinger browser terminal si el SSH directo desde este PC vuelve a fallar.
@@ -757,4 +811,45 @@
 - [x] provider name fallback chain for robust UI labels.
 - [x] Added/updated feature tests for endpoint auth, role gate, structure, order, and metric correctness.
 - [x] Test run completed: docker compose exec app php artisan test --filter=ServiceRatingsApiTest -> PASS (15 tests, 56 assertions).
+
+## Session Closure (2026-07-26) - New public services home completed locally
+
+### Implementación y QA
+
+- [x] Revisado el contexto y preservado el worktree existente.
+- [x] Sustituido el home inmobiliario por el home aprobado de profesionales.
+- [x] Creados layout, vista, parciales, CSS, JavaScript y hero WebP.
+- [x] Reutilizados datos reales de `service_type`, `user`, `user_address`, `provider_services` y `service_provider_ratings`.
+- [x] Reutilizadas rutas reales de búsqueda, login, alta, legales y ficha pública.
+- [x] Eliminadas del home las referencias a inmuebles y enfermería sin borrar módulos internos.
+- [x] Directorio inicial alfabético, sin distancias.
+- [x] Geolocalización solo tras clic explícito.
+- [x] Distancia Haversine únicamente con coordenadas válidas.
+- [x] Geocodificación manual y fallback alfabético.
+- [x] Responsive y accesibilidad básica completados.
+- [x] Pint, JavaScript, Blade cache y build PASS.
+- [x] Tests PASS: `14` tests / `130` assertions.
+- [x] Capturas finales desktop/móvil generadas.
+
+### Pausa
+
+- [x] Disponible en `http://localhost:8010/`.
+- [x] Sin commit, push ni deploy.
+- [ ] Revisión conjunta con JM/Gala.
+- [ ] QA manual de ubicación y contactos.
+- [ ] Ajustes acordados.
+- [ ] Repetir pruebas, build y capturas.
+- [ ] Pedir autorización antes de commit/push.
+
+### Orquestación
+
+- [x] `qwen3.5:9b` instalado en Ollama.
+- [x] Disponibles DeepSeek, Mistral, Gemma, Qwen 3.5 y Qwen 2.5 Coder.
+- [ ] Integrar Qwen 3.5 como worker o decidir sustitución tras benchmark.
+- [ ] DeepSeek: backend/tests.
+- [ ] Mistral: frontend/responsive/accesibilidad.
+- [ ] Gemma: auditoría/regresiones.
+- [ ] Qwen: segunda revisión/simplificación.
+- [ ] Agente principal: contexto, merge y validación.
+- [ ] Máximo seis rutas por worker; evitar trabajo duplicado.
 

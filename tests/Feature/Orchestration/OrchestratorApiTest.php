@@ -26,10 +26,11 @@ class OrchestratorApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('task_id', 'task-routing-001')
-            ->assertJsonCount(3, 'subtasks')
+            ->assertJsonCount(4, 'subtasks')
             ->assertJsonPath('subtasks.0.worker', 'deepseek')
             ->assertJsonPath('subtasks.1.worker', 'mistral')
-            ->assertJsonPath('subtasks.2.worker', 'gemma');
+            ->assertJsonPath('subtasks.2.worker', 'gemma')
+            ->assertJsonPath('subtasks.3.worker', 'qwen');
     }
 
     public function test_run_endpoint_returns_worker_outputs_with_contract_fields(): void
@@ -45,7 +46,7 @@ class OrchestratorApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('task_id', 'task-contract-001')
-            ->assertJsonCount(3, 'worker_outputs');
+            ->assertJsonCount(4, 'worker_outputs');
 
         foreach ((array) $response->json('worker_outputs') as $output) {
             $this->assertArrayHasKey('summary', $output);
@@ -57,4 +58,3 @@ class OrchestratorApiTest extends TestCase
         }
     }
 }
-
