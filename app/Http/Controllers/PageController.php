@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\ContactOption;
@@ -20,7 +21,6 @@ use App\Models\Orientation;
 use App\Models\Orientations;
 use App\Models\Plant;
 use App\Models\PlazaCapacity;
-use App\Models\PostVisit;
 use App\Models\PowerConsumptionRating;
 use App\Models\Property;
 use App\Models\PropertyAddress;
@@ -33,9 +33,9 @@ use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
 use App\Models\StateConservation;
-use App\Models\TerrainUse;
 use App\Models\TerrainQualification;
 use App\Models\TerrainQualifications;
+use App\Models\TerrainUse;
 use App\Models\Type;
 use App\Models\TypeFloor;
 use App\Models\TypeHeating;
@@ -58,6 +58,99 @@ use Illuminate\Support\Str;
 
 class PageController extends Controller
 {
+    private function normalizeLocationLabel(?string $value): string
+    {
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            return '';
+        }
+
+        $normalized = preg_replace('/^[\s\.,;:-]+/u', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/^\d{5}\s*/u', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+
+        return trim($normalized);
+    }
+
+    private function validProvinceCatalog(): array
+    {
+        static $catalog = null;
+
+        if ($catalog !== null) {
+            return $catalog;
+        }
+
+        $catalog = City::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->filter(fn ($name) => trim((string) $name) !== '')
+            ->mapWithKeys(function ($name) {
+                $label = $this->normalizeLocationLabel((string) $name);
+
+                return [Str::lower(Str::ascii($label)) => $label];
+            })
+            ->all();
+
+        return $catalog;
+    }
+
+    private function isCountryLikeLocation(?string $value): bool
+    {
+        $normalized = Str::lower(Str::ascii($this->normalizeLocationLabel($value)));
+
+        return in_array($normalized, ['espana', 'spain', 'null'], true);
+    }
+
+    private function matchKnownProvince(?string $value): string
+    {
+        $cleanValue = $this->normalizeLocationLabel($value);
+        if ($cleanValue === '' || $this->isCountryLikeLocation($cleanValue)) {
+            return '';
+        }
+
+        $catalog = $this->validProvinceCatalog();
+        $normalized = Str::lower(Str::ascii($cleanValue));
+
+        return $catalog[$normalized] ?? '';
+    }
+
+    private function extractProvinceFromAddress(?string $address, ?string $city = null): string
+    {
+        $normalizedAddress = trim((string) $address);
+        if ($normalizedAddress === '') {
+            return '';
+        }
+
+        $normalizedCity = $this->normalizeLocationLabel($city);
+        $parts = collect(explode(',', $normalizedAddress))
+            ->map(fn ($part) => $this->normalizeLocationLabel($part))
+            ->filter(fn ($part) => $part !== '' && ! $this->isCountryLikeLocation($part))
+            ->values();
+
+        if ($parts->isEmpty()) {
+            return '';
+        }
+
+        for ($i = $parts->count() - 1; $i >= 0; $i--) {
+            $matchedProvince = $this->matchKnownProvince($parts[$i]);
+            if ($matchedProvince !== '') {
+                return $matchedProvince;
+            }
+        }
+
+        return $this->matchKnownProvince($normalizedCity);
+    }
+
+    private function inferProvinceName(?string $province, ?string $city = null, ?string $address = null): string
+    {
+        $matchedProvince = $this->matchKnownProvince($province);
+        if ($matchedProvince !== '') {
+            return $matchedProvince;
+        }
+
+        return $this->extractProvinceFromAddress($address, $city);
+    }
+
     private function normalizeWebsiteUrl(?string $url): ?string
     {
         $normalized = trim((string) $url);
@@ -69,53 +162,88 @@ class PageController extends Controller
             return $normalized;
         }
 
-        return 'https://' . ltrim($normalized, '/');
+        return 'https://'.ltrim($normalized, '/');
     }
 
     public function index()
     {
         Carbon::setLocale('es');
 
-        $city = City::orderBy('name')->get()->toArray();
-        $serviceType = ServiceType::orderBy('name')->get()->toArray();
+        $excludedHomeTerms = [
+            'enfermer',
+            'sanitari',
+            'cuidad',
+            'inmuebl',
+            'inmobiliar',
+            'alquiler',
+            'compraventa',
+        ];
 
-        $properties = Property::query()
-            ->where('state_id', 4)
-            ->orderByDesc('id')
-            ->limit(6)
-            ->get()
-            ->map(function (Property $property) {
-                $item = $property->toArray();
+        $serviceTypes = ServiceType::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->filter(function (ServiceType $serviceType) use ($excludedHomeTerms): bool {
+                $normalizedName = Str::lower(Str::ascii((string) $serviceType->name));
 
-                $item['updated_at_text'] = $this->formatUpdatedAt($property->updated_at);
-                $item['type_name'] = Type::find($property->type_id)?->name ?? '';
-                $item['category_name'] = Category::find($property->category_id)?->name ?? '';
-
-                $coverImage = CoverImage::where('property_id', $property->id)->first();
-                $item['cover_image'] = $coverImage ? $coverImage->toArray() : ['url' => ''];
-
-                $user = User::find($property->user_id);
-                $item['user_name'] = $user?->user_name ?? '';
-
-                $item['post_visits'] = PostVisit::where('post_id', $property->id)->count();
-
-                $item['state_conservation'] = $this->wrapSingle(StateConservation::find($property->state_conservation_id));
-                $item['facade'] = $this->wrapSingle(Facade::find($property->facade_id));
-                $item['nearest_municipality_distance'] = $this->wrapSingle(
-                    NearestMunicipalityDistance::find($property->nearest_municipality_distance_id)
-                );
-                $item['type_of_terrain'] = $this->wrapSingle(TypeOfTerrain::find($property->type_of_terrain_id));
-                $item['wheeled_access'] = $this->wrapSingle(WheeledAccess::find($property->wheeled_access_id));
-
-                return $item;
+                return collect($excludedHomeTerms)
+                    ->every(fn (string $term): bool => ! Str::contains($normalizedName, $term));
             })
+            ->map(fn (ServiceType $serviceType): array => [
+                'id' => (int) $serviceType->id,
+                'name' => trim((string) $serviceType->name),
+                'slug' => Str::slug((string) $serviceType->name),
+            ])
+            ->filter(fn (array $serviceType): bool => $serviceType['name'] !== '')
+            ->values();
+
+        $serviceTypesBySlug = $serviceTypes->keyBy('slug');
+        $featuredServices = collect([
+            [
+                'name' => 'Fontanería',
+                'slug' => 'fontaneria',
+                'icon' => 'plumbing',
+                'description' => 'Instalaciones, reparaciones y mantenimiento.',
+            ],
+            [
+                'name' => 'Electricidad',
+                'slug' => 'electricidad',
+                'icon' => 'bolt',
+                'description' => 'Instalaciones, tomas y cableado.',
+            ],
+            [
+                'name' => 'Carpintería',
+                'slug' => 'carpinteria',
+                'icon' => 'wood',
+                'description' => 'Muebles, cortes a medida y reparaciones.',
+            ],
+        ])->map(function (array $featuredService) use ($serviceTypesBySlug): array {
+            $catalogService = $serviceTypesBySlug->get($featuredService['slug']);
+            $featuredService['id'] = $catalogService['id'] ?? null;
+
+            return $featuredService;
+        })->all();
+
+        $homeArticles = BlogPost::query()
+            ->where('status', 1)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(3)
+            ->get()
+            ->map(fn (BlogPost $article): array => [
+                'title' => trim((string) $article->title) ?: 'Consejo Kconecta',
+                'summary' => trim((string) $article->summary) ?: 'Ideas útiles para cuidar y mejorar tu hogar.',
+                'slug' => trim((string) $article->slug),
+                'image' => trim((string) $article->featured_image),
+                'published_at' => $article->created_at,
+            ])
+            ->filter(fn (array $article): bool => $article['slug'] !== '')
             ->values()
             ->all();
 
         return view('page.index', [
-            'property' => $properties,
-            'serviceType' => $serviceType,
-            'city' => $city,
+            'serviceTypes' => $serviceTypes->all(),
+            'featuredServices' => $featuredServices,
+            'homeArticles' => $homeArticles,
         ]);
     }
 
@@ -173,10 +301,10 @@ class PageController extends Controller
             $addressSeed = trim($addressParts[0]);
 
             $addressQuery = PropertyAddress::query()
-                ->where('address', 'like', '%' . trim($address) . '%')
-                ->orWhere('address', 'like', '%' . $addressSeed . '%')
-                ->orWhere('province', 'like', '%' . $addressSeed . '%')
-                ->orWhere('city', 'like', '%' . $addressSeed . '%');
+                ->where('address', 'like', '%'.trim($address).'%')
+                ->orWhere('address', 'like', '%'.$addressSeed.'%')
+                ->orWhere('province', 'like', '%'.$addressSeed.'%')
+                ->orWhere('city', 'like', '%'.$addressSeed.'%');
 
             $ids = $addressQuery->pluck('property_id')->map(fn ($id) => (int) $id)->all();
             if (! empty($ids)) {
@@ -412,10 +540,10 @@ class PageController extends Controller
                 ->where('latitude', '<>', '')
                 ->where('longitude', '<>', '')
                 ->where(function ($query) use ($address, $addressSeed) {
-                    $query->where('address', 'like', '%' . trim($address) . '%')
-                        ->orWhere('address', 'like', '%' . $addressSeed . '%')
-                        ->orWhere('province', 'like', '%' . $addressSeed . '%')
-                        ->orWhere('city', 'like', '%' . $addressSeed . '%');
+                    $query->where('address', 'like', '%'.trim($address).'%')
+                        ->orWhere('address', 'like', '%'.$addressSeed.'%')
+                        ->orWhere('province', 'like', '%'.$addressSeed.'%')
+                        ->orWhere('city', 'like', '%'.$addressSeed.'%');
                 })
                 ->pluck('user_id')
                 ->map(fn ($id) => (int) $id)
@@ -469,8 +597,12 @@ class PageController extends Controller
             }
 
             $matchedProviderLocations[$providerUserId] = [
-                'province' => trim((string) ($userAddress->province ?? '')),
-                'city' => trim((string) ($userAddress->city ?? '')),
+                'province' => $this->inferProvinceName(
+                    (string) ($userAddress->province ?? ''),
+                    (string) ($userAddress->city ?? ''),
+                    (string) ($userAddress->address ?? '')
+                ),
+                'city' => $this->normalizeLocationLabel((string) ($userAddress->city ?? '')),
             ];
         }
 
@@ -653,7 +785,7 @@ class PageController extends Controller
             ? collect()
             : ServiceType::query()->whereIn('id', $allServiceTypeIds)->get()->keyBy('id');
 
-        $providerDisplayName = trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+        $providerDisplayName = trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
         if ($providerDisplayName === '') {
             $providerDisplayName = trim((string) ($provider->user_name ?? ''));
         }
@@ -669,7 +801,7 @@ class PageController extends Controller
             ?? ($provider->landline_phone ?? null);
         $providerWhatsappPhone = preg_replace('/\D+/', '', (string) $providerPhone);
         $providerWhatsappLink = $providerWhatsappPhone !== ''
-            ? 'https://wa.me/' . $providerWhatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio')
+            ? 'https://wa.me/'.$providerWhatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
             : '';
 
         $profileAddressParts = array_values(array_filter([
@@ -720,10 +852,10 @@ class PageController extends Controller
                 'updated_at_text' => $this->formatUpdatedAt($service->updated_at),
                 'address_label' => $addressLabel,
                 'cover_image_url' => $cover && ! empty($cover->url)
-                    ? asset('img/uploads/' . ltrim((string) $cover->url, '/'))
+                    ? asset('img/uploads/'.ltrim((string) $cover->url, '/'))
                     : null,
                 'video_url' => $video && ! empty($video->url)
-                    ? asset('video/uploads/' . ltrim((string) $video->url, '/'))
+                    ? asset('video/uploads/'.ltrim((string) $video->url, '/'))
                     : null,
                 'specialties' => $typeNames,
                 'latitude' => $serviceAddress?->latitude ?: ($profileAddress?->latitude ?? ''),
@@ -735,7 +867,7 @@ class PageController extends Controller
         $primaryServiceId = $primaryService['id'] ?? null;
         $galleryImages = [];
         if ($providerCover && ! empty($providerCover->url)) {
-            $galleryImages[] = asset('img/uploads/' . ltrim((string) $providerCover->url, '/'));
+            $galleryImages[] = asset('img/uploads/'.ltrim((string) $providerCover->url, '/'));
         } elseif ($primaryService && ! empty($primaryService['cover_image_url'])) {
             $galleryImages[] = $primaryService['cover_image_url'];
         }
@@ -746,7 +878,7 @@ class PageController extends Controller
                     continue;
                 }
 
-                $url = asset('img/uploads/' . ltrim($file, '/'));
+                $url = asset('img/uploads/'.ltrim($file, '/'));
                 if (! in_array($url, $galleryImages, true)) {
                     $galleryImages[] = $url;
                 }
@@ -758,7 +890,7 @@ class PageController extends Controller
                     continue;
                 }
 
-                $url = asset('img/uploads/' . ltrim($file, '/'));
+                $url = asset('img/uploads/'.ltrim($file, '/'));
                 if (! in_array($url, $galleryImages, true)) {
                     $galleryImages[] = $url;
                 }
@@ -813,7 +945,7 @@ class PageController extends Controller
                 'whatsapp_phone' => $providerWhatsappPhone,
                 'whatsapp_link' => $providerWhatsappLink,
                 'photo_url' => ! empty($provider->photo)
-                    ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
+                    ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                     : asset('img/default-avatar-profile-icon.webp'),
                 'address_label' => $resolvedAddressLabel,
                 'latitude' => $resolvedLatitude,
@@ -829,7 +961,7 @@ class PageController extends Controller
                 'availability' => (string) ($provider->provider_availability ?: ($primaryService['availability'] ?? '')),
                 'primary_page_url' => $this->normalizeWebsiteUrl((string) ($provider->provider_page_url ?: ($primaryService['page_url'] ?? ''))) ?? '',
                 'primary_video_url' => $providerVideo && ! empty($providerVideo->url)
-                    ? asset('video/uploads/' . ltrim((string) $providerVideo->url, '/'))
+                    ? asset('video/uploads/'.ltrim((string) $providerVideo->url, '/'))
                     : (string) ($primaryService['video_url'] ?? ''),
                 'services' => $serviceCards,
             ],
@@ -1051,6 +1183,7 @@ class PageController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 

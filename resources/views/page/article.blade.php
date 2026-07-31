@@ -1,13 +1,9 @@
-@extends('layouts.page')
+@extends('layouts.home')
 
-@section('nav_option')
-    <a href="{{ url('/') }}">
-        <span>Ir al inicio</span>
-    </a>
-@endsection
+@section('hide_announcement', true)
 
-@section('css')
-    <link rel="stylesheet" href="{{ asset('css/page/article.css') }}">
+@section('head')
+    <link rel="stylesheet" href="{{ asset('css/page/article.css') }}?v={{ filemtime(public_path('css/page/article.css')) }}">
 @endsection
 
 @section('content')
@@ -61,7 +57,4 @@
             </div>
         </article>
     </div>
-@endsection
-
-@section('js')
 @endsection

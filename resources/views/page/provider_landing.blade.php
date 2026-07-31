@@ -1,20 +1,16 @@
-@extends('layouts.page')
+@extends('layouts.home')
 
-@section('css')
-    <link rel="stylesheet" href="{{ asset('css/page/provider_landing.css') }}">
+@section('head')
+    <link rel="stylesheet" href="{{ asset('css/page/provider_landing.css') }}?v={{ filemtime(public_path('css/page/provider_landing.css')) }}">
     <meta name="description" content="Convierte tu oficio en nuevos clientes con Kconecta. Registra tu perfil como proveedor y empieza a recibir visibilidad en Barcelona.">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Quiero ser proveedor | Kconecta">
     <meta property="og:description" content="Publica tu perfil profesional, gana visibilidad y conecta con clientes reales desde Kconecta.">
-    <meta property="og:image" content="{{ asset('img/banner-hero-landing-quiero.webp') }}">
+    <meta property="og:image" content="{{ asset('img/img-hero-landing-quiero.webp') }}">
     <meta property="og:url" content="{{ route('provider.landing') }}">
 @endsection
 
-@section('nav_option')
-    <a href="{{ url('/blogs') }}" aria-label="Novedades">
-        <span>Novedades</span>
-    </a>
-@endsection
+@section('hide_announcement', true)
 
 @section('content')
     <main class="provider-landing">
@@ -22,12 +18,10 @@
             <div class="provider-hero__content">
                 <span class="provider-pill">Para proveedores de servicios en Barcelona</span>
                 <h1 class="provider-hero__title">
-                    <span>TÚ TIENES EL</span>
-                    <span>TALENTO.</span>
-                    <span>NOSOTROS</span>
-                    <span>TE</span>
-                    <span>LLEVAMOS</span>
-                    <span>CLIENTES.</span>
+                    <span>Tú tienes el</span>
+                    <span>talento.</span>
+                    <span class="provider-hero__title-accent">Nosotros te</span>
+                    <span class="provider-hero__title-accent">llevamos clientes.</span>
                 </h1>
                 <p class="provider-hero__lead">Únete a Kconecta y recibe solicitudes de clientes reales en Barcelona cada día.</p>
 
@@ -58,23 +52,21 @@
             </div>
 
             <div class="provider-hero__scene">
-                <div class="provider-hero__backdrop" aria-hidden="true"></div>
-                <img class="provider-hero__skyline" src="{{ asset('img/provider-hero-skyline.png') }}" alt="" aria-hidden="true">
                 <div class="provider-hero__image-card">
-                    <img src="{{ asset('img/banner-hero-landing-quiero.webp') }}" alt="Proveedor Kconecta listo para conseguir clientes">
-                    <article class="provider-hero__testimonial" aria-label="Testimonio de proveedor">
-                        <div class="provider-hero__testimonial-mark" aria-hidden="true">&ldquo;</div>
-                        <p>Desde que estoy en Kconecta, tengo más trabajo y mejores clientes.</p>
-                        <div class="provider-hero__testimonial-rating" aria-label="Cinco estrellas">★★★★★</div>
-                        <strong>Jordi, electricista</strong>
-                        <span>Proveedor en Barcelona</span>
-                    </article>
-                    <div class="provider-hero__trust">
-                        <span>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M20 6 9 17l-5-5"/></svg>
-                            Empieza hoy, sin complicaciones.
-                        </span>
-                    </div>
+                    <img src="{{ asset('img/img-hero-landing-quiero.webp') }}" alt="Profesional de servicios que forma parte de Kconecta">
+                </div>
+                <article class="provider-hero__testimonial" aria-label="Testimonio de proveedor">
+                    <div class="provider-hero__testimonial-mark" aria-hidden="true">&ldquo;</div>
+                    <p>Desde que estoy en Kconecta, tengo más trabajo y mejores clientes.</p>
+                    <div class="provider-hero__testimonial-rating" aria-label="Cinco estrellas">★★★★★</div>
+                    <strong>Jordi, electricista</strong>
+                    <span>Proveedor en Barcelona</span>
+                </article>
+                <div class="provider-hero__trust">
+                    <span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M20 6 9 17l-5-5"/></svg>
+                        Empieza hoy, sin complicaciones.
+                    </span>
                 </div>
             </div>
 

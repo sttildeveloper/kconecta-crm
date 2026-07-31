@@ -1,13 +1,9 @@
-@extends('layouts.page')
+@extends('layouts.home')
 
-@section('nav_option')
-    <a href="{{ url('/') }}">
-        <span>Ir al inicio</span>
-    </a>
-@endsection
+@section('hide_announcement', true)
 
-@section('css')
-    <link rel="stylesheet" href="{{ asset('css/app/blogs.css') }}">
+@section('head')
+    <link rel="stylesheet" href="{{ asset('css/app/blogs.css') }}?v={{ filemtime(public_path('css/app/blogs.css')) }}">
 @endsection
 
 @section('content')

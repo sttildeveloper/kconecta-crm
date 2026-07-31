@@ -163,13 +163,13 @@ class BlogController extends Controller
         if ($request->hasFile('featured_image')) {
             $file = $request->file('featured_image');
             $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-            $fileName = time() . '_' . Str::random(12) . '.' . $extension;
+            $fileName = time().'_'.Str::random(12).'.'.$extension;
             $destination = public_path('img/article');
             if (! File::exists($destination)) {
                 File::makeDirectory($destination, 0755, true);
             }
             $file->move($destination, $fileName);
-            $imagePath = 'img/article/' . $fileName;
+            $imagePath = 'img/article/'.$fileName;
         }
 
         $post = BlogPost::create([
@@ -192,6 +192,7 @@ class BlogController extends Controller
     {
         $posts = BlogPost::query()
             ->where('status', 1)
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(10);
 
@@ -276,13 +277,13 @@ class BlogController extends Controller
 
             $file = $request->file('featured_image');
             $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-            $fileName = time() . '_' . Str::random(12) . '.' . $extension;
+            $fileName = time().'_'.Str::random(12).'.'.$extension;
             $destination = public_path('img/article');
             if (! File::exists($destination)) {
                 File::makeDirectory($destination, 0755, true);
             }
             $file->move($destination, $fileName);
-            $post->featured_image = 'img/article/' . $fileName;
+            $post->featured_image = 'img/article/'.$fileName;
         }
 
         $post->title = trim($this->normalizeText($validated['title']));
