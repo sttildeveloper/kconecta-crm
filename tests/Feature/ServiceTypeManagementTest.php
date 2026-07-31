@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
+use App\Models\ProviderService;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -65,8 +65,8 @@ class ServiceTypeManagementTest extends TestCase
             'user_id' => (int) $provider->id,
         ]);
 
-        ServiceTypeLink::query()->create([
-            'service_id' => (int) $service->id,
+        ProviderService::query()->create([
+            'provider_id' => (int) $provider->id,
             'service_type_id' => (int) $type->id,
         ]);
 

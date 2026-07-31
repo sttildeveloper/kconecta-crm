@@ -7,9 +7,9 @@ use App\Models\CoverImage;
 use App\Models\MoreImage;
 use App\Models\Property;
 use App\Models\PropertyAddress;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
-use App\Models\ServiceTypeLink;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserFree;
@@ -807,8 +807,8 @@ class DatabaseSeeder extends Seeder
 
             $typeIds = $this->randomSubset($serviceTypeIds, 1, 3);
             foreach ($typeIds as $typeId) {
-                ServiceTypeLink::create([
-                    'service_id' => $service->id,
+                ProviderService::firstOrCreate([
+                    'provider_id' => (int) $service->user_id,
                     'service_type_id' => $typeId,
                 ]);
             }

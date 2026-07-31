@@ -86,6 +86,7 @@
         @php
             $landing = $providerLanding ?? [];
             $providerProfile = $providerProfile ?? [];
+            $primaryProviderServiceId = $landing['primary_service_id'] ?? null;
             $heroImage = $landing['hero_image'] ?? asset('img/image-icon-1280x960.png');
             $landingAddress = $landing['address'] ?? '';
             $landingDescription = $landing['description'] ?? '';
@@ -157,7 +158,12 @@
                             <a class="service-website" href="{{ $landingPageUrl }}" target="_blank" rel="noopener">Visita nuestra pagina web</a>
                         @endif
                         <div class="service-description-types">
-                            <h4>Tipos de servicio</h4>
+                            <div class="service-description-types-header">
+                                <h4>Tipos de servicio</h4>
+                                @if (! empty($primaryProviderServiceId))
+                                    <a class="service-map-link" href="{{ url('/post/services/update_form/' . $primaryProviderServiceId) }}">Editar</a>
+                                @endif
+                            </div>
                             @if (! empty($providerServiceTypes))
                                 <ul class="service-offered-list">
                                     @foreach ($providerServiceTypes as $type)

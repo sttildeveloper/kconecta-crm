@@ -834,6 +834,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     gap: 0.65rem;
+    min-width: 0;
 }
 
 .container-column-1 .container-details-2 .btn-dec {
@@ -844,6 +845,8 @@ body {
     box-shadow: 0 3px 10px rgba(16, 33, 59, 0.04);
     padding: 0.52rem 0.68rem;
     min-height: 70px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .container-column-1 .container-details-2 .btn-dec span:nth-child(1) {
@@ -879,6 +882,9 @@ body {
     font-size: 0.98rem;
     line-height: 1.2;
     color: var(--details-text);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .container-column-1 .container-description {
@@ -914,11 +920,13 @@ body {
     flex-wrap: wrap;
     gap: 0.7rem;
     align-items: start;
+    min-width: 0;
 }
 
 .container-column-1 .container-more-data .details-section-main {
     flex: 0 0 calc(66.666% - 0.35rem);
     order: 30;
+    min-width: 0;
 }
 
 .container-column-1 .container-more-data .details-side-stack {
@@ -929,6 +937,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.55rem;
+    min-width: 0;
 }
 
 .container-column-1 .container-more-data .details-side-stack .details-section-features,
@@ -972,6 +981,7 @@ body {
     background: var(--details-surface);
     box-shadow: 0 4px 10px rgba(16, 33, 59, 0.045);
     overflow: hidden;
+    min-width: 0;
 }
 
 .container-column-1 .container-more-data .message .message-header {
@@ -986,6 +996,7 @@ body {
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
 .container-column-1 .container-more-data .message .message-body {
@@ -1041,6 +1052,8 @@ body {
     font-size: 0.89rem;
     color: var(--details-text);
     font-weight: 800;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .container-column-1 .container-more-data .container-row ul {
@@ -1058,7 +1071,8 @@ body {
     padding-right: 0.2rem;
     line-height: 1.35;
     overflow-wrap: break-word;
-    word-break: normal;
+    word-break: break-word;
+    min-width: 0;
 }
 
 .container-column-1 .container-more-data .container-row ul li::before {

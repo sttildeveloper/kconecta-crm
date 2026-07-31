@@ -25,8 +25,14 @@ class RegistrationTest extends TestCase
             'name' => 'Proveedor de servicio',
         ]);
 
+        $this->get('/register')->assertOk();
+        $registrationFormStartedAt = (int) session('registration_form_started_at');
+        $this->travel(4)->seconds();
+
         $response = $this->post('/register', [
             'user_level_id' => $level->id,
+            'registration_form_started_at' => $registrationFormStartedAt,
+            'website' => '',
             'document_type' => '',
             'document_number' => '',
             'first_name' => 'Test',
@@ -34,8 +40,6 @@ class RegistrationTest extends TestCase
             'company_name' => '',
             'phone' => '600000000',
             'landline_phone' => '',
-            'address' => '',
-            'address_place_id' => '',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -43,5 +47,11 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('verification.notice', absolute: false));
+        $this->assertDatabaseHas('user_address', [
+            'user_id' => auth()->id(),
+            'address' => null,
+            'latitude' => null,
+            'longitude' => null,
+        ]);
     }
 }

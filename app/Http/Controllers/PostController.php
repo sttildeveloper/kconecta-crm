@@ -25,6 +25,7 @@ use App\Models\Orientations;
 use App\Models\Plant;
 use App\Models\PlazaCapacity;
 use App\Models\PowerConsumptionRating;
+use App\Models\ProviderService;
 use App\Models\Property;
 use App\Models\PropertyAddress;
 use App\Models\Province;
@@ -33,7 +34,6 @@ use App\Models\RentalType;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\State;
 use App\Models\StateConservation;
 use App\Models\TerrainQualification;
@@ -56,6 +56,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use App\Services\ProviderServiceTypeService;
 
 class PostController extends Controller
 {
@@ -141,41 +142,12 @@ class PostController extends Controller
 
     private function providerServiceTypeIds(int $providerId, array $providerServiceIds): array
     {
-        $query = ServiceTypeLink::query();
-
-        if ($this->tableHasColumn('service_types', 'user_id')) {
-            $query->where('user_id', $providerId)
-                ->orWhere(function ($nested) use ($providerServiceIds) {
-                    $nested->whereNull('user_id')
-                        ->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
-                });
-        } else {
-            $query->whereIn('service_id', ! empty($providerServiceIds) ? $providerServiceIds : [0]);
-        }
-
-        return $query->pluck('service_type_id')
-            ->unique()
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        return app(ProviderServiceTypeService::class)->typeIdsForProvider($providerId);
     }
 
     private function replaceProviderServiceTypes(int $providerId, int $serviceId, array $serviceTypeIds): void
     {
-        $query = ServiceTypeLink::query();
-
-        if ($this->tableHasColumn('service_types', 'user_id')) {
-            $query->where('user_id', $providerId);
-        } else {
-            $query->where('service_id', $serviceId);
-        }
-
-        $query->delete();
-
-        foreach ($serviceTypeIds as $typeId) {
-            ServiceTypeLink::create($this->providerMediaPayload('service_types', $providerId, $serviceId, [
-                'service_type_id' => $typeId,
-            ]));
-        }
+        app(ProviderServiceTypeService::class)->syncForProvider($providerId, $serviceTypeIds);
     }
 
     private function fillProviderPublicProfile(User $provider, array $attributes): void
@@ -1879,8 +1851,10 @@ class PostController extends Controller
         }
 
         if ($filters['type'] !== '' && $filters['type'] !== 'all') {
-            $serviceIds = ServiceTypeLink::where('service_type_id', (int) $filters['type'])
-                ->pluck('service_id')
+            $providerIds = app(ProviderServiceTypeService::class)->providerIdsForTypeIds([(int) $filters['type']]);
+
+            $serviceIds = Service::whereIn('user_id', ! empty($providerIds) ? $providerIds : [0])
+                ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
 
@@ -1911,22 +1885,19 @@ class PostController extends Controller
         $serviceVideos = empty($serviceIds)
             ? collect()
             : Video::whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $serviceTypeLinks = empty($serviceIds)
+        $providerTypeIdsByProvider = empty($ownerIds = $services->pluck('user_id')->filter()->unique()->values()->all())
             ? collect()
-            : ServiceTypeLink::whereIn('service_id', $serviceIds)->get()->groupBy('service_id');
+            : app(ProviderServiceTypeService::class)->typeIdsForProviders($ownerIds);
         $serviceTypeMap = ServiceType::pluck('name', 'id')->all();
-
-        $ownerIds = $services->pluck('user_id')->filter()->unique()->values()->all();
         $owners = empty($ownerIds) ? collect() : User::whereIn('id', $ownerIds)->get()->keyBy('id');
         $ownerAddresses = empty($ownerIds)
             ? collect()
             : UserAddress::whereIn('user_id', $ownerIds)->get()->groupBy('user_id');
 
-        $services->getCollection()->transform(function (Service $service) use ($coverImages, $serviceAddresses, $serviceVideos, $serviceTypeLinks, $serviceTypeMap, $owners, $ownerAddresses, $isAdmin) {
-            $links = $serviceTypeLinks->get($service->id) ?? collect();
+        $services->getCollection()->transform(function (Service $service) use ($coverImages, $serviceAddresses, $serviceVideos, $providerTypeIdsByProvider, $serviceTypeMap, $owners, $ownerAddresses, $isAdmin) {
+            $typeIds = $providerTypeIdsByProvider->get((int) $service->user_id, []);
             $typeNames = [];
-            foreach ($links as $link) {
-                $typeId = (int) $link->service_type_id;
+            foreach ($typeIds as $typeId) {
                 if (isset($serviceTypeMap[$typeId])) {
                     $typeNames[] = $serviceTypeMap[$typeId];
                 }
@@ -1990,6 +1961,10 @@ class PostController extends Controller
         $providerLanding = null;
         if ($isProviderView && $user) {
             $profileAddress = UserAddress::where('user_id', $user->id)->first();
+            $primaryServiceModel = Service::query()
+                ->where('user_id', $user->id)
+                ->orderBy('id')
+                ->first();
             $name = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
             if ($name === '') {
                 $name = $user->user_name ?: ($user->email ?: 'Proveedor');
@@ -2026,6 +2001,19 @@ class PostController extends Controller
             }
 
             $primaryService = $services->first();
+            if (! $primaryService && $primaryServiceModel) {
+                $primaryService = [
+                    'id' => (int) $primaryServiceModel->id,
+                    'title' => $primaryServiceModel->title ?: 'Servicio',
+                    'description' => $primaryServiceModel->description,
+                    'availability' => $primaryServiceModel->availability,
+                    'page_url' => $primaryServiceModel->page_url ?? '',
+                    'updated_at' => $primaryServiceModel->updated_at ? $primaryServiceModel->updated_at->format('d/m/Y') : '',
+                    'service_full_address' => '',
+                    'video' => null,
+                    'image' => null,
+                ];
+            }
             $heroImage = asset('img/image-icon-1280x960.png');
             $landingImages = [$heroImage];
             $serviceDescription = trim((string) ($user->provider_description ?? ''));
@@ -2112,6 +2100,7 @@ class PostController extends Controller
             $whatsappLink = $whatsappPhone !== '' ? 'https://wa.me/' . $whatsappPhone : '';
 
             $providerLanding = [
+                'primary_service_id' => $primaryServiceModel?->id ? (int) $primaryServiceModel->id : (! empty($primaryService['id']) ? (int) $primaryService['id'] : null),
                 'hero_image' => $heroImage,
                 'images' => $landingImages,
                 'address' => $serviceAddressLabel,
@@ -2164,7 +2153,6 @@ class PostController extends Controller
         MoreImage::where('service_id', $serviceId)->delete();
         Video::where('service_id', $serviceId)->delete();
         ServiceAddress::where('service_id', $serviceId)->delete();
-        ServiceTypeLink::where('service_id', $serviceId)->delete();
 
         $service->delete();
 
@@ -2194,8 +2182,8 @@ class PostController extends Controller
         $providerAddress = UserAddress::where('user_id', (int) $provider->id)->first();
 
         $serviceType = ServiceType::orderBy('name')->get()->toArray();
-        $serviceTypes = $this->providerMediaQuery(ServiceTypeLink::class, (int) $provider->id, (int) $id)
-            ->get()
+        $serviceTypes = app(ProviderServiceTypeService::class)
+            ->linkRowsForProvider((int) $provider->id)
             ->toArray();
 
         $coverImage = $this->providerMediaQuery(CoverImage::class, (int) $provider->id, (int) $id)
@@ -2495,12 +2483,7 @@ class PostController extends Controller
             'service_id' => (int) $service->id,
         ]);
 
-        foreach ((array) $validated['service_type'] as $serviceTypeId) {
-            ServiceTypeLink::create([
-                'service_id' => (int) $service->id,
-                'service_type_id' => (int) $serviceTypeId,
-            ]);
-        }
+        app(ProviderServiceTypeService::class)->syncForProvider((int) $service->user_id, (array) $validated['service_type']);
 
         $serviceAddressPayload = [
             'service_id' => (int) $service->id,

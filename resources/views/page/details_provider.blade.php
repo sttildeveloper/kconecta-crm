@@ -81,7 +81,7 @@
         </div>
 
         <div class="container-details-1">
-            <h1 class="h1-service"><?= $provider['name'] ?></h1>
+            <h1 class="h1-service"><?= !empty($provider['title']) ? $provider['title'] : $provider['name'] ?></h1>
             <span class="container-address">
                 <?php if (!empty($provider['address_label'])){ ?>
                 <span class="service-address-line">
@@ -120,7 +120,7 @@
 
         <div class="provider-summary-grid">
             <article class="provider-summary-card">
-                <h4>Servicios publicados</h4>
+                <h4>Tipos de servicio</h4>
                 <p><?= $provider['service_count'] ?></p>
             </article>
             <article class="provider-summary-card">
@@ -158,11 +158,11 @@
         </div>
 
         <div class="container-more-data">
-            <?php if (!empty($provider['service_types'])){ ?>
+            <?php if (!empty($provider['specialties'])){ ?>
             <article class="message service-types-card">
                 <div class="message-body">
                     <div class="container-row-free-s">
-                        <?php foreach($provider['service_types'] as $serviceTypeName){ ?>
+                        <?php foreach($provider['specialties'] as $serviceTypeName){ ?>
                         <div class="box-li-s">
                             &raquo; <span class="text-span"><?= $serviceTypeName ?></span>
                         </div>
@@ -175,7 +175,7 @@
             <?php if (!empty($provider['services'])){ ?>
             <article class="message provider-services-card" style="width:100%;">
                 <div class="message-header">
-                    <p>Servicios del proveedor</p>
+                    <p>Cobertura registrada</p>
                 </div>
                 <div class="message-body">
                     <?php foreach($provider['services'] as $service){ ?>
@@ -183,13 +183,12 @@
                         <h4><?= $service['title'] ?></h4>
                         <?php if (!empty($service['address_label'])){ ?><p><?= $service['address_label'] ?></p><?php } ?>
                         <?php if (!empty($service['availability'])){ ?><p>Disponibilidad: <?= $service['availability'] ?></p><?php } ?>
-                        <?php if (!empty($service['service_types'])){ ?><p><?= implode(' · ', $service['service_types']) ?></p><?php } ?>
+                        <?php if (!empty($service['specialties'])){ ?><p><?= implode(' · ', $service['specialties']) ?></p><?php } ?>
+                        <?php if (!empty($service['page_url'])){ ?>
                         <div class="service-links">
-                            <a href="<?= site_url('result_service/' . $service['id']) ?>">Ver ficha del servicio</a>
-                            <?php if (!empty($service['page_url'])){ ?>
                             <a href="<?= $service['page_url'] ?>" target="_blank" rel="noopener">Web</a>
-                            <?php } ?>
                         </div>
+                        <?php } ?>
                     </div>
                     <?php } ?>
                 </div>
@@ -239,11 +238,6 @@
                         <?php if (!empty($provider['whatsapp_link'])){ ?>
                         <a href="<?= $provider['whatsapp_link'] ?>" class="primary" target="_blank" rel="noopener">
                             Contactar por WhatsApp
-                        </a>
-                        <?php } ?>
-                        <?php if (!empty($provider['services'][0]['id'])){ ?>
-                        <a href="<?= site_url('result_service/' . $provider['services'][0]['id']) ?>" class="secondary">
-                            Ver servicio destacado
                         </a>
                         <?php } ?>
                     </div>

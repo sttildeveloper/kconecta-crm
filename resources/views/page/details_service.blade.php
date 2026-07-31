@@ -160,12 +160,12 @@
         </div>
         <div class="container-more-data">
             <?php 
-                if (!empty($property["service_types"])){
+                if (!empty($property["specialties"])){
             ?>    
                 <article class="message service-types-card">
                     <div class="message-body">
                         <div class="container-row-free-s">
-                            <?php foreach($property["service_types"] as $st){ ?>  
+                            <?php foreach($property["specialties"] as $st){ ?>
                                 <div class="box-li-s">
                                     &raquo; <span class="text-span"><?= $st["name"] ?></span>
                                 </div>

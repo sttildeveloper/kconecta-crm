@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\CoverImage;
 use App\Models\MoreImage;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceProviderRating;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\ServiceWorkCode;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -61,8 +61,8 @@ class AdminProviderDeletionTest extends TestCase
             'address' => 'Direccion service',
         ]);
 
-        ServiceTypeLink::query()->create([
-            'service_id' => (int) $service->id,
+        ProviderService::query()->create([
+            'provider_id' => (int) $provider->id,
             'service_type_id' => (int) $serviceType->id,
         ]);
 
@@ -113,7 +113,7 @@ class AdminProviderDeletionTest extends TestCase
         $this->assertDatabaseMissing('more_images', ['service_id' => (int) $service->id]);
         $this->assertDatabaseMissing('video', ['service_id' => (int) $service->id]);
         $this->assertDatabaseMissing('service_address', ['service_id' => (int) $service->id]);
-        $this->assertDatabaseMissing('service_types', ['service_id' => (int) $service->id]);
+        $this->assertDatabaseMissing('provider_services', ['provider_id' => (int) $provider->id]);
         $this->assertDatabaseMissing('service_provider_ratings', ['provider_user_id' => (int) $provider->id]);
         $this->assertDatabaseMissing('service_work_codes', ['provider_user_id' => (int) $provider->id]);
 

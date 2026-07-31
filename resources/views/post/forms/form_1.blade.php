@@ -25,12 +25,16 @@
 
 @section('content')
 
-<form action="{{ url('/post/create') }}" method="post" enctype="multipart/form-data">
+<form action="{{ url('/post/create') }}" method="post" enctype="multipart/form-data" id="property-form-house" novalidate>
     @csrf
     <div class="container-title-page">
         <h2>Complete los datos para registrar &raquo; <span>Casa o chalet</span></h2>
     </div>
     <div class="container-main">
+        <div class="box" id="house-form-error-summary" style="display: none; border: 1px solid #f0b4b4; background: #fff6f6; color: #912d2b;">
+            <strong>Revisa estos campos antes de guardar:</strong>
+            <ul id="house-form-error-summary-list" style="margin-top: 0.75rem; padding-left: 1.25rem;"></ul>
+        </div>
         <input type="hidden" name="type" value="1">
 
         <input type="hidden" name="city" id="city">
@@ -260,7 +264,7 @@
                 <span class="title-label">Fachada del inmueble *</span>
                 <?php foreach($facade as $fac){ ?>
                     <label class="radio label-radio-checkbox-col-100">
-                        <label class="container-input-radio-ui"><input type="radio" name="facade" value="<?= $fac["id"] ?>" /><div class="checkmark"></div></label>
+                        <label class="container-input-radio-ui"><input type="radio" name="facade" value="<?= $fac["id"] ?>" required /><div class="checkmark"></div></label>
                         <?= $fac["name"] ?>
                     </label>
                 <?php } ?>
@@ -489,7 +493,7 @@
             <div class="div-col-1">
                 <?php foreach($reasonForSale as $rfs){ ?>
                     <label class="radio label-radio-checkbox-col-100">
-                        <label class="container-input-radio-ui"><input type="radio" name="reason_for_sale" value="<?= $rfs["id"] ?>" /><div class="checkmark"></div></label> 
+                        <label class="container-input-radio-ui"><input type="radio" name="reason_for_sale" value="<?= $rfs["id"] ?>" required /><div class="checkmark"></div></label>
                         <?= $rfs["name"] ?>
                     </label>
                 <?php } ?>
@@ -785,5 +789,270 @@
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ $mapsKey }}&libraries=places"></script>
 <script src="{{ asset('js/google_maps.js') }}"></script>
+<script>
+    (() => {
+        const form = document.getElementById("property-form-house");
+        if (!form) {
+            return;
+        }
+
+        const summary = document.getElementById("house-form-error-summary");
+        const summaryList = document.getElementById("house-form-error-summary-list");
+        const categoryInputs = Array.from(form.querySelectorAll('input[name="category"]'));
+        const salePriceInput = document.getElementById("sale_price");
+        const rentalPriceInput = document.getElementById("rental_price");
+        const facadeInputs = Array.from(form.querySelectorAll('input[name="facade"]'));
+        const reasonForSaleInputs = Array.from(form.querySelectorAll('input[name="reason_for_sale"]'));
+        const fieldLabels = {
+            locality: "Localidad",
+            address: "Nombre de la via",
+            category: "Operacion",
+            sale_price: "Precio de venta",
+            rental_price: "Precio de alquiler",
+            typology: "Tipologia",
+            state_conservation: "Estado de conservacion",
+            facade: "Fachada del inmueble",
+            reason_for_sale: "Situacion de venta",
+            meters_built: "M2 construidos",
+            number_of_plants: "Plantas del chalet",
+            bedrooms: "Numero de dormitorios",
+            bathrooms: "Numero de banos",
+            title: "Titulo",
+            description: "Descripcion",
+            cover_image: "Imagen de portada",
+            more_images: "Imagenes adicionales",
+        };
+
+        const clearSummary = () => {
+            summary.style.display = "none";
+            summaryList.innerHTML = "";
+        };
+
+        const renderSummary = (messages) => {
+            if (!messages.length) {
+                clearSummary();
+                return;
+            }
+
+            const uniqueMessages = [...new Set(messages)];
+            summaryList.innerHTML = uniqueMessages.map((message) => `<li>${message}</li>`).join("");
+            summary.style.display = "";
+        };
+
+        const getSelectedCategory = () => {
+            const checked = form.querySelector('input[name="category"]:checked');
+            return checked ? parseInt(checked.value, 10) : null;
+        };
+
+        const setGroupRequired = (inputs, isRequired) => {
+            inputs.forEach((input) => {
+                if (isRequired) {
+                    input.setAttribute("required", "required");
+                } else {
+                    input.removeAttribute("required");
+                    input.checked = false;
+                    input.setCustomValidity("");
+                }
+            });
+        };
+
+        const syncConditionalRequirements = () => {
+            const category = getSelectedCategory();
+            const isSale = category === 2;
+            const isRent = category === 1;
+
+            if (salePriceInput) {
+                if (isSale) {
+                    salePriceInput.setAttribute("required", "required");
+                } else {
+                    salePriceInput.removeAttribute("required");
+                    salePriceInput.setCustomValidity("");
+                }
+            }
+
+            if (rentalPriceInput) {
+                if (isRent) {
+                    rentalPriceInput.setAttribute("required", "required");
+                } else {
+                    rentalPriceInput.removeAttribute("required");
+                    rentalPriceInput.setCustomValidity("");
+                }
+            }
+
+            setGroupRequired(reasonForSaleInputs, isSale);
+            setGroupRequired(facadeInputs, true);
+        };
+
+        const parseFormattedNumber = (value) => {
+            const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(/\./g, "").replace(",", ".");
+            if (!normalized) {
+                return null;
+            }
+
+            const parsed = Number(normalized);
+            return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        const ensurePositiveNumber = (input, message) => {
+            if (!input) {
+                return null;
+            }
+
+            const parsedValue = parseFormattedNumber(input.value);
+            if (parsedValue === null || parsedValue <= 0) {
+                input.setCustomValidity(message);
+                return message;
+            }
+
+            input.setCustomValidity("");
+            return null;
+        };
+
+        const ensureChecked = (selector, message) => {
+            const checked = form.querySelector(selector);
+            return checked ? null : message;
+        };
+
+        const collectValidationMessages = () => {
+            const messages = [];
+            const category = getSelectedCategory();
+
+            syncConditionalRequirements();
+
+            const coreChecks = [
+                { input: form.elements.locality, message: "Debes completar la localidad." },
+                { input: form.elements.address, message: "Debes seleccionar una direccion valida." },
+                { input: form.elements.title, message: "Debes completar el titulo del anuncio." },
+                { input: form.elements.description, message: "Debes completar la descripcion de la propiedad." },
+                { input: form.elements.cover_image, message: "Debes subir una imagen de portada." },
+            ];
+
+            coreChecks.forEach(({ input, message }) => {
+                if (!input) {
+                    return;
+                }
+
+                if (!input.value || !String(input.value).trim()) {
+                    input.setCustomValidity(message);
+                    messages.push(message);
+                    return;
+                }
+
+                if (input.name !== "address") {
+                    input.setCustomValidity("");
+                }
+            });
+
+            const fileList = form.elements["more_images[]"]?.files ?? [];
+            if (!fileList.length) {
+                messages.push("Debes subir al menos una imagen adicional.");
+            }
+
+            const radioChecks = [
+                { selector: 'input[name="category"]:checked', message: "Debes indicar la operacion." },
+                { selector: 'input[name="typology"]:checked', message: "Debes seleccionar la tipologia." },
+                { selector: 'input[name="state_conservation"]:checked', message: "Debes seleccionar el estado de conservacion." },
+                { selector: 'input[name="facade"]:checked', message: "Debes seleccionar la fachada del inmueble." },
+            ];
+
+            if (category === 2) {
+                radioChecks.push({
+                    selector: 'input[name="reason_for_sale"]:checked',
+                    message: "Debes indicar la situacion de venta.",
+                });
+            }
+
+            radioChecks.forEach(({ selector, message }) => {
+                const error = ensureChecked(selector, message);
+                if (error) {
+                    messages.push(error);
+                }
+            });
+
+            const numericChecks = [
+                { input: form.elements.meters_built, message: "Debes indicar los m2 construidos con un valor mayor que cero." },
+                { input: form.elements.number_of_plants, message: "Debes indicar las plantas del chalet con un valor mayor que cero." },
+                { input: form.elements.bedrooms, message: "Debes indicar el numero de dormitorios con un valor mayor que cero." },
+                { input: form.elements.bathrooms, message: "Debes indicar el numero de banos con un valor mayor que cero." },
+            ];
+
+            if (category === 2) {
+                numericChecks.push({
+                    input: salePriceInput,
+                    message: "Debes indicar un precio de venta valido.",
+                });
+            }
+
+            if (category === 1) {
+                numericChecks.push({
+                    input: rentalPriceInput,
+                    message: "Debes indicar un precio de alquiler valido.",
+                });
+            }
+
+            numericChecks.forEach(({ input, message }) => {
+                const error = ensurePositiveNumber(input, message);
+                if (error) {
+                    messages.push(error);
+                }
+            });
+
+            const firstInvalid = Array.from(form.elements).find((element) => {
+                return typeof element.reportValidity === "function" && !element.checkValidity();
+            });
+
+            if (firstInvalid) {
+                const fallbackMessage = fieldLabels[firstInvalid.name] ?? "Hay campos obligatorios pendientes de revisar.";
+                const validationMessage = firstInvalid.validationMessage || `Revisa el campo ${fallbackMessage}.`;
+                messages.push(validationMessage);
+            }
+
+            return [...new Set(messages)];
+        };
+
+        categoryInputs.forEach((input) => {
+            input.addEventListener("change", () => {
+                clearSummary();
+                syncConditionalRequirements();
+            });
+        });
+
+        [salePriceInput, rentalPriceInput, form.elements.meters_built].forEach((input) => {
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener("input", () => {
+                input.setCustomValidity("");
+                clearSummary();
+            });
+        });
+
+        form.addEventListener("submit", (event) => {
+            syncConditionalRequirements();
+            const messages = collectValidationMessages();
+
+            if (messages.length) {
+                event.preventDefault();
+                renderSummary(messages);
+
+                const firstInvalid = Array.from(form.elements).find((element) => {
+                    return typeof element.reportValidity === "function" && !element.checkValidity();
+                });
+
+                if (firstInvalid) {
+                    firstInvalid.reportValidity();
+                    firstInvalid.focus();
+                } else {
+                    summary.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            } else {
+                clearSummary();
+            }
+        });
+
+        syncConditionalRequirements();
+    })();
+</script>
 
 @endsection

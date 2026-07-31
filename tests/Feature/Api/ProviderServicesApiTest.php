@@ -4,9 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Models\CoverImage;
 use App\Models\MoreImage;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -413,8 +413,8 @@ class ProviderServicesApiTest extends TestCase
             'service_id' => (int) $service->id,
             'url' => 'old-cover.jpg',
         ]);
-        ServiceTypeLink::query()->create([
-            'service_id' => (int) $service->id,
+        ProviderService::query()->create([
+            'provider_id' => (int) $provider->id,
             'service_type_id' => (int) $serviceTypeA->id,
         ]);
 
@@ -428,8 +428,8 @@ class ProviderServicesApiTest extends TestCase
             'id' => (int) $service->id,
             'title' => 'Servicio actualizado',
         ]);
-        $this->assertDatabaseHas('service_types', [
-            'service_id' => (int) $service->id,
+        $this->assertDatabaseHas('provider_services', [
+            'provider_id' => (int) $provider->id,
             'service_type_id' => (int) $serviceTypeB->id,
         ]);
 

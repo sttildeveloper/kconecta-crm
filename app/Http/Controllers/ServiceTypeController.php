@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
+use App\Models\ProviderService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +74,7 @@ class ServiceTypeController extends Controller
 
         $serviceType = ServiceType::query()->findOrFail((int) $validated['id']);
 
-        $linkedServicesCount = ServiceTypeLink::query()
+        $linkedServicesCount = ProviderService::query()
             ->where('service_type_id', (int) $serviceType->id)
             ->count();
 
@@ -96,9 +96,9 @@ class ServiceTypeController extends Controller
         $serviceTypes = ServiceType::query()
             ->select('service_type.*')
             ->selectSub(
-                ServiceTypeLink::query()
+                ProviderService::query()
                     ->selectRaw('COUNT(*)')
-                    ->whereColumn('service_types.service_type_id', 'service_type.id'),
+                    ->whereColumn('provider_services.service_type_id', 'service_type.id'),
                 'services_count'
             )
             ->when($filters['q'] !== '', function ($query) use ($filters) {

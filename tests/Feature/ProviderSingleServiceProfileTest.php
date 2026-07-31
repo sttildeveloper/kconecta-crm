@@ -56,8 +56,8 @@ class ProviderSingleServiceProfileTest extends TestCase
         $response->assertRedirect('/post/services/update_form/' . $existingService->id);
 
         $this->assertSame(1, Service::query()->where('user_id', (int) $provider->id)->count());
-        $this->assertDatabaseMissing('service_types', [
-            'service_id' => (int) $existingService->id,
+        $this->assertDatabaseMissing('provider_services', [
+            'provider_id' => (int) $provider->id,
             'service_type_id' => (int) $type->id,
         ]);
         $this->assertSame(0, CoverImage::query()->count());

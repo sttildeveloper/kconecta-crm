@@ -5,14 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CoverImage;
 use App\Models\MoreImage;
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
-use App\Models\ServiceTypeLink;
 use App\Models\ServiceWorkCode;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\Video;
+use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,15 +70,14 @@ class ProviderServiceApiController extends Controller
         $videos = empty($serviceIds)
             ? []
             : Video::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id')->all();
-        $serviceTypeLinks = empty($serviceIds)
-            ? []
-            : ServiceTypeLink::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id')->all();
+        $serviceTypeLinks = app(ProviderServiceTypeService::class)
+            ->linkRowsForProvider((int) $user->id)
+            ->all();
         $moreImages = empty($serviceIds)
             ? []
             : MoreImage::query()->whereIn('service_id', $serviceIds)->get()->groupBy('service_id')->all();
 
         $typeIds = collect($serviceTypeLinks)
-            ->flatten(1)
             ->pluck('service_type_id')
             ->filter()
             ->map(fn ($id) => (int) $id)
@@ -92,7 +92,7 @@ class ProviderServiceApiController extends Controller
                 $addresses[(int) $service->id] ?? null,
                 $covers[(int) $service->id] ?? null,
                 $videos[(int) $service->id] ?? null,
-                collect($serviceTypeLinks[(int) $service->id] ?? [])->all(),
+                $serviceTypeLinks,
                 collect($moreImages[(int) $service->id] ?? [])->all(),
                 $typeMap
             );
@@ -161,15 +161,7 @@ class ProviderServiceApiController extends Controller
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        $typeIds = empty($serviceIds)
-            ? []
-            : ServiceTypeLink::query()
-                ->whereIn('service_id', $serviceIds)
-                ->pluck('service_type_id')
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
+        $typeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $user->id);
 
         $types = empty($typeIds)
             ? []
@@ -388,12 +380,7 @@ class ProviderServiceApiController extends Controller
             'service_id' => (int) $service->id,
         ]);
 
-        foreach ((array) $request->input('service_type', []) as $serviceTypeId) {
-            ServiceTypeLink::query()->create([
-                'service_id' => (int) $service->id,
-                'service_type_id' => (int) $serviceTypeId,
-            ]);
-        }
+        app(ProviderServiceTypeService::class)->syncForProvider((int) $user->id, (array) $request->input('service_type', []));
 
         $providerAddress = UserAddress::query()->where('user_id', (int) $user->id)->first();
         $addressPayload = [
@@ -486,13 +473,7 @@ class ProviderServiceApiController extends Controller
         }
 
         if ($request->exists('service_type')) {
-            ServiceTypeLink::query()->where('service_id', (int) $service->id)->delete();
-            foreach ((array) $request->input('service_type', []) as $serviceTypeId) {
-                ServiceTypeLink::query()->create([
-                    'service_id' => (int) $service->id,
-                    'service_type_id' => (int) $serviceTypeId,
-                ]);
-            }
+            app(ProviderServiceTypeService::class)->syncForProvider((int) $service->user_id, (array) $request->input('service_type', []));
         }
 
         if ($request->hasAny(['address', 'city', 'province', 'postal_code', 'country', 'latitude', 'longitude'])) {
@@ -554,7 +535,6 @@ class ProviderServiceApiController extends Controller
         MoreImage::query()->where('service_id', (int) $service->id)->delete();
         Video::query()->where('service_id', (int) $service->id)->delete();
         ServiceAddress::query()->where('service_id', (int) $service->id)->delete();
-        ServiceTypeLink::query()->where('service_id', (int) $service->id)->delete();
         $service->delete();
 
         return $this->successResponse(null, null, 'Servicio eliminado');
@@ -589,7 +569,7 @@ class ProviderServiceApiController extends Controller
         $address = ServiceAddress::query()->where('service_id', $serviceId)->first();
         $cover = CoverImage::query()->where('service_id', $serviceId)->first();
         $video = Video::query()->where('service_id', $serviceId)->first();
-        $serviceTypeLinks = ServiceTypeLink::query()->where('service_id', $serviceId)->get()->all();
+        $serviceTypeLinks = app(ProviderServiceTypeService::class)->linkRowsForProvider($ownerId)->all();
         $moreImages = MoreImage::query()->where('service_id', $serviceId)->get()->all();
         $typeIds = collect($serviceTypeLinks)->pluck('service_type_id')->filter()->map(fn ($v) => (int) $v)->all();
         $typeMap = empty($typeIds) ? [] : ServiceType::query()->whereIn('id', $typeIds)->pluck('name', 'id')->all();
@@ -616,7 +596,7 @@ class ProviderServiceApiController extends Controller
     ): array {
         $coverFile = trim((string) ($coverImage?->url ?? ''));
         $videoFile = trim((string) ($video?->url ?? ''));
-        $serviceTypes = collect($serviceTypeLinks)->map(function (ServiceTypeLink $link) use ($typeMap) {
+        $specialties = collect($serviceTypeLinks)->map(function ($link) use ($typeMap) {
             $typeId = (int) ($link->service_type_id ?? 0);
 
             return [
@@ -635,7 +615,8 @@ class ProviderServiceApiController extends Controller
             'user_id' => (int) $service->user_id,
             'created_at' => $service->created_at,
             'updated_at' => $service->updated_at,
-            'service_types' => $serviceTypes,
+            'specialties' => $specialties,
+            'service_types' => $specialties,
             'cover_image' => $coverFile !== '' ? $coverFile : null,
             'cover_image_url' => $coverFile !== '' ? asset('img/uploads/' . ltrim($coverFile, '/')) : null,
             'video' => $videoFile !== '' ? $videoFile : null,
