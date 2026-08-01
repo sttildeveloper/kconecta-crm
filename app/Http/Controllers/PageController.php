@@ -492,6 +492,7 @@ class PageController extends Controller
         $zoom = $request->query('zoom');
 
         $providerIdsForTypes = [];
+        $hasServiceTypeFilter = ! empty($sti);
 
         if (! empty($sti)) {
             if (is_array($sti)) {
@@ -505,8 +506,12 @@ class PageController extends Controller
 
         $providersQuery = User::query()
             ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
-        if (! empty($providerIdsForTypes)) {
-            $providersQuery->whereIn('id', $providerIdsForTypes);
+        if ($hasServiceTypeFilter) {
+            if (! empty($providerIdsForTypes)) {
+                $providersQuery->whereIn('id', $providerIdsForTypes);
+            } else {
+                $providersQuery->where('id', 0);
+            }
         }
         if (Schema::hasColumn('user', 'is_active')) {
             $providersQuery->where('is_active', 1);

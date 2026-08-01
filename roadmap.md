@@ -438,3 +438,25 @@
 
 `qwen3.5:9b` está instalado, pero su integración en el orquestador Laravel sigue pendiente. No debe considerarse worker activo hasta configurar y probarlo. Máximo seis rutas relevantes por worker.
 
+## Status Update (2026-08-01) - Public search continuity confirmed
+
+- The public provider discovery flow from the July 16 reference remains present and operational.
+- `/result/services` renders the public list/map experience without requiring authentication.
+- `/api/services_for_map` supplies provider locations; local verification returned `207` records.
+- Leaflet + OpenStreetMap remains the resilient map fallback and does not require a Google API key.
+- The refreshed home continues to target the existing public results route rather than creating a parallel search implementation.
+- A dedicated browser Google Maps key now exists and is configured only in the local CRM environment.
+- Mobile and web keys must remain separate: Android restrictions for the native key, HTTP-referrer restrictions for the CRM browser key.
+- Focused regression status: `13` tests, `152` assertions, all passing.
+- Browser QA resolves `08029 Barcelona` to valid coordinates and submits address plus service to `/result/services`.
+- Production still uses the former Android-restricted key; no production environment change has been made.
+- Current local data exposed a pending behavior gap: literal address matching can return zero providers even with valid selected coordinates.
+
+### Next milestone
+
+1. Create a local backup and import a fresh production database dump.
+2. Reproduce address/service searches against production-parity provider coordinates.
+3. Open results in map mode and replace literal address matching with coordinate-aware discovery.
+4. Validate explicit geolocation, Google map rendering and forced Leaflet fallback.
+5. Repeat regression tests and browser QA before requesting authorization to push.
+

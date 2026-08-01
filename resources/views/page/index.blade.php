@@ -21,11 +21,14 @@
                     <input type="hidden" name="mode" value="1">
                     <input type="hidden" name="latitude" value="" data-home-latitude>
                     <input type="hidden" name="longitude" value="" data-home-longitude>
+                    <input type="hidden" name="city" value="" data-home-city>
+                    <input type="hidden" name="province" value="" data-home-province>
+                    <input type="hidden" name="zoom" value="13" data-home-zoom>
 
                     <label class="home-search__field" for="home-location">
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-5.6 7-12A7 7 0 1 0 5 9c0 6.4 7 12 7 12Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
                         <span class="sr-only">Ubicación</span>
-                        <input id="home-location" name="address" type="text" autocomplete="postal-code" placeholder="Busca por ubicación" data-home-location>
+                        <input id="home-location" name="address" type="text" autocomplete="off" placeholder="Código postal o dirección" data-home-location>
                     </label>
 
                     <label class="home-search__field home-search__field--service">

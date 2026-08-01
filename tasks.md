@@ -853,3 +853,35 @@
 - [ ] Agente principal: contexto, merge y validación.
 - [ ] Máximo seis rutas por worker; evitar trabajo duplicado.
 
+## Session Update (2026-08-01) - Public provider search and map audit
+
+### Verified current state
+
+- [x] Repository history around 2026-07-16 reviewed; the latest preceding production state is `5c03ff7` (2026-07-14).
+- [x] Public results route remains available without authentication: `GET /result/services`.
+- [x] Public map data route remains available without authentication: `GET /api/services_for_map`.
+- [x] List/map toggle, service filters, province/city grouping and provider markers remain implemented.
+- [x] Leaflet + OpenStreetMap fallback remains available when Google Maps cannot load or authorize.
+- [x] Local HTTP validation: results page `200`, map API `200` and `207` provider locations returned from current local data.
+- [x] Focused regression suites pass: `13` tests and `152` assertions (`PublicDiscoveryApiTest`, `HomePageTest`).
+
+### Google web integration
+
+- [x] Historical home suggestions used the internal `/api/services` endpoint and database province/city data; the results page separately used Google Places and persisted coordinates on place selection.
+- [x] The former CRM key was rejected for browser Places requests because it is restricted as an Android client key.
+- [x] Public results and the OpenStreetMap map do not depend on the new Google key.
+- [x] Created a separate browser key restricted by HTTP referrers for local and production CRM domains.
+- [x] Enabled `Maps JavaScript API`, `Places API`, `Places API (New)` and `Geocoding API` for the browser key.
+- [x] Configured the browser key locally as `GOOGLE_MAPS_API_KEY` without changing either mobile Android key.
+- [x] Browser validation: `08029` returns `08029 Barcelona`; selection resolves city, province, latitude and longitude and submits to `/result/services`.
+- [ ] Import a fresh production dump before changing geographic result matching.
+- [ ] Change the home result mode from list (`mode=1`) to map (`mode=2`) after validating against production data.
+- [ ] Replace literal selected-address matching with coordinate-aware discovery, retaining text and OpenStreetMap fallbacks.
+- [ ] Revalidate explicit geolocation, map markers, service filters and non-Google fallback end to end against the imported data.
+
+### Delivery state
+
+- [x] Search audit and current behavior documented.
+- [x] Local commit requested after focused regression and secret audit.
+- [ ] No push or deployment until explicit authorization.
+

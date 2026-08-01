@@ -341,12 +341,55 @@ input {
 }
 
 .home-search__field {
+    position: relative;
     min-width: 0;
     min-height: 60px;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
+}
+
+.home-google-autocomplete {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    overflow: hidden;
+    border: 1px solid var(--home-line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 18px 38px rgba(16, 38, 62, 0.16);
+}
+
+.home-google-autocomplete.is-hidden {
+    display: none;
+}
+
+.home-google-autocomplete__brand {
+    display: block;
+    padding: 10px 14px 5px;
+    color: var(--home-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.home-google-autocomplete__option {
+    width: 100%;
+    display: block;
+    padding: 10px 14px;
+    border: 0;
+    color: var(--home-navy-soft);
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+}
+
+.home-google-autocomplete__option:hover,
+.home-google-autocomplete__option:focus-visible {
+    outline: 0;
+    background: #eef8f7;
 }
 
 .home-search__field--service {

@@ -54,6 +54,26 @@ class PublicDiscoveryApiTest extends TestCase
             ]);
     }
 
+    public function test_results_page_does_not_return_every_provider_when_selected_type_has_no_matches(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-unmatched-page@test.dev');
+        $provider->forceFill(['user_name' => 'Proveedor que no coincide'])->save();
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Carrer de Sants 100',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3750',
+            'longitude' => '2.1350',
+        ]);
+        $unmatchedType = ServiceType::query()->create(['name' => 'Servicio sin proveedores']);
+
+        $this->get('/result/services?mode=1&sti[]='.$unmatchedType->id)
+            ->assertOk()
+            ->assertSee('Sin resultados')
+            ->assertDontSee('Proveedor que no coincide');
+    }
+
     public function test_map_endpoints_return_v1_contract_with_legacy_status(): void
     {
         $propertiesMapResponse = $this->getJson('/api/properties_for_map');

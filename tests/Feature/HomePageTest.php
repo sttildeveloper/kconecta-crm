@@ -36,6 +36,9 @@ class HomePageTest extends TestCase
             ->assertSee('img-review-2.webp')
             ->assertSee('img-review-3.webp')
             ->assertSee('/result/services', false)
+            ->assertSee('data-home-city', false)
+            ->assertSee('data-home-province', false)
+            ->assertSee('Código postal o dirección')
             ->assertSee('Busca y contacta sin registrarte.')
             ->assertSee('Regístrate como proveedor')
             ->assertSee('Fontanería')
@@ -98,6 +101,10 @@ class HomePageTest extends TestCase
         $this->assertIsString($javascript);
         $this->assertStringContainsString('useLocationButton?.addEventListener("click"', $javascript);
         $this->assertStringContainsString('navigator.geolocation.getCurrentPosition(', $javascript);
+        $this->assertStringContainsString('google.maps.places.Autocomplete', $javascript);
+        $this->assertStringContainsString('AutocompleteSuggestion.fetchAutocompleteSuggestions', $javascript);
+        $this->assertStringContainsString('componentRestrictions: { country: "es" }', $javascript);
+        $this->assertStringContainsString('reverseGeocodeCoordinates', $javascript);
         $this->assertSame(1, substr_count($javascript, 'navigator.geolocation.getCurrentPosition('));
     }
 

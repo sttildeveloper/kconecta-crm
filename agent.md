@@ -600,6 +600,57 @@ Operate and evolve `kconecta-crm` with focus on:
 - Disponible en `http://localhost:8010/`.
 - Validado en escritorio y móvil.
 - Sin `commit`, `push` ni despliegue.
+
+## Context checkpoint updated: 2026-08-01 (public provider search and map audit)
+
+### Historical reference
+
+- The public results screenshot reported for 2026-07-16 matches the search generation present after the 2026-07-14 commits (`e171dc1`, followed by `5c03ff7`).
+- Earlier supporting fixes remain traceable in `0c95828`, `4d63631`, `22fe94a` and `656371f`.
+- The historical home autocomplete-like suggestions came from `GET /api/services`, using provider addresses grouped by municipality/province.
+- The historical results page also loaded Google Places through `public/js/autocomplet.js`; selecting a place populated city, province, latitude and longitude and submitted the filter form.
+
+### Current public contract
+
+- `GET /result/services` is public and returns the list/map result page.
+- `GET /api/services_for_map` is public and returns map provider entities with coordinates.
+- `GET /api/services` remains the internal location/service suggestion endpoint.
+- Current local verification returned HTTP `200` for the page and API, with `207` map locations.
+- The result page contains service filters, province/city exploration, list/map toggles and provider detail/contact actions.
+- The map first uses Google Maps when authorized and falls back to Leaflet + OpenStreetMap when Google is unavailable or rejects the browser request.
+- Therefore, public results and the fallback map are not blocked by Google key provisioning.
+
+### Google key finding
+
+- Runtime browser verification showed that the former CRM credential returned `PERMISSION_DENIED` because it is restricted as an Android client application.
+- Production and the local CRM used that same former credential; the mobile app also references it as `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` while native Android Maps uses a different dedicated key.
+- A dedicated CRM browser key was created instead of loosening either mobile key.
+- Required APIs: `Maps JavaScript API`, `Places API`, `Places API (New)` and `Geocoding API`.
+- Allowed local referrer: `http://localhost:8010/*`.
+- Allowed production referrers: `https://kconecta.com/*` and `https://www.kconecta.com/*`.
+- It is configured locally through `GOOGLE_MAPS_API_KEY`; never commit the credential.
+- Production has not been changed and still uses the former credential.
+
+### Validation checkpoint
+
+- Docker services active: `kconecta-crm-app` and `kconecta-crm-mysql`.
+- `PublicDiscoveryApiTest` and `HomePageTest`: PASS, `13` tests / `152` assertions.
+- Route inspection confirms `PageController@resultAllServices` and `ApiController@dataServicesForMap`.
+- Browser QA on `http://localhost:8010` returned `08029 Barcelona` from Places API (New).
+- Place selection resolved `41.3888317`, `2.1425692`, city/province `Barcelona`, and submitted the selected service to `/result/services`.
+- The current home still submits `mode=1`; map-first parity requires `mode=2`.
+- Current local data returned zero providers for the selected postal code/service because the backend applies literal address matching before using coordinates.
+- Current refactor/search work remains local. No push or deployment has been authorized.
+
+### Resume sequence
+
+1. Preserve the current local database and download a fresh production dump.
+2. Import the dump locally following the documented safe database workflow.
+3. Reproduce postcode/address and service searches against production-parity data.
+4. Change the home to map-first mode and implement coordinate-aware provider discovery.
+5. Validate `Usar mi ubicación`, including permission denial and reverse-geocode failure.
+6. Verify filters, provider counts, markers, details, Google Maps and Leaflet fallback.
+7. Repeat tests and browser QA; do not push until explicitly authorized.
 - La siguiente sesión debe continuar desde este estado y no reconstruir el home.
 
 ### Alcance
