@@ -460,3 +460,17 @@
 4. Validate explicit geolocation, Google map rendering and forced Leaflet fallback.
 5. Repeat regression tests and browser QA before requesting authorization to push.
 
+## Status Update (2026-08-01) - Geography sanitation validated locally
+
+- A fresh production snapshot is running locally; production remains untouched.
+- All 2,895 geolocated providers now have canonical province/state/country values.
+- Eight providers without coordinates remain intentionally incomplete and non-geographic.
+- The sanitation command is deterministic, transactional and fails closed for unknown geolocated cities.
+- The sanitized dump was restored successfully into an isolated verification database.
+- Google-selected structured locations now return the existing provider map results instead of being rejected by literal address matching.
+- Home search opens map mode and the `08029 Barcelona` QA case returns 215 matching providers for the selected specialty.
+- Importer hardened: country suffixes are no longer interpreted as provinces and unresolved geolocated rows fail closed.
+- Complete regression passes: 142 tests / 876 assertions.
+- Next: prepare a production dry run backed by a new production backup, only after explicit authorization.
+- Production must not be replaced with the current local dump; no push or deployment is authorized.
+

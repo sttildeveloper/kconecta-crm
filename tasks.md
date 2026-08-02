@@ -885,3 +885,29 @@
 - [x] Local commit requested after focused regression and secret audit.
 - [ ] No push or deployment until explicit authorization.
 
+## Session Update (2026-08-01) - Local provider geography sanitation
+
+- [x] Fresh production dump imported only into local Docker MySQL.
+- [x] Audited 2,903 providers: 2,895 geolocated and 8 incomplete profiles.
+- [x] Added deterministic dry-run/apply command `providers:sanitize-addresses`.
+- [x] Added a reviewed mapping for all 109 geolocated provider cities.
+- [x] Normalized 2,895 local provider addresses; 0 invalid provinces remain among geolocated providers.
+- [x] Preserved the 8 incomplete profiles without fabricating coordinates or locations.
+- [x] Restored the sanitized dump into a temporary database and matched all provider counts.
+- [x] Fixed Google-selected locations so structured city/province filters are not combined with incompatible literal address matching.
+- [x] Home search now opens historical map mode (`mode=2`).
+- [x] Local QA: `08029 Barcelona` plus the selected specialty returns 215 providers instead of 0.
+- [x] Focused sanitation tests pass: 3 tests / 17 assertions.
+- [x] Public discovery and home tests pass: 15 tests / 161 assertions.
+- [x] Detailed procedure recorded in `docs/provider-address-sanitization.md`.
+- [x] Fixed the CSV importer last so future imports cannot store a country as province.
+- [x] Import rows with coordinates are blocked when no valid province can be resolved.
+- [x] Complete regression suite passes: 142 tests / 876 assertions.
+- [ ] Do not upload the local database wholesale; production sanitation requires a fresh backup and explicit authorization.
+- [ ] No push, autodeploy or production data mutation has been authorized.
+- [x] Fresh production backup created and verified on 2026-08-02 before sanitation dry-run.
+- [x] Production backup checksum: `e8a72eec0b5c14360bda89c858c32a652cc4edb651f22df23ce42f9dcaccf397`.
+- [x] Installed only the sanitation command and city catalog in the active production container; no autodeploy was triggered.
+- [x] Production dry-run matches local audit: 2,903 providers, 2,895 pending normalizations, 8 incomplete, 0 unresolved cities.
+- [ ] `--apply` remains pending explicit authorization; production data is unchanged.
+

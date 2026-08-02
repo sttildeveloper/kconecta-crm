@@ -651,6 +651,31 @@ Operate and evolve `kconecta-crm` with focus on:
 5. Validate `Usar mi ubicación`, including permission denial and reverse-geocode failure.
 6. Verify filters, provider counts, markers, details, Google Maps and Leaflet fallback.
 7. Repeat tests and browser QA; do not push until explicitly authorized.
+
+## Context checkpoint updated: 2026-08-01 (provider geography sanitized locally)
+
+- Fresh production dump imported into local `kconecta_schema`; production was not modified.
+- Provider audit: 2,903 total, 2,895 with valid coordinates, 8 incomplete without coordinates.
+- Initial geographic defect: 2,869 of 2,895 geolocated providers had province empty, `NULL` or set to the country.
+- `providers:sanitize-addresses` and `database/data/provider_city_provinces.json` now provide deterministic dry-run/apply sanitation for 109 known cities.
+- Local apply result: 2,895 normalized, 0 unresolved cities, 0 invalid provinces, 8 incomplete profiles preserved.
+- Sanitized dump SHA-256: `d95e3d8b78e4ba293d5bda30b3c916635a220c4d20a7e8cf7362392072cc0e63`.
+- Restore verification: 79 tables and exact provider/geolocation counts matched source and restored database.
+- `/api/services_for_map` now gives precedence to Google city/province over literal selected-address text.
+- Home hidden result mode changed from list (`1`) to map (`2`).
+- QA search `08029 Barcelona` plus specialty returns 215 providers; previously returned 0.
+- Tests green: sanitation 3/17; public discovery + home 15/161.
+- Full evidence and production runbook: `docs/provider-address-sanitization.md`.
+- Importer hardening completed as the final implementation step: known cities use the canonical mapping, optional `provincia`/`province` is supported, country labels are rejected and unresolved geolocated rows are blocked.
+- Complete regression status: 142 tests / 876 assertions, all passing.
+- Never replace production wholesale with the local dump. Create a fresh production backup and run a production dry run first.
+- No push, deployment or production data mutation is authorized.
+- Production dry-run completed on 2026-08-02 after a fresh verified backup.
+- Valid backup path: `/root/kconecta_backups/20260802_1025_pre_provider_sanitize_dryrun`.
+- Backup SHA-256: `e8a72eec0b5c14360bda89c858c32a652cc4edb651f22df23ce42f9dcaccf397`.
+- The command and mapping were copied in isolation to the active app container because pushing `main` would also release four queued commits.
+- Production dry-run result: 2,903 providers, 2,895 pending normalizations, 8 incomplete profiles and 0 unresolved cities.
+- No `--apply`, push, autodeploy or database write was performed.
 - La siguiente sesión debe continuar desde este estado y no reconstruir el home.
 
 ### Alcance
