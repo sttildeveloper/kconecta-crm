@@ -35,3 +35,13 @@ Thumbs.db
 /.codex_tmp/
 /.codex_tmp_write_test.txt
 /todo.md
+
+# Local browser, agent and audit artifacts
+/.antigravitycli/
+/.backup/
+/.tmp-*/
+/screenshots/*.png
+/public/img/home-services-hero-v2.webp
+
+# Local production-access credentials
+/kconecta_codex_ed25519*
