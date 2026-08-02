@@ -25,6 +25,7 @@
         };
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=<?= config('services.google.maps_key') ?>&libraries=drawing,places" referrerpolicy="strict-origin-when-cross-origin"></script>
+    <script src="https://unpkg.com/@googlemaps/markerclusterer@2.6.2/dist/index.min.js" referrerpolicy="strict-origin-when-cross-origin"></script>
 @endsection
 
 @section('content')
@@ -311,6 +312,7 @@
         let zoom = 6;
         let center_map = { lat: 40.4168, lng: -3.7038 };
         let data_temp = [];
+        let preserveRequestedViewport = false;
 
         const getValidMapLocations = () => {
             return data_temp
@@ -339,7 +341,7 @@
         };
 
         const focusGoogleMapOnResults = (locations) => {
-            if (!map || !locations.length) {
+            if (!map || !locations.length || preserveRequestedViewport) {
                 return;
             }
 
@@ -369,7 +371,7 @@
         };
 
         const focusLeafletMapOnResults = (locations) => {
-            if (!leafletMap || !locations.length) {
+            if (!leafletMap || !locations.length || preserveRequestedViewport) {
                 return;
             }
 
@@ -507,6 +509,7 @@
             });
 
             let activeInfoWindow = null;
+            const googleMarkers = [];
             // Agregar marcadores al mapa
             data_temp.forEach((location) => {
                 if (location.lat && location.lng){
@@ -515,7 +518,6 @@
                     
                     const marker = new google.maps.Marker({
                         position: { lat: lat, lng: lng },
-                        map: map,
                         icon: {
                             url: "/img/kconecta-map-marker.png",
                             scaledSize: new google.maps.Size(34, 34)
@@ -551,8 +553,52 @@
                         infoWindow.open(map, marker);
                         activeInfoWindow = infoWindow;
                     });
+
+                    googleMarkers.push(marker);
                 }
             });
+
+            if (window.markerClusterer?.MarkerClusterer && googleMarkers.length) {
+                const clusterRenderer = {
+                    render: ({ count, position }) => {
+                        const scale = count < 10 ? 20 : count < 100 ? 24 : 29;
+
+                        return new google.maps.Marker({
+                            position,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                fillColor: "#008f99",
+                                fillOpacity: 0.94,
+                                strokeColor: "#ffffff",
+                                strokeOpacity: 1,
+                                strokeWeight: 3,
+                                scale,
+                            },
+                            label: {
+                                text: String(count),
+                                color: "#ffffff",
+                                fontFamily: "Nunito, sans-serif",
+                                fontSize: count < 100 ? "13px" : "12px",
+                                fontWeight: "700",
+                            },
+                            title: `${count} proveedores en esta zona`,
+                            zIndex: (google.maps.Marker.MAX_ZINDEX || 1000000) + count,
+                        });
+                    },
+                };
+                const algorithm = window.markerClusterer.SuperClusterAlgorithm
+                    ? new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })
+                    : undefined;
+
+                new window.markerClusterer.MarkerClusterer({
+                    map,
+                    markers: googleMarkers,
+                    renderer: clusterRenderer,
+                    ...(algorithm ? { algorithm } : {}),
+                });
+            } else {
+                googleMarkers.forEach((marker) => marker.setMap(map));
+            }
 
             focusGoogleMapOnResults(getValidMapLocations());
         }
@@ -644,8 +690,9 @@
         const longitude_input = document.getElementById("longitude").value;
         const zoom_input = document.getElementById("zoom").value;
 
-        if (latitude_input && latitude_input != null && latitude_input != undefined && longitude_input && longitude_input != null && longitude_input != undefined){center_map.lat = parseFloat(latitude_input); center_map.lng = parseFloat(longitude_input);}
+        if (latitude_input && latitude_input != null && latitude_input != undefined && longitude_input && longitude_input != null && longitude_input != undefined){center_map.lat = parseFloat(latitude_input); center_map.lng = parseFloat(longitude_input); preserveRequestedViewport = Number.isFinite(center_map.lat) && Number.isFinite(center_map.lng);}
         if (zoom_input && zoom_input != null && zoom_input != undefined){zoom = parseInt(zoom_input)}
+        if (preserveRequestedViewport && address_input.value.trim() !== "") { zoom = Math.max(13, zoom || 13); }
 
         const data_for_map = async (useGoogle) => {
             try {

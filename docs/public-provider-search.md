@@ -157,3 +157,15 @@ Tambien se detecto que el home enviaba `sti[]=` al buscar sin especialidad. Ese
 valor vacio se interpretaba como el tipo `0` y producia cero resultados. El backend
 ahora ignora valores vacios, no numericos, cero y duplicados tanto en la pagina como
 en la API. La regresion reproduce la URL del incidente y valida ambos flujos.
+
+## Densidad y zoom del mapa
+
+Las busquedas con direccion y coordenadas conservan el centro solicitado y aplican
+un zoom minimo `13`; ya no se alejan automaticamente para encajar todos los
+proveedores de la ciudad. Google Maps agrupa los marcadores cercanos en burbujas
+KCONECTA con contador. Al pulsar una agrupacion, el mapa se acerca progresivamente;
+los proveedores individuales mantienen el marcador de la marca y su ficha.
+
+La agrupacion utiliza `@googlemaps/markerclusterer` con version fijada y conserva un
+fallback a marcadores individuales si el recurso externo no esta disponible. El
+fallback Leaflet mantiene igualmente el centro y zoom de la busqueda.

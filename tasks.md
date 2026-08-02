@@ -964,3 +964,12 @@
 - [x] Added page/API regression; `PublicDiscoveryApiTest`: 14 tests, 131 assertions.
 - [ ] Complete manual online map and marker smoke validation after autodeploy.
 
+## Session Update (2026-08-02) - Provider map clustering
+
+- [x] Preserve the requested address center instead of fitting all city results.
+- [x] Enforce minimum zoom 13 for searches resolved from an address.
+- [x] Group nearby Google markers into branded count clusters through zoom 19.
+- [x] Keep individual Kconecta markers and a no-cluster fallback.
+- [x] Focused public search/home suite: 18 tests, 179 assertions.
+- [ ] Validate cluster interaction and individual provider popups online after autodeploy.
+

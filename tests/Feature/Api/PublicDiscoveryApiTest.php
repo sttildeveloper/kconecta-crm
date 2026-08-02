@@ -473,7 +473,11 @@ class PublicDiscoveryApiTest extends TestCase
 
         $response->assertOk()
             ->assertSee('window.history.replaceState', false)
-            ->assertDontSee('window.history.pushState', false);
+            ->assertDontSee('window.history.pushState', false)
+            ->assertSee('@googlemaps/markerclusterer@2.6.2', false)
+            ->assertSee('new window.markerClusterer.MarkerClusterer', false)
+            ->assertSee('new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })', false)
+            ->assertSee('zoom = Math.max(13, zoom || 13)', false);
     }
 
     public function test_services_for_map_includes_provider_without_service_when_contact_and_coordinates_exist(): void
