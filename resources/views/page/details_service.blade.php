@@ -560,8 +560,8 @@
             position: initialPosition,
             map: map,
             icon: {
-                url: "/img/icon-location-main-app.webp",
-                scaledSize: new google.maps.Size(30, 42)
+                url: "/img/kconecta-map-marker.png",
+                scaledSize: new google.maps.Size(38, 38)
             },
         });
     }

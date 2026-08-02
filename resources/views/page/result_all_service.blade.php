@@ -517,7 +517,7 @@
                         position: { lat: lat, lng: lng },
                         map: map,
                         icon: {
-                            url: "/img/kconecta_icon.webp",
+                            url: "/img/kconecta-map-marker.png",
                             scaledSize: new google.maps.Size(34, 34)
                         },
                         title: `Cantidad: ${location.quantity}`
@@ -600,7 +600,7 @@
             leafletMarkers = [];
 
             const icon = L.icon({
-                iconUrl: "/img/kconecta_icon.webp",
+                iconUrl: "/img/kconecta-map-marker.png",
                 iconSize: [34, 34],
                 iconAnchor: [17, 17],
                 popupAnchor: [0, -18],

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Kconecta - {{ $mode === 'register' ? 'Crear cuenta' : 'Iniciar sesion' }}</title>
         <link rel="stylesheet" href="{{ asset('css/page/login.css') }}">
-        <link rel="icon" href="{{ asset('img/ico.png') }}" type="image/png">
+        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
     </head>
     <body>
         @if ($errors->any() || session('status'))

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>@yield('title', $title ?? 'Kconecta')</title>
         <link rel="stylesheet" href="{{ asset('css/page/dashboard.css') }}">
-        <link rel="icon" href="{{ asset('img/ico.png') }}" type="image/png">
+        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
         @yield('styles')
     </head>
     <body>

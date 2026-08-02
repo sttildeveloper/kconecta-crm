@@ -7,7 +7,7 @@
     <meta name="description" content="Busca, compara y contacta profesionales de confianza para servicios del hogar sin necesidad de registrarte.">
     <meta name="robots" content="index, follow">
     <meta name="author" content="Kconecta">
-    <link rel="icon" href="{{ asset('img/ico.png') }}" type="image/png">
+    <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ asset('css/page/home.css') }}?v={{ filemtime(public_path('css/page/home.css')) }}">
     @yield('head')
 </head>

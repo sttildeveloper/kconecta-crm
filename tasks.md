@@ -292,7 +292,7 @@
 ## Session Checkpoint (2026-04-21)
 
 ### Done
-- [x] Proyecto migrado de DameloDamelo a Kconecta en branding y referencias principales.
+- [x] Proyecto migrado a Kconecta en branding y referencias principales.
 - [x] Docker local operativo:
 - [x] App: `kconecta`
 - [x] DB: `kconecta-mysql-1`
@@ -450,7 +450,7 @@
 - [x] Detalle publico de servicio:
 - [x] fix de carga de video por `service_id` en `result_service`
 - [x] Mapas de resultados:
-- [x] icono de marcador migrado a branding Kconecta (`kconecta_icon.webp`)
+- [x] icono de marcador migrado a branding Kconecta (`kconecta-map-marker.png`)
 - [x] UX proveedor:
 - [x] boton `Ver video` retirado de cabecera de `/post/services` (video queda en bloque inferior)
 - [x] Verificacion por email en produccion:

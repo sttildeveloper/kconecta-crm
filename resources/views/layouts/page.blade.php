@@ -8,7 +8,7 @@
         <noscript><link rel="stylesheet" href="{{ asset('css/libraries/bulma.css') }}"></noscript>
         <link rel="stylesheet" href="{{ asset('css/page/index.css') }}">
         <link rel="stylesheet" href="{{ asset('css/page/cookie.css') }}">
-        <link rel="icon" href="{{ asset('img/ico.png') }}" type="image/png">
+        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
         <meta name="robots" content="index, follow">
         <meta name="author" content="Kconecta">
 
