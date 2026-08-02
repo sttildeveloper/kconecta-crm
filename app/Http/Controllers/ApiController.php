@@ -540,7 +540,12 @@ class ApiController extends Controller
 
     public function dataServicesForMap(Request $request)
     {
-        $sti = $request->query('sti');
+        $sti = collect((array) $request->query('sti', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
         $address = (string) $request->query('address');
         $city = $request->query('city');
         $province = $request->query('province');
@@ -551,14 +556,7 @@ class ApiController extends Controller
         $hasSearchCoordinates = ! $hasStructuredLocation
             && $locationSearch->hasValidCoordinates($latitude, $longitude);
 
-        $serviceTypeIds = [];
-        if (! empty($sti)) {
-            if (is_array($sti)) {
-                $sti = array_map('intval', $sti);
-            } else {
-                $sti = [(int) $sti];
-            }
-
+        if ($sti !== []) {
             $providerIdsForTypes = app(ProviderServiceTypeService::class)->providerIdsForTypeIds($sti);
 
             if (empty($providerIdsForTypes)) {
@@ -704,10 +702,10 @@ class ApiController extends Controller
             }
 
             $specialtyIds = $serviceTypeIdsByProvider->get($providerUserId, []);
-            if (! empty($sti)) {
+            if ($sti !== []) {
                 $specialtyIds = array_values(array_intersect(
                     $specialtyIds,
-                    array_map('intval', (array) $sti)
+                    $sti
                 ));
             }
             $specialties = collect($specialtyIds)

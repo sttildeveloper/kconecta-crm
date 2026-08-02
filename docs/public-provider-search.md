@@ -139,3 +139,21 @@ Regresiones cubiertas:
 7. Abrir resultados desde el home y comprobar el boton Atrás.
 8. Ejecutar `PublicDiscoveryApiTest` y `HomePageTest`.
 9. No registrar claves, dumps ni backups en Git.
+
+## Incidente posterior al refactor de medios (2026-08-02)
+
+Tras el autodeploy del commit `21c1d25`, `/api/services_for_map` respondia `500`
+porque el codigo ya consultaba `cover_image.provider_user_id`, pero las tres
+migraciones del refactor de medios seguian pendientes en produccion.
+
+- Backup previo: `/root/kconecta_backups/20260802_2055_pre_provider_media_migrations/db_production.sql.gz`.
+- SHA-256: `7ea1e9c0f8594a2fd72c82840fbdd3dbd46752247b22b2f5868847ded80b671c`.
+- Migraciones `2026_08_02_170000`, `170100` y `170200` aplicadas y registradas
+  manualmente en los lotes `16`, `17` y `18` por el esquema legacy de `migrations`.
+- Cache de Laravel limpiada y endpoint validado con HTTP `200`.
+- Auditoria: existen 1.522 proveedores geolocalizados con ciudad `Barcelona`.
+
+Tambien se detecto que el home enviaba `sti[]=` al buscar sin especialidad. Ese
+valor vacio se interpretaba como el tipo `0` y producia cero resultados. El backend
+ahora ignora valores vacios, no numericos, cero y duplicados tanto en la pagina como
+en la API. La regresion reproduce la URL del incidente y valida ambos flujos.

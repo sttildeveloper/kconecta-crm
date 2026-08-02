@@ -405,6 +405,31 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('data.0.province', 'Barcelona');
     }
 
+    public function test_empty_service_type_query_is_ignored_by_results_page_and_map_api(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-empty-sti@test.dev');
+        $provider->forceFill(['user_name' => 'Proveedor sin filtro'])->save();
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Avinguda de Josep Tarradellas 92',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3887',
+            'longitude' => '2.1435',
+        ]);
+
+        $query = 'mode=2&city=Barcelona&province=Barcelona&sti%5B%5D=';
+
+        $this->get('/result/services?'.$query)
+            ->assertOk()
+            ->assertSee('1 coincidencia');
+
+        $this->getJson('/api/services_for_map?'.$query)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.provider_user_id', (int) $provider->id);
+    }
+
     public function test_coordinates_find_nearby_providers_when_google_does_not_return_city_or_province(): void
     {
         $nearbyProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-near-postcode@test.dev');

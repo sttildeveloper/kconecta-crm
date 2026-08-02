@@ -482,7 +482,12 @@ class PageController extends Controller
 
         $request = request();
 
-        $sti = $request->query('sti');
+        $sti = collect((array) $request->query('sti', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
         $mode = $request->query('mode');
         $address = $request->query('address');
 
@@ -495,15 +500,9 @@ class PageController extends Controller
         $hasSearchCoordinates = $locationSearch->hasValidCoordinates($latitude, $longitude);
 
         $providerIdsForTypes = [];
-        $hasServiceTypeFilter = ! empty($sti);
+        $hasServiceTypeFilter = $sti !== [];
 
-        if (! empty($sti)) {
-            if (is_array($sti)) {
-                $sti = array_map('intval', $sti);
-            } else {
-                $sti = [(int) $sti];
-            }
-
+        if ($hasServiceTypeFilter) {
             $providerIdsForTypes = app(ProviderServiceTypeService::class)->providerIdsForTypeIds($sti);
         }
 

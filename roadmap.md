@@ -8,6 +8,8 @@
 - Completado: 2.895 direcciones normalizadas, 0 ciudades sin resolver y 0 cambios
   pendientes; 8 perfiles incompletos permanecen no publicables.
 - Completado: 146 pruebas y 1.382 aserciones, autodeploy y smoke tests online.
+- Recuperado: migraciones de medios aplicadas en produccion y endpoint del mapa sin
+  errores de esquema; el filtro de especialidad vacio queda cubierto por regresion.
 - Siguiente hito: QA manual de negocio sobre ubicacion, filtros, contactos y radio.
 - Siguiente hito tecnico: revisar navegacion visual legacy de resultados y validar
   expresamente el fallback Leaflet.

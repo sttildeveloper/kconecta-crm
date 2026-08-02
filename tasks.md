@@ -953,3 +953,14 @@
 - [x] Public provider 2378 and its image return HTTP 200.
 - [x] Runbook: `docs/provider-default-photos.md`.
 
+## Session Update (2026-08-02) - Production map recovery
+
+- [x] Reproduced `500` in `/api/services_for_map` and confirmed missing `provider_user_id`.
+- [x] Created and verified pre-migration production backup and SHA-256.
+- [x] Applied and reconciled the three provider-media migrations in batches 16-18.
+- [x] Cleared Laravel caches; production map endpoint returns HTTP 200 again.
+- [x] Confirmed 1,522 geolocated providers in Barcelona.
+- [x] Fixed blank `sti[]=` so searches without a specialty do not become type `0`.
+- [x] Added page/API regression; `PublicDiscoveryApiTest`: 14 tests, 131 assertions.
+- [ ] Complete manual online map and marker smoke validation after autodeploy.
+
