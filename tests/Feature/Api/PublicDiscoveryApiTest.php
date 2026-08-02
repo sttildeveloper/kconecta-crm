@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
-use App\Models\ProviderService;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -280,7 +280,7 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('data.0.province', 'Barcelona')
             ->assertJsonPath('data.0.lat', '41.3874')
             ->assertJsonPath('data.0.lng', '2.1686')
-            ->assertJsonPath('data.0.provider_url', url('/result_provider/' . $provider->id));
+            ->assertJsonPath('data.0.provider_url', url('/result_provider/'.$provider->id));
 
         $item = $response->json('data.0');
         $this->assertSame([$carpinteria->id, $fontaneria->id], $item['service_type_ids']);
@@ -364,7 +364,7 @@ class PublicDiscoveryApiTest extends TestCase
             'service_type_id' => (int) $electricidad->id,
         ]);
 
-        $response = $this->getJson('/api/services_for_map?sti=' . $fontaneria->id . '&city=Barcelona');
+        $response = $this->getJson('/api/services_for_map?sti='.$fontaneria->id.'&city=Barcelona');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -381,6 +381,28 @@ class PublicDiscoveryApiTest extends TestCase
         $emptyResponse->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_services_for_map_uses_google_city_and_province_instead_of_literal_address(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-google-location@test.dev');
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Carrer de Sants 15',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3700',
+            'longitude' => '2.1400',
+        ]);
+
+        $response = $this->getJson('/api/services_for_map?address=08029%20Barcelona&city=Barcelona&province=Barcelona');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.provider_user_id', (int) $provider->id)
+            ->assertJsonPath('data.0.city', 'Barcelona')
+            ->assertJsonPath('data.0.province', 'Barcelona');
     }
 
     public function test_services_for_map_includes_provider_without_service_when_contact_and_coordinates_exist(): void
@@ -410,7 +432,7 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('data.0.service_id', null)
             ->assertJsonPath('data.0.title', 'Proveedor Sin Service')
             ->assertJsonPath('data.0.phone', '+34612345678')
-            ->assertJsonPath('data.0.provider_url', url('/result_provider/' . $provider->id));
+            ->assertJsonPath('data.0.provider_url', url('/result_provider/'.$provider->id));
     }
 
     public function test_public_providers_returns_all_active_provider_users_even_without_services(): void
@@ -513,7 +535,7 @@ class PublicDiscoveryApiTest extends TestCase
         $this->assertEquals(5.0, $withService['average_stars']);
         $this->assertSame(1, $withService['ratings_count']);
         $this->assertStringContainsString('/img/photo_profile/reformas-buele.webp', (string) $withService['logo_url']);
-        $this->assertSame(url('/result_provider/' . $providerWithServices->id), $withService['provider_url']);
+        $this->assertSame(url('/result_provider/'.$providerWithServices->id), $withService['provider_url']);
 
         $withoutService = $items->get((int) $providerWithoutServices->id);
         $this->assertSame('Proveedor Sin Servicio', $withoutService['title']);
@@ -579,7 +601,7 @@ class PublicDiscoveryApiTest extends TestCase
             'service_type_id' => (int) $limpieza->id,
         ]);
 
-        $response = $this->getJson('/api/public/providers?sti=' . $cerrajeria->id . '&city=Barcelona');
+        $response = $this->getJson('/api/public/providers?sti='.$cerrajeria->id.'&city=Barcelona');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -597,7 +619,7 @@ class PublicDiscoveryApiTest extends TestCase
         return User::query()->create([
             'first_name' => 'Test',
             'last_name' => 'User',
-            'user_name' => 'user-' . md5($email),
+            'user_name' => 'user-'.md5($email),
             'email' => $email,
             'phone' => '600000000',
             'password' => Hash::make('password'),

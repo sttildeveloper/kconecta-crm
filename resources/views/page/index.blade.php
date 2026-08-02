@@ -18,7 +18,7 @@
                 <p class="home-hero__lead">Compara valoraciones, contacta y confirma profesionales verificados en pocos clics.</p>
 
                 <form class="home-search" action="{{ url('/result/services') }}" method="get" data-home-search>
-                    <input type="hidden" name="mode" value="1">
+                    <input type="hidden" name="mode" value="2">
                     <input type="hidden" name="latitude" value="" data-home-latitude>
                     <input type="hidden" name="longitude" value="" data-home-longitude>
                     <input type="hidden" name="city" value="" data-home-city>

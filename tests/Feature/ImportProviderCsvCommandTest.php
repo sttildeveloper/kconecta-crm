@@ -6,6 +6,7 @@ use App\Models\ProviderService;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Services\ProviderCsvImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -45,8 +46,8 @@ class ImportProviderCsvCommandTest extends TestCase
 
         $path = $this->makeCsv([
             'nombre_razon_social,direccion,whatsapp,landing_phone,email,tipos_servicios,categoria,ciudad,latitude,longitude',
-            'LiMPi,"Carrer de Buenaventura Munoz, 12, 08018 Barcelona",+34655427061,+34930000001,null,"Limpieza semanal del hogar; limpiezas a fondo",Limpieza a domicilio,Barcelona,41.390200,2.190300',
-            'Reformas Siguenza Arias SL,"Carrer de Mallorca, 51-53, Local 3, 08029 Barcelona",+34634256204,null,contacto@example.test,"Reformas integrales; cocinas; banos",Reformas integrales,Barcelona,41.384800,2.145100',
+            'LiMPi,"Carrer de Buenaventura Munoz, 12, 08018 Barcelona, España",+34655427061,+34930000001,null,"Limpieza semanal del hogar; limpiezas a fondo",Limpieza a domicilio,Barcelona,41.390200,2.190300',
+            'Reformas Siguenza Arias SL,"Carrer de Mallorca, 51-53, Local 3, 08029 Barcelona, España",+34634256204,null,contacto@example.test,"Reformas integrales; cocinas; banos",Reformas integrales,Barcelona,41.384800,2.145100',
         ]);
 
         try {
@@ -71,6 +72,9 @@ class ImportProviderCsvCommandTest extends TestCase
             $address = UserAddress::query()->where('user_id', (int) $provider->id)->first();
             $this->assertNotNull($address);
             $this->assertSame('Barcelona', $address->city);
+            $this->assertSame('Barcelona', $address->province);
+            $this->assertSame('Barcelona', $address->state);
+            $this->assertSame('España', $address->country);
             $this->assertSame('08018', $address->postal_code);
 
             $this->assertDatabaseHas('provider_services', [
@@ -194,6 +198,30 @@ class ImportProviderCsvCommandTest extends TestCase
 
             $this->assertDatabaseMissing('user', [
                 'user_name' => 'Proveedor Sin Coordenadas',
+            ]);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_import_blocks_geolocated_row_when_province_cannot_be_resolved(): void
+    {
+        ServiceType::query()->create(['name' => 'Pintura']);
+
+        $path = $this->makeCsv([
+            'nombre_razon_social,direccion,whatsapp,tipos_servicios,categoria,ciudad,latitude,longitude',
+            'Proveedor Ciudad Desconocida,"Calle Mayor, 10, España",+34611111112,"Pintura interior",Pintura,Ciudad Desconocida,40.100000,-3.100000',
+        ]);
+
+        try {
+            $result = app(ProviderCsvImportService::class)->analyzeFile($path, true);
+
+            $this->assertTrue($result['summary']['blocked']);
+            $this->assertSame(1, $result['summary']['missing_province']);
+            $this->assertSame(1, $result['summary']['skipped']);
+            $this->assertStringContainsString('Provincia no resuelta', $result['report'][0]['observaciones']);
+            $this->assertDatabaseMissing('user', [
+                'user_name' => 'Proveedor Ciudad Desconocida',
             ]);
         } finally {
             @unlink($path);

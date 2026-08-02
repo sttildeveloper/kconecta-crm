@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
 
 class ProviderCsvImportService
 {
+    private ?array $cityProvinceMap = null;
+
     public function analyzeFile(string $filePath, bool $commit = false, bool $updateExisting = false): array
     {
         if (! is_file($filePath)) {
@@ -37,6 +39,7 @@ class ProviderCsvImportService
             'conflicts' => 0,
             'unmapped' => 0,
             'missing_coordinates' => 0,
+            'missing_province' => 0,
             'errors' => 0,
             'blocked' => false,
         ];
@@ -69,6 +72,17 @@ class ProviderCsvImportService
             if (($normalized['latitude'] ?? null) === null || ($normalized['longitude'] ?? null) === null) {
                 $issues[] = 'Faltan coordenadas';
             }
+            $effectiveProvince = $normalized['province'] ?? null;
+            if ($effectiveProvince === null && $existing && $updateExisting) {
+                $effectiveProvince = UserAddress::query()
+                    ->where('user_id', (int) $existing->id)
+                    ->value('province');
+            }
+            if (($normalized['latitude'] ?? null) !== null
+                && ($normalized['longitude'] ?? null) !== null
+                && ! $this->isValidProvince($effectiveProvince)) {
+                $issues[] = 'Provincia no resuelta para proveedor con coordenadas';
+            }
             if ($action === 'conflict') {
                 $issues[] = 'Proveedor existente detectado; usa --update-existing para sincronizarlo';
             }
@@ -79,6 +93,9 @@ class ProviderCsvImportService
                 } elseif (in_array('Faltan coordenadas', $issues, true)) {
                     $summary['missing_coordinates']++;
                     $summary['blocked'] = true;
+                } elseif (in_array('Provincia no resuelta para proveedor con coordenadas', $issues, true)) {
+                    $summary['missing_province']++;
+                    $summary['blocked'] = true;
                 } elseif (empty($normalized['type_ids'])) {
                     $summary['unmapped']++;
                 } else {
@@ -86,6 +103,7 @@ class ProviderCsvImportService
                 }
                 $summary['skipped']++;
                 $report[] = $this->formatReportRow($normalized, $action, 'skip', $issues, $existing?->id);
+
                 continue;
             }
 
@@ -96,6 +114,7 @@ class ProviderCsvImportService
                 } else {
                     $summary['created']++;
                 }
+
                 continue;
             }
 
@@ -295,20 +314,14 @@ class ProviderCsvImportService
         $category = $this->cleanSpaces((string) ($this->normalizeNullableField((string) ($row['categoria'] ?? '')) ?? ''));
         $serviceList = $this->cleanSpaces((string) ($this->normalizeNullableField((string) ($row['tipos_servicios'] ?? '')) ?? ''));
         $city = $this->cleanSpaces((string) ($this->normalizeNullableField((string) ($row['ciudad'] ?? '')) ?? ''));
+        $providedProvince = $this->normalizeNullableField((string) ($row['provincia'] ?? ($row['province'] ?? '')));
 
         $postalCode = null;
         if (preg_match('/\b(\d{5})\b/u', $address, $matches)) {
             $postalCode = $matches[1];
         }
 
-        $addressParts = array_values(array_filter(array_map(
-            fn ($part) => $this->cleanSpaces($part),
-            explode(',', $address)
-        )));
-        $province = count($addressParts) > 1 ? end($addressParts) : null;
-        if ($province !== null && $city !== '' && $this->normalizeLabel($province) === $this->normalizeLabel($city)) {
-            $province = null;
-        }
+        $province = $this->resolveProvince($city, $providedProvince);
 
         $phone = $this->normalizePhone((string) ($row['whatsapp'] ?? ($row['telefono_movil'] ?? '')));
         $landlinePhone = $this->normalizePhone((string) ($row['landing_phone'] ?? ($row['telefono_fijo'] ?? '')));
@@ -334,7 +347,7 @@ class ProviderCsvImportService
             'city' => $city !== '' ? Str::limit($city, 100, '') : null,
             'province' => $province !== null ? Str::limit($province, 100, '') : null,
             'postal_code' => $postalCode,
-            'country' => 'Espana',
+            'country' => 'España',
             'category' => $category,
             'provider_title' => Str::limit($category !== '' ? $category : $companyName, 255, ''),
             'provider_description' => $serviceList !== '' ? Str::limit($serviceList, 65535, '') : null,
@@ -524,7 +537,7 @@ class ProviderCsvImportService
             return 'Coincide con el proveedor existente; no se detectan cambios efectivos';
         }
 
-        return 'Actualizara: ' . implode(', ', $changes);
+        return 'Actualizara: '.implode(', ', $changes);
     }
 
     private function formatCoordinatesSummary(array $row): string
@@ -537,7 +550,7 @@ class ProviderCsvImportService
 
         $quality = $row['coordinate_quality'] ?? null;
 
-        return trim($latitude . ', ' . $longitude . ($quality ? ' (' . $quality . ')' : ''));
+        return trim($latitude.', '.$longitude.($quality ? ' ('.$quality.')' : ''));
     }
 
     private function normalizePhone(string $value): ?string
@@ -553,7 +566,51 @@ class ProviderCsvImportService
             return null;
         }
 
-        return $hasPlus ? '+' . $digits : $digits;
+        return $hasPlus ? '+'.$digits : $digits;
+    }
+
+    private function resolveProvince(string $city, ?string $providedProvince): ?string
+    {
+        $normalizedCity = $this->normalizeLabel($city);
+        if ($normalizedCity !== '' && isset($this->getCityProvinceMap()[$normalizedCity])) {
+            return $this->getCityProvinceMap()[$normalizedCity];
+        }
+
+        if (! $this->isValidProvince($providedProvince)) {
+            return null;
+        }
+
+        return Str::limit($this->cleanSpaces((string) $providedProvince), 100, '');
+    }
+
+    private function getCityProvinceMap(): array
+    {
+        if ($this->cityProvinceMap !== null) {
+            return $this->cityProvinceMap;
+        }
+
+        $path = database_path('data/provider_city_provinces.json');
+        $contents = is_file($path) ? file_get_contents($path) : false;
+        $rows = $contents !== false ? json_decode($contents, true) : null;
+        if (! is_array($rows)) {
+            throw new \RuntimeException('No se pudo cargar el catalogo ciudad-provincia de proveedores.');
+        }
+
+        $this->cityProvinceMap = [];
+        foreach ($rows as $city => $province) {
+            $this->cityProvinceMap[$this->normalizeLabel((string) $city)] = (string) $province;
+        }
+
+        return $this->cityProvinceMap;
+    }
+
+    private function isValidProvince(?string $province): bool
+    {
+        if ($province === null || trim($province) === '') {
+            return false;
+        }
+
+        return ! in_array($this->normalizeLabel($province), ['espana', 'spain'], true);
     }
 
     private function normalizeLabel(string $value): string
@@ -618,6 +675,6 @@ class ProviderCsvImportService
             return false;
         }
 
-        return preg_match('/(?:^|\s)' . preg_quote($needle, '/') . '(?:$|\s)/u', $haystack) === 1;
+        return preg_match('/(?:^|\s)'.preg_quote($needle, '/').'(?:$|\s)/u', $haystack) === 1;
     }
 }

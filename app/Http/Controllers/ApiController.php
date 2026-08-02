@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreServiceRatingByCodeRequest;
+use App\Http\Requests\StoreServiceRatingRequest;
+use App\Http\Requests\StoreServiceWorkCodeRequest;
 use App\Models\CoverImage;
 use App\Models\MoreImage;
 use App\Models\PostVisit;
 use App\Models\Property;
 use App\Models\PropertyAddress;
-use App\Models\Video;
 use App\Models\PsEmailOwner;
 use App\Models\PsLinkCopied;
 use App\Models\PsMessagesReceived;
@@ -18,16 +20,13 @@ use App\Models\PsSharedFriends;
 use App\Models\PsViewsDetail;
 use App\Models\PsViewsSearch;
 use App\Models\PsWhatsappClicks;
-use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserFree;
-use App\Http\Requests\StoreServiceRatingByCodeRequest;
-use App\Http\Requests\StoreServiceRatingRequest;
-use App\Http\Requests\StoreServiceWorkCodeRequest;
+use App\Models\Video;
 use App\Services\EmailService;
 use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
@@ -224,12 +223,12 @@ class ApiController extends Controller
                 'u.email',
             ])
             ->map(function ($row) use ($user) {
-                $fullName = trim(((string) ($row->first_name ?? '')) . ' ' . ((string) ($row->last_name ?? '')));
+                $fullName = trim(((string) ($row->first_name ?? '')).' '.((string) ($row->last_name ?? '')));
                 $providerName = $fullName !== ''
                     ? $fullName
                     : (((string) ($row->user_name ?? '')) !== ''
                         ? (string) $row->user_name
-                        : (((string) ($row->email ?? '')) !== '' ? (string) $row->email : ('Proveedor #' . (int) $row->provider_user_id)));
+                        : (((string) ($row->email ?? '')) !== '' ? (string) $row->email : ('Proveedor #'.(int) $row->provider_user_id)));
                 $workCode = (string) (DB::table('service_work_codes')
                     ->where('provider_user_id', (int) $row->provider_user_id)
                     ->where('used_by_user_id', (int) $user->id)
@@ -267,7 +266,7 @@ class ApiController extends Controller
 
         if (mb_strlen($text) >= 3) {
             $provinceRows = PropertyAddress::query()
-                ->where('province', 'like', '%' . $text . '%')
+                ->where('province', 'like', '%'.$text.'%')
                 ->get(['province']);
 
             foreach ($provinceRows as $row) {
@@ -284,7 +283,7 @@ class ApiController extends Controller
         }
 
         $addressRows = PropertyAddress::query()
-            ->where('address', 'like', '%' . $text . '%')
+            ->where('address', 'like', '%'.$text.'%')
             ->get();
 
         $addressCounter = [];
@@ -342,7 +341,7 @@ class ApiController extends Controller
                 ->whereNotNull('longitude')
                 ->where('latitude', '<>', '')
                 ->where('longitude', '<>', '')
-                ->where('province', 'like', '%' . $text . '%')
+                ->where('province', 'like', '%'.$text.'%')
                 ->get(['province']);
 
             foreach ($provinceRows as $row) {
@@ -363,7 +362,7 @@ class ApiController extends Controller
             ->whereNotNull('longitude')
             ->where('latitude', '<>', '')
             ->where('longitude', '<>', '')
-            ->where('address', 'like', '%' . $text . '%')
+            ->where('address', 'like', '%'.$text.'%')
             ->get();
 
         $addressCounter = [];
@@ -457,10 +456,10 @@ class ApiController extends Controller
             $addressParts = explode(',', $address);
             $addressSeed = trim($addressParts[0]);
             $addressQuery->where(function ($query) use ($address, $addressSeed) {
-                $query->where('address', 'like', '%' . trim($address) . '%')
-                    ->orWhere('address', 'like', '%' . $addressSeed . '%')
-                    ->orWhere('province', 'like', '%' . $addressSeed . '%')
-                    ->orWhere('city', 'like', '%' . $addressSeed . '%');
+                $query->where('address', 'like', '%'.trim($address).'%')
+                    ->orWhere('address', 'like', '%'.$addressSeed.'%')
+                    ->orWhere('province', 'like', '%'.$addressSeed.'%')
+                    ->orWhere('city', 'like', '%'.$addressSeed.'%');
             });
             $addresses = $addressQuery->get();
         } else {
@@ -645,6 +644,7 @@ class ApiController extends Controller
             ->keyBy(fn ($row) => (int) $row->id);
 
         $addressFilter = trim($address);
+        $hasStructuredLocation = trim((string) $city) !== '' || trim((string) $province) !== '';
         $addressSeed = '';
         if ($addressFilter !== '') {
             $parts = explode(',', $addressFilter);
@@ -669,8 +669,8 @@ class ApiController extends Controller
             if (! empty($province) && strcasecmp($resolvedProvince, trim((string) $province)) !== 0) {
                 continue;
             }
-            if ($addressFilter !== '') {
-                $haystack = mb_strtolower($resolvedAddress . ' ' . $resolvedCity . ' ' . $resolvedProvince);
+            if ($addressFilter !== '' && ! $hasStructuredLocation) {
+                $haystack = mb_strtolower($resolvedAddress.' '.$resolvedCity.' '.$resolvedProvince);
                 $needleA = mb_strtolower($addressFilter);
                 $needleB = mb_strtolower($addressSeed);
                 if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
@@ -692,14 +692,14 @@ class ApiController extends Controller
                 ->values()
                 ->all();
 
-            $providerName = $provider->user_name ?: trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+            $providerName = $provider->user_name ?: trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
             $userLogoUrl = ! empty($provider->photo)
-                ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
+                ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null;
             $phone = $provider->phone ?: ($provider->mobile_phone ?: $provider->landline_phone);
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
-            $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio') : null;
+            $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio') : null;
 
             $dataProviders[$providerUserId] = [
                 'id' => $providerUserId,
@@ -725,7 +725,7 @@ class ApiController extends Controller
                 'service_type_ids' => $specialtyIds,
                 'service_types' => $specialties,
                 'has_public_service_detail' => false,
-                'provider_url' => url('/result_provider/' . $providerUserId),
+                'provider_url' => url('/result_provider/'.$providerUserId),
                 'published_service_count' => 0,
             ];
         }
@@ -802,9 +802,9 @@ class ApiController extends Controller
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->where('latitude', '<>', '')
-                ->where('longitude', '<>', '')
-                ->get()
-                ->keyBy(fn ($row) => (int) $row->user_id);
+            ->where('longitude', '<>', '')
+            ->get()
+            ->keyBy(fn ($row) => (int) $row->user_id);
 
         $serviceTypeIdsByProvider = app(ProviderServiceTypeService::class)->typeIdsForProviders($providerIds);
         $allServiceTypeIds = $serviceTypeIdsByProvider
@@ -861,7 +861,7 @@ class ApiController extends Controller
                 continue;
             }
             if ($address !== '') {
-                $haystack = mb_strtolower($candidateAddress . ' ' . $candidateCity . ' ' . $candidateProvince);
+                $haystack = mb_strtolower($candidateAddress.' '.$candidateCity.' '.$candidateProvince);
                 $needleA = mb_strtolower($address);
                 $needleB = mb_strtolower($addressSeed);
                 if (mb_stripos($haystack, $needleA) === false && ($needleB === '' || mb_stripos($haystack, $needleB) === false)) {
@@ -869,9 +869,9 @@ class ApiController extends Controller
                 }
             }
 
-            $providerName = $provider->user_name ?: trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+            $providerName = $provider->user_name ?: trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
             $logoUrl = ! empty($provider->photo)
-                ? asset('img/photo_profile/' . ltrim((string) $provider->photo, '/'))
+                ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null;
             $specialtyIds = $serviceTypeIdsByProvider->get($providerUserId, []);
             if (! empty($sti)) {
@@ -893,7 +893,7 @@ class ApiController extends Controller
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
             $whatsappUrl = $whatsappPhone !== ''
-                ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio')
+                ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
                 : null;
 
             $items[] = [
@@ -921,7 +921,7 @@ class ApiController extends Controller
                 'service_types' => $specialties,
                 'published_service_count' => 0,
                 'first_published_service_id' => null,
-                'provider_url' => url('/result_provider/' . $providerUserId),
+                'provider_url' => url('/result_provider/'.$providerUserId),
             ];
         }
 
@@ -959,18 +959,18 @@ class ApiController extends Controller
         $phone = $user?->phone ?: ($user?->mobile_phone ?: $user?->landline_phone);
         $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
         $whatsappPhone = ltrim((string) $cleanPhone, '+');
-        $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/' . $whatsappPhone . '?text=' . urlencode('Hola, me interesa tu servicio') : null;
+        $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio') : null;
 
         $gallery = $moreImages->map(function ($img) {
             return [
                 'id' => (int) $img->id,
-                'url' => ! empty($img->url) ? asset('img/uploads/' . ltrim((string) $img->url, '/')) : null,
+                'url' => ! empty($img->url) ? asset('img/uploads/'.ltrim((string) $img->url, '/')) : null,
             ];
         })->filter(fn ($item) => ! empty($item['url']))->values()->all();
 
         $title = $service->title;
         if (empty($title) && $user) {
-            $title = $user->user_name ?: trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+            $title = $user->user_name ?: trim(($user->first_name ?? '').' '.($user->last_name ?? ''));
         }
 
         $payload = [
@@ -981,9 +981,9 @@ class ApiController extends Controller
             'availability' => $service->availability,
             'page_url' => $service->page_url,
             'updated_at' => optional($service->updated_at)?->toISOString(),
-            'logo_url' => $user && ! empty($user->photo) ? asset('img/photo_profile/' . ltrim((string) $user->photo, '/')) : null,
-            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
-            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/' . ltrim((string) $video->url, '/')) : null,
+            'logo_url' => $user && ! empty($user->photo) ? asset('img/photo_profile/'.ltrim((string) $user->photo, '/')) : null,
+            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/'.ltrim((string) $cover->url, '/')) : null,
+            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/'.ltrim((string) $video->url, '/')) : null,
             'address' => $address?->address,
             'city' => $address?->city,
             'province' => $address?->province,
@@ -1043,6 +1043,7 @@ class ApiController extends Controller
         $rowId = $request->post('row_id');
         if (! empty($rowId)) {
             PostVisit::where('id', $rowId)->update(['contacted' => 1]);
+
             return $this->successResponse(['post_id' => $rowId], null, 'Visita marcada como contactada', 200, ['status' => 200, 'post_id' => $rowId]);
         }
 
@@ -1103,17 +1104,17 @@ class ApiController extends Controller
         $safeLink = htmlspecialchars((string) $propertyLink, ENT_QUOTES, 'UTF-8');
 
         $template = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-            . '<title>Correo Electronico de Consulta de Propiedad</title>'
-            . '<style>a{color:blue;}body{font-family: Arial, sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;line-height:1.6;}'
-            . '.container{max-width:600px;margin:20px auto;padding:20px;background-color:#fff;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}p{margin-bottom:16px;}'
-            . '.datos-contacto{margin-bottom:20px;padding:15px;border:1px solid #ddd;border-radius:8px;background-color:#f9f9f9;}'
-            . '.datos-contacto strong{color:#0078d7;}</style></head><body><div class="container"><div class="datos-contacto">'
-            . '<p><strong>Usuario:</strong> ' . $safeUserName . '</p>'
-            . '<p><strong>Correo:</strong> ' . $safeUserEmail . '</p>'
-            . '<p><strong>Mensaje:</strong> ' . $safeMessage . '</p>'
-            . '<a href="' . $safeLink . '" target="_blank">' . $safeLink . '</a>'
-            . '</div></div></body></html>';
+            .'<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            .'<title>Correo Electronico de Consulta de Propiedad</title>'
+            .'<style>a{color:blue;}body{font-family: Arial, sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;line-height:1.6;}'
+            .'.container{max-width:600px;margin:20px auto;padding:20px;background-color:#fff;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.1);}p{margin-bottom:16px;}'
+            .'.datos-contacto{margin-bottom:20px;padding:15px;border:1px solid #ddd;border-radius:8px;background-color:#f9f9f9;}'
+            .'.datos-contacto strong{color:#0078d7;}</style></head><body><div class="container"><div class="datos-contacto">'
+            .'<p><strong>Usuario:</strong> '.$safeUserName.'</p>'
+            .'<p><strong>Correo:</strong> '.$safeUserEmail.'</p>'
+            .'<p><strong>Mensaje:</strong> '.$safeMessage.'</p>'
+            .'<a href="'.$safeLink.'" target="_blank">'.$safeLink.'</a>'
+            .'</div></div></body></html>';
 
         $emailService = app(EmailService::class);
         $sent = $emailService->send((string) $providerEmail, 'Un usuario se ha contactado contigo', $template);
@@ -1143,21 +1144,21 @@ class ApiController extends Controller
 
         $safeLink = htmlspecialchars($propertyLink, ENT_QUOTES, 'UTF-8');
         $template = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-            . '<title>Mira este inmueble</title>'
-            . '<style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;background-color:#f4f4f4;margin:0;padding:0;}'
-            . '.container{max-width:600px;margin:20px auto;padding:20px;background-color:#ffffff;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);}'
-            . '.header{text-align:center;padding-bottom:20px;border-bottom:1px solid #eee;}'
-            . '.header h1{color:#0056b3;font-size:24px;margin:0;}.content{padding:20px 0;}'
-            . '.content p{margin-bottom:15px;}.button-container{text-align:center;padding:20px 0;}'
-            . '.button{display:inline-block;padding:12px 25px;background-color:#63c4ca;color:#ffffff;text-decoration:none;border-radius:5px;font-size:16px;}'
-            . '.footer{text-align:center;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#777;}</style></head><body>'
-            . '<div class="container"><div class="header"><h1>Mira este inmueble</h1></div><div class="content">'
-            . '<p>Hola,</p><p>Queria compartir contigo un inmueble que podria interesarte.</p>'
-            . '<p>Puedes ver todos los detalles en el siguiente enlace:</p>'
-            . '<div class="button-container"><a href="' . $safeLink . '" class="button" style="color:white;">Ver Inmueble</a></div>'
-            . '<p>Saludos,</p></div><div class="footer"><p>Este correo ha sido enviado porque un usuario compartio un inmueble.</p>'
-            . '<p>&copy; ' . date('Y') . ' Kconecta.</p></div></div></body></html>';
+            .'<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            .'<title>Mira este inmueble</title>'
+            .'<style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;background-color:#f4f4f4;margin:0;padding:0;}'
+            .'.container{max-width:600px;margin:20px auto;padding:20px;background-color:#ffffff;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);}'
+            .'.header{text-align:center;padding-bottom:20px;border-bottom:1px solid #eee;}'
+            .'.header h1{color:#0056b3;font-size:24px;margin:0;}.content{padding:20px 0;}'
+            .'.content p{margin-bottom:15px;}.button-container{text-align:center;padding:20px 0;}'
+            .'.button{display:inline-block;padding:12px 25px;background-color:#63c4ca;color:#ffffff;text-decoration:none;border-radius:5px;font-size:16px;}'
+            .'.footer{text-align:center;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#777;}</style></head><body>'
+            .'<div class="container"><div class="header"><h1>Mira este inmueble</h1></div><div class="content">'
+            .'<p>Hola,</p><p>Queria compartir contigo un inmueble que podria interesarte.</p>'
+            .'<p>Puedes ver todos los detalles en el siguiente enlace:</p>'
+            .'<div class="button-container"><a href="'.$safeLink.'" class="button" style="color:white;">Ver Inmueble</a></div>'
+            .'<p>Saludos,</p></div><div class="footer"><p>Este correo ha sido enviado porque un usuario compartio un inmueble.</p>'
+            .'<p>&copy; '.date('Y').' Kconecta.</p></div></div></body></html>';
 
         $emailService = app(EmailService::class);
         $emails = array_filter(array_map('trim', explode(',', $userEmails)));
