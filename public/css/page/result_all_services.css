@@ -748,6 +748,7 @@
     display: flex;
     flex-direction: column;
     background: #eef5fb;
+    position: relative;
 }
 
 .container-result-all.providers-results-page .container-properties .container-body-data-result .container-search-map-data .container-map-main-search {
@@ -790,6 +791,142 @@
 .container-result-all.providers-results-page .container-properties .container-body-data-result .container-search-map-data .container-map-main-search #map {
     width: 100%;
     min-height: 36rem;
+}
+
+.providers-results-page .map-cluster-panel {
+    position: absolute;
+    z-index: 20;
+    top: 5.25rem;
+    right: 1rem;
+    bottom: 1rem;
+    width: min(23rem, calc(100% - 2rem));
+    padding: 1rem;
+    border: 1px solid rgba(180, 207, 220, 0.9);
+    border-radius: 1.15rem;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 20px 50px rgba(25, 52, 78, 0.2);
+    backdrop-filter: blur(12px);
+}
+
+.providers-results-page .map-cluster-panel[hidden] {
+    display: none;
+}
+
+.providers-results-page .map-cluster-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e2edf2;
+}
+
+.providers-results-page .map-cluster-panel__header span {
+    display: block;
+    color: #078c98;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.providers-results-page .map-cluster-panel__header h3 {
+    margin: 0.2rem 0 0;
+    color: #183553;
+    font-size: 1.15rem;
+    line-height: 1.25;
+}
+
+.providers-results-page .map-cluster-panel__header button {
+    width: 2.2rem;
+    height: 2.2rem;
+    flex: 0 0 2.2rem;
+    border: 0;
+    border-radius: 50%;
+    background: #e8f7f8;
+    color: #087f8a;
+    cursor: pointer;
+    font-size: 1.55rem;
+    line-height: 1;
+}
+
+.providers-results-page .map-cluster-panel__intro {
+    margin: 0.75rem 0;
+    color: #62758c;
+    font-size: 0.85rem;
+}
+
+.providers-results-page .map-cluster-panel__list {
+    height: calc(100% - 7.2rem);
+    overflow-y: auto;
+    padding-right: 0.3rem;
+    scrollbar-color: #73c8ce #edf5f6;
+    scrollbar-width: thin;
+}
+
+.providers-results-page .map-cluster-provider {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #e8eff4;
+}
+
+.providers-results-page .map-cluster-provider:last-child {
+    border-bottom: 0;
+}
+
+.providers-results-page .map-cluster-provider > img {
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid #d9e7ed;
+    border-radius: 0.8rem;
+    background: #f4fbfb;
+    object-fit: contain;
+}
+
+.providers-results-page .map-cluster-provider__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.providers-results-page .map-cluster-provider__content strong {
+    color: #193450;
+    font-size: 0.94rem;
+    line-height: 1.25;
+}
+
+.providers-results-page .map-cluster-provider__location,
+.providers-results-page .map-cluster-provider__specialties {
+    width: 100%;
+    overflow: hidden;
+    color: #667b92;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.providers-results-page .map-cluster-provider__specialties {
+    color: #078b97;
+    font-weight: 700;
+}
+
+.providers-results-page .map-cluster-provider__rating {
+    color: #d88a00;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.providers-results-page .map-cluster-provider__content a {
+    margin-top: 0.25rem;
+    color: #078b97;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
 }
 
 .providers-results-page .container-map-main-search #map .gm-style-iw-chr {
@@ -1002,5 +1139,18 @@
 
     .providers-results-page .container-map-main-search #map {
         min-height: 24rem;
+    }
+
+    .providers-results-page .map-cluster-panel {
+        top: auto;
+        left: 0.65rem;
+        right: 0.65rem;
+        bottom: 0.65rem;
+        width: auto;
+        max-height: 75%;
+    }
+
+    .providers-results-page .map-cluster-panel__list {
+        max-height: 18rem;
     }
 }

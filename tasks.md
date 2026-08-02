@@ -973,3 +973,12 @@
 - [x] Focused public search/home suite: 18 tests, 179 assertions.
 - [ ] Validate cluster interaction and individual provider popups online after autodeploy.
 
+## Session Update (2026-08-02) - Stacked provider cluster panel
+
+- [x] Audited L'Hospitalet: 127 providers, 70 coordinate groups and 29 profiles on one exact point.
+- [x] Replaced automatic cluster zoom with a scrollable provider list panel.
+- [x] Added provider name, address, specialties, rating and profile link without shifting coordinates.
+- [x] Added close button, Escape support and responsive mobile presentation.
+- [x] Rendered map JavaScript passes `node --check`; focused regression passes.
+- [ ] Validate that online cluster count matches the number of rendered provider cards.
+

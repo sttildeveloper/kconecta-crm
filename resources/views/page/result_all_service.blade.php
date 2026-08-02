@@ -290,6 +290,17 @@
                                 <span class="results-map-toolbar__status"><?= $quantity ?> resultados</span>
                             </div>
                             <div id="map"></div>
+                            <aside class="map-cluster-panel" id="map-cluster-panel" hidden aria-live="polite">
+                                <header class="map-cluster-panel__header">
+                                    <div>
+                                        <span>Proveedores agrupados</span>
+                                        <h3 id="map-cluster-panel-title">Proveedores en esta zona</h3>
+                                    </div>
+                                    <button type="button" id="map-cluster-panel-close" aria-label="Cerrar lista de proveedores">&times;</button>
+                                </header>
+                                <p class="map-cluster-panel__intro">Selecciona un proveedor para consultar su ficha.</p>
+                                <div class="map-cluster-panel__list" id="map-cluster-panel-list"></div>
+                            </aside>
                         </section>
                     </div>
                 </div>
@@ -306,6 +317,7 @@
     const mapContainer = document.getElementById("map");
     if (mapContainer) {
         let map;
+        let googleMarkerClusterer;
         let usingLeaflet = false;
         let leafletMap;
         let leafletMarkers = [];
@@ -313,6 +325,95 @@
         let center_map = { lat: 40.4168, lng: -3.7038 };
         let data_temp = [];
         let preserveRequestedViewport = false;
+        const clusterPanel = document.getElementById("map-cluster-panel");
+        const clusterPanelTitle = document.getElementById("map-cluster-panel-title");
+        const clusterPanelList = document.getElementById("map-cluster-panel-list");
+        const clusterPanelClose = document.getElementById("map-cluster-panel-close");
+
+        const closeClusterPanel = () => {
+            if (clusterPanel) {
+                clusterPanel.hidden = true;
+            }
+        };
+
+        const appendClusterText = (parent, className, text) => {
+            if (!text) {
+                return;
+            }
+
+            const element = document.createElement("span");
+            element.className = className;
+            element.textContent = text;
+            parent.appendChild(element);
+        };
+
+        const renderClusterPanel = (locations) => {
+            if (!clusterPanel || !clusterPanelTitle || !clusterPanelList) {
+                return;
+            }
+
+            const providers = [...locations].sort((left, right) =>
+                String(left.title || "Proveedor").localeCompare(String(right.title || "Proveedor"), "es")
+            );
+            clusterPanelTitle.textContent = `${providers.length} proveedores en esta zona`;
+            clusterPanelList.replaceChildren();
+
+            providers.forEach((provider) => {
+                const card = document.createElement("article");
+                card.className = "map-cluster-provider";
+
+                if (provider.logo_url) {
+                    const logo = document.createElement("img");
+                    logo.src = provider.logo_url;
+                    logo.alt = "";
+                    logo.loading = "lazy";
+                    card.appendChild(logo);
+                }
+
+                const content = document.createElement("div");
+                content.className = "map-cluster-provider__content";
+                const name = document.createElement("strong");
+                name.textContent = provider.title || "Proveedor";
+                content.appendChild(name);
+
+                const locationLabel = [provider.address, provider.city]
+                    .map((value) => String(value || "").trim())
+                    .filter(Boolean)
+                    .filter((value, index, values) => values.indexOf(value) === index)
+                    .join(" · ");
+                appendClusterText(content, "map-cluster-provider__location", locationLabel);
+
+                const specialties = Array.isArray(provider.specialties)
+                    ? provider.specialties.map((specialty) => specialty?.name).filter(Boolean).slice(0, 3).join(" · ")
+                    : "";
+                appendClusterText(content, "map-cluster-provider__specialties", specialties);
+
+                if (Number(provider.ratings_count || 0) > 0) {
+                    appendClusterText(
+                        content,
+                        "map-cluster-provider__rating",
+                        `${Number(provider.average_stars || 0).toFixed(1)} ★ · ${Number(provider.ratings_count)} valoraciones`
+                    );
+                }
+
+                const link = document.createElement("a");
+                link.href = provider.provider_url || `/result_provider/${provider.provider_user_id}`;
+                link.textContent = "Ver ficha";
+                content.appendChild(link);
+                card.appendChild(content);
+                clusterPanelList.appendChild(card);
+            });
+
+            clusterPanel.hidden = false;
+            clusterPanelList.scrollTop = 0;
+        };
+
+        clusterPanelClose?.addEventListener("click", closeClusterPanel);
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeClusterPanel();
+            }
+        });
 
         const getValidMapLocations = () => {
             return data_temp
@@ -510,6 +611,7 @@
 
             let activeInfoWindow = null;
             const googleMarkers = [];
+            const providerByMarker = new WeakMap();
             // Agregar marcadores al mapa
             data_temp.forEach((location) => {
                 if (location.lat && location.lng){
@@ -545,6 +647,7 @@
         
                     // Mostrar InfoWindow al hacer clic en el marcador
                     marker.addListener("click", () => {
+                        closeClusterPanel();
                         if (activeInfoWindow) {
                             activeInfoWindow.close();
                         }
@@ -554,6 +657,7 @@
                         activeInfoWindow = infoWindow;
                     });
 
+                    providerByMarker.set(marker, location);
                     googleMarkers.push(marker);
                 }
             });
@@ -590,11 +694,17 @@
                     ? new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })
                     : undefined;
 
-                new window.markerClusterer.MarkerClusterer({
+                googleMarkerClusterer = new window.markerClusterer.MarkerClusterer({
                     map,
                     markers: googleMarkers,
                     renderer: clusterRenderer,
                     ...(algorithm ? { algorithm } : {}),
+                    onClusterClick: (event, cluster) => {
+                        const providers = cluster.markers
+                            .map((marker) => providerByMarker.get(marker))
+                            .filter(Boolean);
+                        renderClusterPanel(providers);
+                    },
                 });
             } else {
                 googleMarkers.forEach((marker) => marker.setMap(map));

@@ -169,3 +169,11 @@ los proveedores individuales mantienen el marcador de la marca y su ficha.
 La agrupacion utiliza `@googlemaps/markerclusterer` con version fijada y conserva un
 fallback a marcadores individuales si el recurso externo no esta disponible. El
 fallback Leaflet mantiene igualmente el centro y zoom de la busqueda.
+
+Algunos proveedores comparten coordenadas aproximadas. En la prueba de
+L'Hospitalet, 29 perfiles usan exactamente `41.366200, 2.116500`; aumentar el zoom
+no puede separarlos y dibujar los iconos individualmente los superpondria. Por ese
+motivo, el clic sobre cualquier agrupacion abre un panel con los proveedores del
+circulo, sus datos principales y el enlace a cada ficha. El clic no desplaza
+coordenadas ni ejecuta zoom automatico. El panel se puede cerrar con su boton o con
+la tecla Escape y se adapta como bandeja inferior en movil.

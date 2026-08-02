@@ -475,8 +475,11 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertSee('window.history.replaceState', false)
             ->assertDontSee('window.history.pushState', false)
             ->assertSee('@googlemaps/markerclusterer@2.6.2', false)
-            ->assertSee('new window.markerClusterer.MarkerClusterer', false)
+            ->assertSee('googleMarkerClusterer = new window.markerClusterer.MarkerClusterer', false)
             ->assertSee('new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })', false)
+            ->assertSee('id="map-cluster-panel"', false)
+            ->assertSee('renderClusterPanel(providers)', false)
+            ->assertSee('onClusterClick:', false)
             ->assertSee('zoom = Math.max(13, zoom || 13)', false);
     }
 
