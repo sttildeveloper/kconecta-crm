@@ -428,7 +428,7 @@
         function actualizarParametro(parametro, valor) {
             let url = new URL(window.location.href);
             url.searchParams.set(parametro, valor); // Agrega o actualiza el parametro
-            window.history.pushState({}, "", url); // Modifica la URL sin recargar
+            window.history.replaceState({}, "", url); // Mantiene una sola entrada para que Atrás regrese al origen
         }
 
         function initGoogleMap() {

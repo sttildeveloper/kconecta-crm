@@ -28,6 +28,7 @@ use App\Models\UserAddress;
 use App\Models\UserFree;
 use App\Models\Video;
 use App\Services\EmailService;
+use App\Services\ProviderLocationSearchService;
 use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
 use Illuminate\Http\Request;
@@ -543,6 +544,12 @@ class ApiController extends Controller
         $address = (string) $request->query('address');
         $city = $request->query('city');
         $province = $request->query('province');
+        $latitude = $request->query('latitude');
+        $longitude = $request->query('longitude');
+        $locationSearch = app(ProviderLocationSearchService::class);
+        $hasStructuredLocation = trim((string) $city) !== '' || trim((string) $province) !== '';
+        $hasSearchCoordinates = ! $hasStructuredLocation
+            && $locationSearch->hasValidCoordinates($latitude, $longitude);
 
         $serviceTypeIds = [];
         if (! empty($sti)) {
@@ -577,6 +584,19 @@ class ApiController extends Controller
 
         if (! empty($providerIdsForTypes ?? [])) {
             $providerQuery->whereIn('id', $providerIdsForTypes);
+        }
+
+        if ($hasSearchCoordinates) {
+            $nearbyProviderIds = $locationSearch->providerIdsWithinRadius(
+                (float) $latitude,
+                (float) $longitude
+            );
+
+            if (! empty($nearbyProviderIds)) {
+                $providerQuery->whereIn('id', $nearbyProviderIds);
+            } else {
+                $providerQuery->where('id', 0);
+            }
         }
 
         $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone'];
@@ -644,7 +664,6 @@ class ApiController extends Controller
             ->keyBy(fn ($row) => (int) $row->id);
 
         $addressFilter = trim($address);
-        $hasStructuredLocation = trim((string) $city) !== '' || trim((string) $province) !== '';
         $addressSeed = '';
         if ($addressFilter !== '') {
             $parts = explode(',', $addressFilter);
@@ -669,7 +688,7 @@ class ApiController extends Controller
             if (! empty($province) && strcasecmp($resolvedProvince, trim((string) $province)) !== 0) {
                 continue;
             }
-            if ($addressFilter !== '' && ! $hasStructuredLocation) {
+            if ($addressFilter !== '' && ! $hasStructuredLocation && ! $hasSearchCoordinates) {
                 $haystack = mb_strtolower($resolvedAddress.' '.$resolvedCity.' '.$resolvedProvince);
                 $needleA = mb_strtolower($addressFilter);
                 $needleB = mb_strtolower($addressSeed);

@@ -43,5 +43,8 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'maps_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
+    'provider_search' => [
+        'radius_km' => env('PROVIDER_SEARCH_RADIUS_KM', 30),
+    ],
 
 ];

@@ -405,6 +405,52 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('data.0.province', 'Barcelona');
     }
 
+    public function test_coordinates_find_nearby_providers_when_google_does_not_return_city_or_province(): void
+    {
+        $nearbyProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-near-postcode@test.dev');
+        $nearbyProvider->forceFill(['user_name' => 'Proveedor Cercano'])->save();
+        UserAddress::query()->create([
+            'user_id' => (int) $nearbyProvider->id,
+            'address' => 'Carrer de Sants 100',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'latitude' => '41.3750',
+            'longitude' => '2.1350',
+        ]);
+
+        $farProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-far-postcode@test.dev');
+        $farProvider->forceFill(['user_name' => 'Proveedor Lejano'])->save();
+        UserAddress::query()->create([
+            'user_id' => (int) $farProvider->id,
+            'address' => 'Gran Via 1',
+            'city' => 'Madrid',
+            'province' => 'Madrid',
+            'latitude' => '40.4168',
+            'longitude' => '-3.7038',
+        ]);
+
+        $query = 'address=08029&latitude=41.3828&longitude=2.1453&city=&province=';
+
+        $this->get('/result/services?mode=1&'.$query)
+            ->assertOk()
+            ->assertSee('Proveedor Cercano')
+            ->assertDontSee('Proveedor Lejano');
+
+        $this->getJson('/api/services_for_map?'.$query)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.provider_user_id', (int) $nearbyProvider->id);
+    }
+
+    public function test_map_state_does_not_add_history_entries_that_block_browser_back(): void
+    {
+        $response = $this->get('/result/services?mode=2');
+
+        $response->assertOk()
+            ->assertSee('window.history.replaceState', false)
+            ->assertDontSee('window.history.pushState', false);
+    }
+
     public function test_services_for_map_includes_provider_without_service_when_contact_and_coordinates_exist(): void
     {
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-no-service-map@test.dev');

@@ -47,6 +47,7 @@ use App\Models\UserAddress;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
 use App\Models\WheeledAccess;
+use App\Services\ProviderLocationSearchService;
 use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
 use Carbon\Carbon;
@@ -490,6 +491,8 @@ class PageController extends Controller
         $latitude = $request->query('latitude');
         $longitude = $request->query('longitude');
         $zoom = $request->query('zoom');
+        $locationSearch = app(ProviderLocationSearchService::class);
+        $hasSearchCoordinates = $locationSearch->hasValidCoordinates($latitude, $longitude);
 
         $providerIdsForTypes = [];
         $hasServiceTypeFilter = ! empty($sti);
@@ -530,6 +533,14 @@ class PageController extends Controller
             }
 
             $ids = $addressQuery->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+            if (! empty($ids)) {
+                $providersQuery->whereIn('id', $ids);
+            } else {
+                $providersQuery->where('id', 0);
+            }
+        } elseif ($hasSearchCoordinates) {
+            $ids = $locationSearch->providerIdsWithinRadius((float) $latitude, (float) $longitude);
+
             if (! empty($ids)) {
                 $providersQuery->whereIn('id', $ids);
             } else {
