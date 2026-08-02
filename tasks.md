@@ -1,6 +1,6 @@
 # Kconecta CRM - Tasks
 
-## Plan activo (2026-07-31) - Refactor del home público
+## Plan historico (2026-07-31) - Refactor del home público
 - [x] Alcance funcional y técnico documentado en `HOME_REFACTOR_PLAN.md`.
 - [x] Recursos `hero-bg.webp` e `img-review-1.webp` a `img-review-3.webp` migrados a `public/img`.
 - [x] Incorporar los tres artículos publicados más recientes en `PageController@index`.
@@ -11,7 +11,7 @@
 - [x] Ampliar pruebas de home, blog, registro y ubicación.
 - [x] Ejecutar QA local en escritorio y móvil.
 - [x] Presentar capturas locales para revisión JM/Gala.
-- [ ] No ejecutar `commit`, `push` ni despliegue sin autorización expresa.
+- [x] Autorizacion expresa recibida; commit, push y despliegue completados.
 
 ## Regla Canonica - Proveedor de Servicios
 - El `Proveedor de servicios` no publica servicios individuales.
@@ -874,16 +874,16 @@
 - [x] Enabled `Maps JavaScript API`, `Places API`, `Places API (New)` and `Geocoding API` for the browser key.
 - [x] Configured the browser key locally as `GOOGLE_MAPS_API_KEY` without changing either mobile Android key.
 - [x] Browser validation: `08029` returns `08029 Barcelona`; selection resolves city, province, latitude and longitude and submits to `/result/services`.
-- [ ] Import a fresh production dump before changing geographic result matching.
-- [ ] Change the home result mode from list (`mode=1`) to map (`mode=2`) after validating against production data.
-- [ ] Replace literal selected-address matching with coordinate-aware discovery, retaining text and OpenStreetMap fallbacks.
+- [x] Imported a fresh production dump before changing geographic result matching.
+- [x] Changed the home result mode from list (`mode=1`) to map (`mode=2`).
+- [x] Replaced literal-only matching with coordinate-aware discovery while retaining fallbacks.
 - [ ] Revalidate explicit geolocation, map markers, service filters and non-Google fallback end to end against the imported data.
 
 ### Delivery state
 
 - [x] Search audit and current behavior documented.
 - [x] Local commit requested after focused regression and secret audit.
-- [ ] No push or deployment until explicit authorization.
+- [x] Authorization received; push and deployment completed on 2026-08-02.
 
 ## Session Update (2026-08-01) - Local provider geography sanitation
 
@@ -903,11 +903,20 @@
 - [x] Fixed the CSV importer last so future imports cannot store a country as province.
 - [x] Import rows with coordinates are blocked when no valid province can be resolved.
 - [x] Complete regression suite passes: 142 tests / 876 assertions.
-- [ ] Do not upload the local database wholesale; production sanitation requires a fresh backup and explicit authorization.
-- [ ] No push, autodeploy or production data mutation has been authorized.
+- [x] Local database was not uploaded wholesale; production used a fresh backup and the transactional command.
+- [x] Push, autodeploy and production sanitation were explicitly authorized.
 - [x] Fresh production backup created and verified on 2026-08-02 before sanitation dry-run.
 - [x] Production backup checksum: `e8a72eec0b5c14360bda89c858c32a652cc4edb651f22df23ce42f9dcaccf397`.
 - [x] Installed only the sanitation command and city catalog in the active production container; no autodeploy was triggered.
 - [x] Production dry-run matches local audit: 2,903 providers, 2,895 pending normalizations, 8 incomplete, 0 unresolved cities.
-- [ ] `--apply` remains pending explicit authorization; production data is unchanged.
+- [x] Explicit authorization received and a second fresh backup was verified before `--apply`.
+- [x] Production `--apply` normalized 2,895 addresses transactionally.
+- [x] Post-apply dry-run: 2,903 providers, 8 incomplete, 0 unresolved and 0 pending.
+- [x] Dedicated web Google key persisted in Dokploy and verified from production.
+- [x] Coordinate search fallback implemented for empty city/province responses.
+- [x] Browser history fixed with `replaceState`; Back returns to the home.
+- [x] Commit `52854d7` pushed, autodeployed and smoke-tested.
+- [x] Final suite: 146 tests / 1,382 assertions.
+- [ ] Pending manual business QA: geolocation allow/deny, marker/contact review and
+  explicit Leaflet fallback validation.
 

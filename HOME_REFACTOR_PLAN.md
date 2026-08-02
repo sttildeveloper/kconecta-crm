@@ -1,7 +1,19 @@
 # Plan de refactor del home público de Kconecta
 
 Fecha de definición: 2026-07-31
-Estado: implementado y validado en local, sin `commit`, `push` ni despliegue.
+Estado historico: implementado y validado en local el 2026-07-31.
+Estado final: desplegado y validado en produccion el 2026-08-02.
+
+Release final:
+
+- busqueda conectada con `/result/services` y `/api/services_for_map`;
+- Google Places web operativo con clave restringida por HTTP referrers;
+- busqueda por proximidad cuando faltan ciudad/provincia y existen coordenadas;
+- saneamiento geografico productivo completado;
+- historial del mapa corregido para permitir regresar al home;
+- commit funcional `52854d7`;
+- 146 pruebas y 1.382 aserciones correctas;
+- detalle operativo en `docs/public-provider-search.md`.
 
 ## 1. Objetivo de producto
 
@@ -187,4 +199,4 @@ BlogPost::query()
 - [x] Levantar entorno local y ejecutar QA.
 - [x] Presentar el resultado local para revisión de JM/Gala.
 - [x] Aplicar ajustes de revisión técnica orquestada.
-- [ ] Solicitar autorización antes de cualquier commit o despliegue.
+- [x] Autorizacion recibida; commit, push, autodeploy y verificacion completados.

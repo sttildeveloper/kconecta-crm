@@ -57,3 +57,22 @@ Este es el centro de orquestación para la nueva App en **React Native** consumi
 - **Estilos:** NativeWind (Tailwind CSS).
 - **Navegación:** Expo Router (basado en carpetas).
 - **Estado/API:** TanStack Query + Zustand.
+
+---
+
+## Checkpoint web CRM - 2026-08-02
+
+### Finalizado
+
+- [x] Home publico desplegado para buscar proveedores sin registro.
+- [x] Google Places web operativo con credencial separada de Android/iOS.
+- [x] Resultados por coordenadas en `/result/services` y `/api/services_for_map`.
+- [x] Saneamiento productivo de 2.895 direcciones.
+- [x] Historial del mapa corregido.
+- [x] Commit `52854d7` desplegado y suite 146/1.382 en verde.
+
+### Por hacer
+
+- [ ] QA manual de geolocalizacion permitida/denegada.
+- [ ] QA del fallback Leaflet y acciones de contacto.
+- [ ] Validar con negocio el radio por defecto de 30 km.

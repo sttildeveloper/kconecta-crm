@@ -2,6 +2,25 @@
 
 CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 
+## Current Production Checkpoint (2026-08-02)
+
+- El home publico permite buscar y contactar proveedores sin registro.
+- El registro de cliente solo es obligatorio para valorar proveedores.
+- El home usa Google Places y envia direccion, servicio y coordenadas a la pagina
+  existente `/result/services` en modo mapa.
+- Cuando Google no entrega ciudad/provincia, la busqueda usa proximidad por
+  coordenadas con un radio configurable de 30 km.
+- El boton Atrás del navegador vuelve al home; el mapa ya no llena el historial.
+- La clave web de Google esta activa en Dokploy y separada de las claves nativas.
+- La base productiva tiene 2.895 proveedores geolocalizados saneados, 0 ciudades
+  sin resolver y 0 direcciones pendientes.
+- Ocho perfiles sin coordenadas permanecen fuera del buscador hasta completar su
+  ubicacion, conforme a la regla de registro de proveedor sin direccion obligatoria.
+- Release desplegado: `52854d7`.
+- Validacion: 146 pruebas y 1.382 aserciones correctas.
+- Documento tecnico: [docs/public-provider-search.md](./docs/public-provider-search.md).
+- Runbook geografico: [docs/provider-address-sanitization.md](./docs/provider-address-sanitization.md).
+
 ## Provider Canonical Rule
 - El `Proveedor de servicios` no publica servicios individuales.
 - El proveedor:
@@ -203,6 +222,8 @@ docker exec kconecta-crm-b8ejyl.1.uhlwrkdsmasxw6hmpnkio19y3 sh -lc 'mysql -u"$MY
 Para que el flujo de direcciones funcione en local y produccion:
 - Variable de entorno:
 - `GOOGLE_MAPS_API_KEY`
+- Radio de busqueda publica:
+- `PROVIDER_SEARCH_RADIUS_KM` (default `30`)
 - APIs requeridas en Google Cloud:
 - `Maps JavaScript API`
 - `Places API`
@@ -250,8 +271,11 @@ Notas:
 - Guia detallada: [VERSIONING.md](./VERSIONING.md)
 
 ## Current Priorities
-- completar la validacion visual y funcional del nuevo home de servicios implementado localmente el `2026-07-26`
-- mantener el desarrollo del home en local hasta recibir aprobacion expresa para `commit`/`push`
+- completar QA manual de geolocalizacion permitida/denegada, marcadores y contactos
+- validar expresamente el fallback Leaflet/OpenStreetMap en produccion
+- decidir con negocio si el radio publico predeterminado de 30 km debe ajustarse
+- completar la ubicacion de los 8 perfiles no publicables sin inventar coordenadas
+- revisar la navegacion visual legacy de la pagina de resultados
 - continuar el trabajo con revision orquestada entre DeepSeek, Mistral, Gemma y Qwen, usando contextos pequenos y responsabilidades separadas
 - endurecer seguridad del flujo de autenticacion legacy
 - alinear mensaje/limite real de video y preparar compresion frontend
@@ -273,7 +297,9 @@ Endpoints de registro nativo disponibles para la App Móvil:
 
 ## Local Home Redesign Checkpoint (2026-07-26)
 
-Estado: implementado y validado en local; pendiente de revisión final de negocio. No se realizó `commit`, `push` ni despliegue.
+Estado historico: implementado y validado inicialmente en local. El release fue
+autorizado, desplegado y validado en produccion el 2026-08-02; consultar el
+checkpoint superior y `docs/public-provider-search.md`.
 
 El home público `/` se ha sustituido por el diseño aprobado orientado a profesionales de reformas, mantenimiento y reparaciones:
 

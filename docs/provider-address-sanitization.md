@@ -88,3 +88,38 @@ Resultado de `php artisan providers:sanitize-addresses` en produccion, sin `--ap
 - Direcciones por normalizar: 2.895.
 
 No se modificaron filas, no se reemplazo la base, no se hizo `push` y no se ejecuto `--apply`. La instalacion aislada desaparecera en el siguiente redeploy; el despliegue permanente debe realizarse posteriormente mediante el flujo versionado.
+
+## Aplicacion productiva completada el 2026-08-02
+
+El estado anterior corresponde al primer dry-run y queda conservado como evidencia
+historica. Posteriormente se recibio autorizacion expresa y se completo el flujo:
+
+1. Se publico el comando y el catalogo versionados en `main`.
+2. Se creo un segundo backup fresco inmediatamente antes del `--apply`.
+3. Se ejecuto una simulacion final: 2.895 pendientes y 0 ciudades sin resolver.
+4. Se ejecuto `php artisan providers:sanitize-addresses --apply`.
+5. Se normalizaron 2.895 direcciones dentro de la transaccion.
+6. La simulacion posterior confirmo 0 pendientes y 0 ciudades sin resolver.
+
+Backup previo a la escritura:
+
+- VPS: `/root/kconecta_backups/20260802_1110_pre_provider_sanitize_apply/db_production.sql.gz`.
+- Copia local: `backups/20260802_1110_pre_provider_sanitize_apply/db_production.sql.gz`.
+- Tamano: 554.266 bytes.
+- SHA-256: `27a76f55c1b128b00113d72621d4a8b07dd927bd56957f455ae7df6b08e80d7f`.
+- Checksum remoto/local: coincidente.
+
+Estado final productivo:
+
+- Proveedores: 2.903.
+- Direcciones: 2.903.
+- Perfiles incompletos no publicables: 8.
+- Ciudades sin resolver: 0.
+- Direcciones por normalizar: 0.
+
+Los ocho perfiles incompletos no son un error de saneamiento. Se conservan sin
+ubicacion hasta que el proveedor complete su perfil y permanecen excluidos de la
+busqueda geografica.
+
+El importador endurecido y el comando ya forman parte del despliegue permanente.
+No es necesario copiar archivos manualmente al contenedor en futuras ejecuciones.

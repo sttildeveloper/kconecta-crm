@@ -1,13 +1,28 @@
 ﻿# Kconecta CRM - Roadmap
 
-## Plan activo (2026-07-31) - Refactor del home público
+## Plan activo (2026-08-02) - Estabilizacion posterior al release publico
+
+- Release de busqueda publica desplegado en `main`: `52854d7`.
+- Completado: Google Places web, busqueda por proximidad, mapa/lista consistentes,
+  historial del navegador y saneamiento geografico productivo.
+- Completado: 2.895 direcciones normalizadas, 0 ciudades sin resolver y 0 cambios
+  pendientes; 8 perfiles incompletos permanecen no publicables.
+- Completado: 146 pruebas y 1.382 aserciones, autodeploy y smoke tests online.
+- Siguiente hito: QA manual de negocio sobre ubicacion, filtros, contactos y radio.
+- Siguiente hito tecnico: revisar navegacion visual legacy de resultados y validar
+  expresamente el fallback Leaflet.
+- Este checkpoint reemplaza las restricciones historicas que indicaban que no habia
+  autorizacion de push, despliegue o saneamiento.
+- Documento maestro del flujo: `docs/public-provider-search.md`.
+
+## Plan historico (2026-07-31) - Refactor del home público
 - Documento maestro: `HOME_REFACTOR_PLAN.md`.
 - Objetivo: alinear el home con el nuevo diseño aprobado y convertirlo en la entrada pública para buscar y contactar proveedores sin registro.
 - Alcance principal: hero, servicios destacados, proceso, reseñas, tres artículos recientes del blog, captación de proveedores y footer.
 - Regla de blog: mostrar los tres artículos publicados más recientes por `created_at DESC`, con enlace a `/blogs`.
 - Regla de proveedor: registro inicial sin dirección; gestión de ubicación y coordenadas después de verificar el correo.
-- Estado: implementación y QA técnico local completados; pendiente revisión final de negocio.
-- Restricción operativa: sin `commit`, `push` ni despliegue hasta aprobación expresa.
+- Estado historico: implementacion y QA tecnico local completados en ese checkpoint.
+- Estado posterior: autorizacion, commit, push y despliegue completados el 2026-08-02.
 
 ## Regla Canonica - Proveedor de Servicios
 - El `Proveedor de servicios` no publica servicios individuales.
@@ -411,7 +426,7 @@
 - 403 ROLE_NOT_ALLOWED for non-final-client roles.
 - Regression coverage extended in ServiceRatingsApiTest; suite is green after changes.
 
-## Status Update (2026-07-26) - Public services home local milestone
+## Historical Status (2026-07-26) - Public services home local milestone
 
 - Nuevo home público de servicios y profesionales implementado en local.
 - Usa el modelo canónico: proveedor, ficha única, `provider_services`, dirección y valoraciones reales.
@@ -438,7 +453,7 @@
 
 `qwen3.5:9b` está instalado, pero su integración en el orquestador Laravel sigue pendiente. No debe considerarse worker activo hasta configurar y probarlo. Máximo seis rutas relevantes por worker.
 
-## Status Update (2026-08-01) - Public search continuity confirmed
+## Historical Status (2026-08-01) - Public search continuity confirmed
 
 - The public provider discovery flow from the July 16 reference remains present and operational.
 - `/result/services` renders the public list/map experience without requiring authentication.
@@ -449,7 +464,8 @@
 - Mobile and web keys must remain separate: Android restrictions for the native key, HTTP-referrer restrictions for the CRM browser key.
 - Focused regression status: `13` tests, `152` assertions, all passing.
 - Browser QA resolves `08029 Barcelona` to valid coordinates and submits address plus service to `/result/services`.
-- Production still uses the former Android-restricted key; no production environment change has been made.
+- At this checkpoint production still used the former Android-restricted key. This
+  was superseded on 2026-08-02 by the dedicated web key in Dokploy.
 - Current local data exposed a pending behavior gap: literal address matching can return zero providers even with valid selected coordinates.
 
 ### Next milestone
@@ -460,7 +476,7 @@
 4. Validate explicit geolocation, Google map rendering and forced Leaflet fallback.
 5. Repeat regression tests and browser QA before requesting authorization to push.
 
-## Status Update (2026-08-01) - Geography sanitation validated locally
+## Historical Status (2026-08-01) - Geography sanitation validated locally
 
 - A fresh production snapshot is running locally; production remains untouched.
 - All 2,895 geolocated providers now have canonical province/state/country values.
@@ -472,5 +488,6 @@
 - Importer hardened: country suffixes are no longer interpreted as provinces and unresolved geolocated rows fail closed.
 - Complete regression passes: 142 tests / 876 assertions.
 - Next: prepare a production dry run backed by a new production backup, only after explicit authorization.
-- Production must not be replaced with the current local dump; no push or deployment is authorized.
+- Production was not replaced with the local dump. Authorization was later received
+  for the versioned command, backup, `--apply`, push and deployment on 2026-08-02.
 

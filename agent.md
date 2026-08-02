@@ -763,3 +763,23 @@ Operate and evolve `kconecta-crm` with focus on:
 - Testimonios: contenido editorial local pendiente de validación por negocio antes de producción.
 - Sin `commit`, `push` ni despliegue.
 
+## ACTIVE CONTEXT - 2026-08-02 (supersedes prior local-only checkpoints)
+
+- El home y la busqueda publica estan desplegados en produccion.
+- Cualquier nota anterior que indique `sin push`, `produccion intacta`, clave solo
+  local o `--apply` pendiente es historica y no describe el estado actual.
+- Commit funcional desplegado: `52854d7`.
+- Google Places web: clave dedicada persistida en Dokploy, referrers web y APIs
+  requeridas verificados; sugerencias para `08029` responden HTTP `200`.
+- Discovery: ciudad/provincia estructurada tiene prioridad; si faltan y existen
+  coordenadas, lista y mapa buscan en 30 km mediante
+  `ProviderLocationSearchService`.
+- Historial: el mapa usa `replaceState`; el boton Atrás regresa al home.
+- Produccion saneada: 2.903 proveedores, 2.895 geolocalizados normalizados, 8
+  incompletos no publicables, 0 ciudades sin resolver y 0 pendientes.
+- Backup previo al apply y checksum documentados en
+  `docs/provider-address-sanitization.md`.
+- Suite final: 146 pruebas / 1.382 aserciones.
+- Pendiente: QA manual de permisos de ubicacion, fallback Leaflet, contactos y radio.
+- Fuente tecnica canonica: `docs/public-provider-search.md`.
+

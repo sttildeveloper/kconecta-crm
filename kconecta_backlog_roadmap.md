@@ -422,3 +422,19 @@ El roadmap propuesto proporciona a Kconecta una vía de crecimiento segura y pre
 - Agente principal: merge y validación.
 - No duplicar tareas salvo revisión crítica deliberada.
 - Máximo seis rutas de contexto por worker.
+
+## Release checkpoint (2026-08-02) - Busqueda publica y geografia
+
+- [x] Nuevo home publicado y conectado con resultados existentes.
+- [x] Google Places web separado de las credenciales nativas.
+- [x] Busqueda publica por coordenadas y radio de 30 km.
+- [x] Historial del navegador corregido en la vista de mapa.
+- [x] 2.895 direcciones productivas normalizadas; 0 pendientes.
+- [x] Importador CSV geografico endurecido.
+- [x] 146 pruebas / 1.382 aserciones.
+- [x] Release `52854d7` desplegado.
+- [ ] QA manual de geolocalizacion, fallback Leaflet y contactos.
+- [ ] Evaluacion de negocio del radio de busqueda.
+
+Este bloque cierra el milestone tecnico. No modifica el orden de los sprints de
+producto; los pendientes manuales deben resolverse antes de ampliar discovery.
