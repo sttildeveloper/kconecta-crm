@@ -491,3 +491,8 @@
 - Production was not replaced with the local dump. Authorization was later received
   for the versioned command, backup, `--apply`, push and deployment on 2026-08-02.
 
+# Transición a ficha única del proveedor
+
+- Fase actual: propiedad canónica por `provider_user_id`, con tablas legacy conservadas para validación.
+- Siguiente hito: despliegue controlado y QA web/móvil sobre datos productivos.
+- Hito final: retirar CRUD/aliases, `service_id`, `service_address` y tabla `service` cuando el inventario de dependencias sea cero.

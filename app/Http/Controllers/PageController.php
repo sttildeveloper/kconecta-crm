@@ -730,64 +730,46 @@ class PageController extends Controller
         }
 
         $profileAddress = UserAddress::query()->where('user_id', (int) $provider->id)->first();
-        $services = Service::query()
-            ->where('user_id', (int) $provider->id)
-            ->orderByDesc('id')
-            ->get();
-
-        $serviceIds = $services->pluck('id')->map(fn ($serviceId) => (int) $serviceId)->all();
-        $serviceAddresses = empty($serviceIds)
-            ? collect()
-            : ServiceAddress::query()->whereIn('service_id', $serviceIds)->get()->keyBy('service_id');
-        $coverImageHasUserId = Schema::hasColumn('cover_image', 'user_id');
-        $videoHasUserId = Schema::hasColumn('video', 'user_id');
-        $moreImageHasUserId = Schema::hasColumn('more_images', 'user_id');
+        $services = collect();
+        $serviceIds = [];
+        $serviceAddresses = collect();
+        $coverImageHasProviderId = Schema::hasColumn('cover_image', 'provider_user_id');
+        $videoHasProviderId = Schema::hasColumn('video', 'provider_user_id');
+        $moreImageHasProviderId = Schema::hasColumn('more_images', 'provider_user_id');
 
         $coverImagesQuery = CoverImage::query();
-        if ($coverImageHasUserId) {
-            $coverImagesQuery
-                ->where('user_id', (int) $provider->id)
-                ->orWhere(function ($query) use ($serviceIds) {
-                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-                });
+        if ($coverImageHasProviderId) {
+            $coverImagesQuery->where('provider_user_id', (int) $provider->id);
         } else {
-            $coverImagesQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            $coverImagesQuery->whereRaw('1 = 0');
         }
         $coverImages = $coverImagesQuery->get();
 
         $videosQuery = Video::query();
-        if ($videoHasUserId) {
-            $videosQuery
-                ->where('user_id', (int) $provider->id)
-                ->orWhere(function ($query) use ($serviceIds) {
-                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-                });
+        if ($videoHasProviderId) {
+            $videosQuery->where('provider_user_id', (int) $provider->id);
         } else {
-            $videosQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            $videosQuery->whereRaw('1 = 0');
         }
         $videos = $videosQuery->get();
 
         $moreImagesQuery = MoreImage::query();
-        if ($moreImageHasUserId) {
-            $moreImagesQuery
-                ->where('user_id', (int) $provider->id)
-                ->orWhere(function ($query) use ($serviceIds) {
-                    $query->whereNull('user_id')->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
-                });
+        if ($moreImageHasProviderId) {
+            $moreImagesQuery->where('provider_user_id', (int) $provider->id);
         } else {
-            $moreImagesQuery->whereIn('service_id', ! empty($serviceIds) ? $serviceIds : [0]);
+            $moreImagesQuery->whereRaw('1 = 0');
         }
         $moreImages = $moreImagesQuery
             ->orderBy('id')
             ->get();
         $providerTypeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $provider->id);
 
-        $coverByServiceId = $coverImages->whereNull('user_id')->keyBy('service_id');
-        $providerCover = $coverImages->firstWhere('user_id', (int) $provider->id);
-        $videoByServiceId = $videos->whereNull('user_id')->keyBy('service_id');
-        $providerVideo = $videos->firstWhere('user_id', (int) $provider->id);
-        $moreImagesByService = $moreImages->whereNull('user_id')->groupBy('service_id');
-        $providerMoreImages = $moreImages->where('user_id', (int) $provider->id)->values();
+        $coverByServiceId = collect();
+        $providerCover = $coverImages->firstWhere('provider_user_id', (int) $provider->id);
+        $videoByServiceId = collect();
+        $providerVideo = $videos->firstWhere('provider_user_id', (int) $provider->id);
+        $moreImagesByService = collect();
+        $providerMoreImages = $moreImages->where('provider_user_id', (int) $provider->id)->values();
         $typeLinksByService = collect($services)->mapWithKeys(fn ($service) => [(int) $service->id => $providerTypeIds]);
         $providerTypeLinks = collect($providerTypeIds);
 

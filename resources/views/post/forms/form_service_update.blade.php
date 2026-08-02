@@ -289,12 +289,12 @@
     <div class="provider-edit-shell">
         <div class="provider-topbar">
             <div>
-                <h2>Actualizar servicio</h2>
-                <p>Edita los datos visibles, los tipos de servicio y la multimedia del proveedor.</p>
+                <h2>Actualizar ficha del proveedor</h2>
+                <p>Edita tus datos visibles, especialidades y multimedia.</p>
             </div>
         </div>
 
-        <form id="provider-profile-form" class="provider-edit-form" action="{{ url('/post/services/update/save') }}" method="post" enctype="multipart/form-data" novalidate>
+        <form id="provider-profile-form" class="provider-edit-form" action="{{ url('/post/provider-profile') }}" method="post" enctype="multipart/form-data" novalidate>
             @csrf
             <input type="hidden" name="service_id" value="{{ $service[0]['id'] }}">
 

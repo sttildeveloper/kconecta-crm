@@ -1,5 +1,16 @@
 # Kconecta CRM
 
+## Context checkpoint updated: 2026-08-02 (provider profile ownership)
+
+- La ficha del proveedor tiene como raíz canónica `user.id`; el proveedor no publica servicios individuales.
+- Multimedia de proveedor migrada a `provider_user_id` en `cover_image`, `more_images` y `video`.
+- Datos públicos en columnas `provider_*`, dirección en `user_address` y especialidades en `provider_services`.
+- Nuevas rutas canónicas web/API para actualizar una única ficha.
+- CRUD `/agent/services` conservado solo como alias transitorio y sin creación/borrado de publicaciones.
+- `service` y `service_address` todavía no se eliminan; su retirada queda condicionada a QA local/productivo.
+- Detalle técnico y plan de retirada: `docs/provider-profile-ownership-refactor.md`.
+- Backfill local de multimedia genérica validado para los 2.903 proveedores; procedimiento en `docs/provider-default-media.md`.
+
 CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 
 ## Current Production Checkpoint (2026-08-02)

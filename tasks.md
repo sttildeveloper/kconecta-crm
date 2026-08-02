@@ -1,5 +1,25 @@
 # Kconecta CRM - Tasks
 
+## Refactor ficha única del proveedor (2026-08-02)
+
+- [x] Añadir `provider_user_id` a portada, galería y vídeo.
+- [x] Migrar multimedia legacy de proveedores sin afectar propiedades.
+- [x] Persistir título, descripción, disponibilidad y web en `user`.
+- [x] Usar `user_address` y `provider_services` como fuentes canónicas.
+- [x] Incorporar rutas canónicas web y API para la ficha.
+- [x] Impedir nuevas publicaciones y borrados desde el CRUD legacy.
+- [x] Cambiar métricas nuevas para no guardar `service_id`.
+- [x] Añadir trazabilidad para distinguir multimedia genérica y real.
+- [x] Implementar comando idempotente `providers:backfill-default-media`.
+- [x] Crear backup local previo al backfill y verificar SHA-256.
+- [x] Completar en local 2.900 portadas y 14.505 imágenes de galería genéricas.
+- [x] Verificar 2.903/2.903 proveedores con portada y galería.
+- [x] Validar suite completa local: 138 tests, 1.292 assertions.
+- [ ] Ejecutar backup productivo de BD y multimedia.
+- [ ] Aplicar migraciones y QA controlado en producción.
+- [ ] Confirmar compatibilidad de la app móvil con `/api/agent/provider-profile`.
+- [ ] Retirar aliases, columnas y tablas legacy en una fase separada.
+
 ## Plan historico (2026-07-31) - Refactor del home público
 - [x] Alcance funcional y técnico documentado en `HOME_REFACTOR_PLAN.md`.
 - [x] Recursos `hero-bg.webp` e `img-review-1.webp` a `img-review-3.webp` migrados a `public/img`.

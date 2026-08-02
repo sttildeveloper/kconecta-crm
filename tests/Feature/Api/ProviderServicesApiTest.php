@@ -8,9 +8,9 @@ use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceType;
 use App\Models\User;
+use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -18,547 +18,237 @@ class ProviderServicesApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_requires_authentication(): void
+    public function test_provider_profile_requires_authentication_and_provider_role(): void
     {
-        $response = $this->getJson('/api/agent/services');
-        $response->assertStatus(401);
-    }
-
-    public function test_non_provider_cannot_create_services(): void
-    {
-        $user = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Fontaneria']);
-
-        $response = $this->actingAs($user, 'sanctum')->post('/api/agent/services', [
-            'availability' => 'Lun-Vie',
-            'description' => 'Servicio de prueba',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
-        ]);
-
-        $response->assertStatus(403)->assertJsonPath('success', false);
-    }
-
-    public function test_non_provider_cannot_access_provider_crud_endpoints(): void
-    {
-        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-ops@test.dev');
-
-        $service = Service::query()->create([
-            'title' => 'Servicio proveedor',
-            'description' => 'Privado',
-            'availability' => 'Siempre',
-            'user_id' => (int) $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'owner@test.dev')->id,
-        ]);
-
-        $this->actingAs($client, 'sanctum')
-            ->getJson('/api/agent/services')
-            ->assertStatus(403)
+        $this->getJson('/api/agent/provider-profile')
+            ->assertUnauthorized()
             ->assertJsonPath('success', false);
 
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'client-profile@test.dev');
         $this->actingAs($client, 'sanctum')
-            ->getJson('/api/agent/services/' . $service->id)
-            ->assertStatus(403);
-
-        $this->actingAs($client, 'sanctum')
-            ->patch('/api/agent/services/' . $service->id, ['title' => 'No permitido'])
-            ->assertStatus(403);
-
-        $this->actingAs($client, 'sanctum')
-            ->deleteJson('/api/agent/services/' . $service->id)
-            ->assertStatus(403);
-
-        $this->actingAs($client, 'sanctum')
-            ->getJson('/api/agent/service-types')
-            ->assertStatus(403);
-    }
-
-    public function test_provider_can_list_service_types_for_mobile_catalog(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-catalog@test.dev');
-        ServiceType::query()->create(['name' => 'Pintura']);
-        ServiceType::query()->create(['name' => 'Fontaneria']);
-
-        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/service-types');
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure([
-                'success',
-                'data' => [['id', 'name']],
-                'meta',
-                'message',
-                'errors',
-            ]);
-    }
-
-    public function test_profile_includes_provider_logo_url_and_path(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-logo@test.dev');
-        $provider->photo = 'provider-logo.webp';
-        $provider->save();
-
-        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.provider_logo_path', 'provider-logo.webp')
-            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/provider-logo.webp'));
-    }
-
-    public function test_profile_returns_null_provider_logo_url_when_logo_missing(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-no-logo@test.dev');
-
-        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.provider_logo_path', null)
-            ->assertJsonPath('data.provider_logo_url', null);
-    }
-
-    public function test_profile_includes_rating_aggregates_with_defaults_when_no_reviews(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-ratings-empty@test.dev');
-
-        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.rating_avg', 0)
-            ->assertJsonPath('data.reviews_count', 0);
-    }
-
-    public function test_profile_includes_rating_aggregates_for_authenticated_provider(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-ratings@test.dev');
-        $clientA = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-profile-ratings-client-a@test.dev');
-        $clientB = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-profile-ratings-client-b@test.dev');
-
-        DB::table('service_provider_ratings')->insert([
-            [
-                'provider_user_id' => (int) $provider->id,
-                'client_user_id' => (int) $clientA->id,
-                'stars' => 5,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'provider_user_id' => (int) $provider->id,
-                'client_user_id' => (int) $clientB->id,
-                'stars' => 4,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
-
-        $response = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/profile');
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.rating_avg', 4.5)
-            ->assertJsonPath('data.reviews_count', 2);
-    }
-
-    public function test_profile_patch_accepts_provider_logo_and_returns_updated_profile(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-patch@test.dev');
-
-        $response = $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/services/profile', [
-                'provider_logo' => UploadedFile::fake()->image('logo.jpg', 700, 700),
-            ]);
-
-        $response->assertOk()
-            ->assertJsonPath('success', true);
-
-        $updatedProvider = $provider->fresh();
-        $this->assertNotNull($updatedProvider->photo);
-        $this->assertStringEndsWith('.webp', (string) $updatedProvider->photo);
-        $response->assertJsonPath('data.provider_logo_path', $updatedProvider->photo)
-            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/' . $updatedProvider->photo));
-    }
-
-    public function test_profile_patch_accepts_legacy_logo_field_photo_when_provider_logo_not_present(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-legacy@test.dev');
-
-        $response = $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/services/profile', [
-                'photo' => UploadedFile::fake()->image('legacy-photo.png', 700, 700),
-            ]);
-
-        $response->assertOk()
-            ->assertJsonPath('success', true);
-
-        $updatedProvider = $provider->fresh();
-        $this->assertNotNull($updatedProvider->photo);
-        $this->assertStringEndsWith('.webp', (string) $updatedProvider->photo);
-        $response->assertJsonPath('data.provider_logo_path', $updatedProvider->photo)
-            ->assertJsonPath('data.provider_logo_url', asset('img/photo_profile/' . $updatedProvider->photo));
-    }
-
-    public function test_profile_patch_validates_provider_logo_mime_and_size(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile-validation@test.dev');
-
-        $invalidMime = $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/services/profile', [
-                'provider_logo' => UploadedFile::fake()->create('logo.pdf', 32, 'application/pdf'),
-            ]);
-
-        $invalidMime->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['provider_logo'],
-            ]);
-
-        $invalidSize = $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/services/profile', [
-                'provider_logo' => UploadedFile::fake()->image('logo.jpg')->size(3000),
-            ]);
-
-        $invalidSize->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['provider_logo'],
-            ]);
-    }
-
-    public function test_provider_can_create_and_list_only_own_services(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider@test.dev');
-        $otherProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider2@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Pintura']);
-
-        Service::query()->create([
-            'title' => 'Servicio de otro',
-            'description' => 'No debe aparecer',
-            'availability' => 'Siempre',
-            'user_id' => (int) $otherProvider->id,
-        ]);
-
-        $createResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'title' => 'Mi servicio',
-            'availability' => 'Lun-Vie',
-            'description' => 'Detalle del servicio',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
-        ]);
-
-        $createResponse->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.title', 'Mi servicio');
-
-        $listResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services');
-
-        $listResponse->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.title', 'Mi servicio');
-    }
-
-    public function test_provider_cannot_access_foreign_service(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-a@test.dev');
-        $otherProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-b@test.dev');
-
-        $service = Service::query()->create([
-            'title' => 'Servicio B',
-            'description' => 'Privado',
-            'availability' => 'Siempre',
-            'user_id' => (int) $otherProvider->id,
-        ]);
-
-        $this->actingAs($provider, 'sanctum')
-            ->getJson('/api/agent/services/' . $service->id)
-            ->assertStatus(404);
-    }
-
-    public function test_provider_gets_404_for_nonexistent_service_on_show_update_and_delete(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-missing@test.dev');
-        $missingId = 999999;
-
-        $this->actingAs($provider, 'sanctum')
-            ->getJson('/api/agent/services/' . $missingId)
-            ->assertStatus(404)
-            ->assertJsonPath('success', false);
-
-        $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/services/' . $missingId, ['title' => 'No existe'])
-            ->assertStatus(404)
-            ->assertJsonPath('success', false);
-
-        $this->actingAs($provider, 'sanctum')
-            ->deleteJson('/api/agent/services/' . $missingId)
-            ->assertStatus(404)
+            ->getJson('/api/agent/provider-profile')
+            ->assertForbidden()
             ->assertJsonPath('success', false);
     }
 
-    public function test_create_validations_return_422_with_error_details(): void
+    public function test_provider_can_read_profile_without_a_legacy_service(): void
     {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-validation@test.dev');
-
-        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', []);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['availability', 'description', 'service_type', 'cover_image'],
-            ]);
-    }
-
-    public function test_create_rejects_invalid_cover_image_type(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-invalid-media@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Limpieza']);
-
-        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'availability' => 'Lun-Vie',
-            'description' => 'Servicio de limpieza',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->create('cover.pdf', 32, 'application/pdf'),
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-profile@test.dev');
+        $provider->update([
+            'provider_title' => 'Reformas Test',
+            'provider_description' => 'Ficha directa del proveedor',
+            'provider_availability' => 'Lunes a viernes',
+            'provider_page_url' => 'https://example.test',
         ]);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['cover_image'],
-            ]);
-    }
-
-    public function test_create_rejects_cover_image_over_size_limit(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-size-cover@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Mudanzas']);
-
-        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'availability' => 'Lun-Vie',
-            'description' => 'Servicio de mudanzas',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg')->size(6000),
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['cover_image'],
-            ]);
-    }
-
-    public function test_create_rejects_video_over_size_limit(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-size-video@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Carpinteria']);
-
-        $response = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'availability' => 'Lun-Vie',
-            'description' => 'Servicio de carpinteria',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
-            'video' => UploadedFile::fake()->create('video.mp4', 60000, 'video/mp4'),
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Datos invalidos')
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
-                'message',
-                'errors' => ['video'],
-            ]);
-    }
-
-    public function test_provider_can_update_and_delete_own_service(): void
-    {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-c@test.dev');
-        $serviceTypeA = ServiceType::query()->create(['name' => 'Electricidad']);
-        $serviceTypeB = ServiceType::query()->create(['name' => 'Gas']);
-
-        $service = Service::query()->create([
-            'title' => 'Servicio original',
-            'description' => 'Descripcion original',
-            'availability' => 'Mananas',
-            'user_id' => (int) $provider->id,
-        ]);
-        CoverImage::query()->create([
-            'service_id' => (int) $service->id,
-            'url' => 'old-cover.jpg',
-        ]);
+        $type = ServiceType::query()->create(['name' => 'Reformas']);
         ProviderService::query()->create([
             'provider_id' => (int) $provider->id,
-            'service_type_id' => (int) $serviceTypeA->id,
+            'service_type_id' => (int) $type->id,
+        ]);
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Calle Test 1',
+            'city' => 'Barcelona',
+        ]);
+        CoverImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+            'url' => 'provider-cover.webp',
+        ]);
+        MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+            'url' => 'provider-gallery.webp',
         ]);
 
-        $this->actingAs($provider, 'sanctum')->patch('/api/agent/services/' . $service->id, [
-            'title' => 'Servicio actualizado',
-            'service_type' => [(int) $serviceTypeB->id],
-        ])->assertOk()
-            ->assertJsonPath('data.title', 'Servicio actualizado');
+        $this->actingAs($provider, 'sanctum')
+            ->getJson('/api/agent/provider-profile')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.title', 'Reformas Test')
+            ->assertJsonPath('data.description', 'Ficha directa del proveedor')
+            ->assertJsonPath('data.address', 'Calle Test 1')
+            ->assertJsonPath('data.specialty_ids.0', (int) $type->id)
+            ->assertJsonPath('data.more_images.0.file', 'provider-gallery.webp');
 
-        $this->assertDatabaseHas('service', [
-            'id' => (int) $service->id,
-            'title' => 'Servicio actualizado',
+        $this->assertSame(0, Service::query()->where('user_id', $provider->id)->count());
+    }
+
+    public function test_profile_patch_updates_data_media_and_specialties_without_creating_service(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-update@test.dev');
+        $type = ServiceType::query()->create(['name' => 'Electricidad']);
+
+        $response = $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'title' => 'Electricista Barcelona',
+                'description' => 'Instalaciones y reparaciones',
+                'availability' => '24/7',
+                'page_url' => 'https://electricista.test',
+                'specialty_ids' => [(int) $type->id],
+                'address' => 'Carrer de Mallorca 1',
+                'city' => 'Barcelona',
+                'province' => 'Barcelona',
+                'postal_code' => '08001',
+                'country' => 'Espana',
+                'latitude' => '41.3874',
+                'longitude' => '2.1686',
+                'cover_image' => UploadedFile::fake()->image('cover.jpg'),
+                'more_images' => [UploadedFile::fake()->image('gallery.jpg')],
+                'video' => UploadedFile::fake()->create('intro.mp4', 512, 'video/mp4'),
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.title', 'Electricista Barcelona')
+            ->assertJsonPath('data.city', 'Barcelona')
+            ->assertJsonPath('data.specialty_ids.0', (int) $type->id);
+
+        $this->assertDatabaseHas('user', [
+            'id' => (int) $provider->id,
+            'provider_title' => 'Electricista Barcelona',
+            'provider_description' => 'Instalaciones y reparaciones',
+        ]);
+        $this->assertDatabaseHas('cover_image', [
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+        ]);
+        $this->assertDatabaseHas('more_images', [
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+        ]);
+        $this->assertDatabaseHas('video', [
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
         ]);
         $this->assertDatabaseHas('provider_services', [
             'provider_id' => (int) $provider->id,
-            'service_type_id' => (int) $serviceTypeB->id,
+            'service_type_id' => (int) $type->id,
+        ]);
+        $this->assertSame(0, Service::query()->where('user_id', $provider->id)->count());
+    }
+
+    public function test_legacy_service_alias_updates_the_provider_profile_without_creating_a_service(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-alias@test.dev');
+
+        $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/services', [
+                'title' => 'Ficha mediante alias',
+                'description' => 'Compatibilidad movil',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Ficha mediante alias');
+
+        $this->actingAs($provider, 'sanctum')
+            ->getJson('/api/agent/services/999999')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Ficha mediante alias');
+
+        $this->assertSame(0, Service::query()->where('user_id', $provider->id)->count());
+    }
+
+    public function test_legacy_delete_endpoint_cannot_delete_provider_profile(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-delete@test.dev');
+
+        $this->actingAs($provider, 'sanctum')
+            ->deleteJson('/api/agent/services/123')
+            ->assertStatus(410)
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('user', ['id' => (int) $provider->id]);
+    }
+
+    public function test_provider_can_only_delete_gallery_images_from_own_profile(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-gallery@test.dev');
+        $otherProvider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'other-gallery@test.dev');
+        $ownImage = MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'own.webp',
+        ]);
+        $foreignImage = MoreImage::query()->create([
+            'provider_user_id' => (int) $otherProvider->id,
+            'url' => 'foreign.webp',
         ]);
 
         $this->actingAs($provider, 'sanctum')
-            ->deleteJson('/api/agent/services/' . $service->id)
-            ->assertOk()
-            ->assertJsonPath('success', true);
+            ->patch('/api/agent/provider-profile', [
+                'delete_more_images' => [(int) $ownImage->id, (int) $foreignImage->id],
+            ])
+            ->assertOk();
 
-        $this->assertDatabaseMissing('service', ['id' => (int) $service->id]);
+        $this->assertDatabaseMissing('more_images', ['id' => (int) $ownImage->id]);
+        $this->assertDatabaseHas('more_images', ['id' => (int) $foreignImage->id]);
     }
 
-    public function test_update_can_replace_cover_and_video_and_delete_selected_more_images(): void
+    public function test_custom_upload_replaces_provider_default_media(): void
     {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-media-update@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Jardineria']);
-
-        $createResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'title' => 'Servicio media',
-            'availability' => 'Lun-Vie',
-            'description' => 'Inicial',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover-initial.jpg'),
-            'more_images' => [
-                UploadedFile::fake()->image('more-a.jpg'),
-                UploadedFile::fake()->image('more-b.jpg'),
-            ],
-            'video' => UploadedFile::fake()->create('intro.mp4', 512, 'video/mp4'),
-        ])->assertStatus(201);
-
-        $serviceId = (int) $createResponse->json('data.id');
-        $oldCover = (string) $createResponse->json('data.cover_image');
-        $oldVideo = (string) $createResponse->json('data.video');
-        $moreImages = $createResponse->json('data.more_images');
-        $this->assertCount(2, $moreImages);
-
-        $deleteId = (int) $moreImages[0]['id'];
-
-        $updateResponse = $this->actingAs($provider, 'sanctum')->patch('/api/agent/services/' . $serviceId, [
-            'cover_image' => UploadedFile::fake()->image('cover-new.jpg'),
-            'video' => UploadedFile::fake()->create('promo.mp4', 768, 'video/mp4'),
-            'more_images' => [UploadedFile::fake()->image('more-c.jpg')],
-            'delete_more_images' => [$deleteId],
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-replace-default@test.dev');
+        CoverImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'is_provider_default' => true,
+            'source_provider_user_id' => 67,
+            'url' => 'default-cover.webp',
+        ]);
+        MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'is_provider_default' => true,
+            'source_provider_user_id' => 67,
+            'url' => 'default-gallery-1.webp',
+        ]);
+        MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'is_provider_default' => true,
+            'source_provider_user_id' => 67,
+            'url' => 'default-gallery-2.webp',
         ]);
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('success', true);
-
-        $newCover = (string) $updateResponse->json('data.cover_image');
-        $newVideo = (string) $updateResponse->json('data.video');
-        $this->assertNotSame('', $newCover);
-        $this->assertNotSame('', $newVideo);
-        $this->assertNotSame($oldCover, $newCover);
-        $this->assertNotSame($oldVideo, $newVideo);
-        $this->assertNotNull($updateResponse->json('data.cover_image_url'));
-        $this->assertNotNull($updateResponse->json('data.video_url'));
-
-        $this->assertDatabaseMissing('more_images', ['id' => $deleteId]);
-
-        $remainingMoreImages = MoreImage::query()->where('service_id', $serviceId)->count();
-        $this->assertSame(2, $remainingMoreImages);
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'cover_image' => UploadedFile::fake()->image('custom-cover.jpg'),
+                'more_images' => [UploadedFile::fake()->image('custom-gallery.jpg')],
+            ])
+            ->assertOk();
 
         $this->assertDatabaseHas('cover_image', [
-            'service_id' => $serviceId,
-            'url' => $newCover,
+            'provider_user_id' => (int) $provider->id,
+            'is_provider_default' => false,
+            'source_provider_user_id' => null,
         ]);
-        $this->assertDatabaseHas('video', [
-            'service_id' => $serviceId,
-            'url' => $newVideo,
+        $this->assertSame(1, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+        $this->assertDatabaseHas('more_images', [
+            'provider_user_id' => (int) $provider->id,
+            'is_provider_default' => false,
+            'source_provider_user_id' => null,
         ]);
     }
 
-    public function test_success_responses_follow_contract_shape_across_crud(): void
+    public function test_profile_patch_validates_media_and_specialty_inputs(): void
     {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-contract@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Cerrajeria']);
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-validation@test.dev');
 
-        $createResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', [
-            'title' => 'Contrato API',
-            'availability' => 'Lun-Sab',
-            'description' => 'Prueba contrato',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
-        ]);
-        $createResponse->assertStatus(201);
-        $this->assertJsonContract($createResponse->json());
-
-        $serviceId = (int) $createResponse->json('data.id');
-
-        $listResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services');
-        $listResponse->assertOk();
-        $this->assertJsonContract($listResponse->json());
-
-        $showResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/' . $serviceId);
-        $showResponse->assertOk();
-        $this->assertJsonContract($showResponse->json());
-
-        $updateResponse = $this->actingAs($provider, 'sanctum')->patch('/api/agent/services/' . $serviceId, [
-            'title' => 'Contrato API v2',
-        ]);
-        $updateResponse->assertOk();
-        $this->assertJsonContract($updateResponse->json());
-
-        $deleteResponse = $this->actingAs($provider, 'sanctum')->deleteJson('/api/agent/services/' . $serviceId);
-        $deleteResponse->assertOk();
-        $this->assertJsonContract($deleteResponse->json());
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'specialty_ids' => [999999],
+                'cover_image' => UploadedFile::fake()->create('cover.pdf', 32, 'application/pdf'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonStructure(['errors' => ['specialty_ids.0', 'cover_image']]);
     }
 
-    public function test_error_responses_follow_contract_shape(): void
+    public function test_provider_can_list_specialty_catalog(): void
     {
-        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-contract-error@test.dev');
-        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-contract-client@test.dev');
-        $serviceType = ServiceType::query()->create(['name' => 'Albanileria']);
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-catalog@test.dev');
+        $type = ServiceType::query()->create(['name' => 'Pintura']);
 
-        $forbiddenResponse = $this->actingAs($client, 'sanctum')->post('/api/agent/services', [
-            'availability' => 'Lun-Vie',
-            'description' => 'Sin permisos',
-            'service_type' => [(int) $serviceType->id],
-            'cover_image' => UploadedFile::fake()->image('cover.jpg'),
-        ]);
-        $forbiddenResponse->assertStatus(403);
-        $this->assertJsonContract($forbiddenResponse->json(), false);
-
-        $notFoundResponse = $this->actingAs($provider, 'sanctum')->getJson('/api/agent/services/999999');
-        $notFoundResponse->assertStatus(404);
-        $this->assertJsonContract($notFoundResponse->json(), false);
-
-        $validationResponse = $this->actingAs($provider, 'sanctum')->post('/api/agent/services', []);
-        $validationResponse->assertStatus(422);
-        $this->assertJsonContract($validationResponse->json(), false);
+        $this->actingAs($provider, 'sanctum')
+            ->getJson('/api/agent/service-types')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (int) $type->id)
+            ->assertJsonPath('data.0.name', 'Pintura');
     }
 
     private function makeUser(int $levelId, string $email): User
@@ -566,22 +256,12 @@ class ProviderServicesApiTest extends TestCase
         return User::query()->create([
             'first_name' => 'Test',
             'last_name' => 'User',
-            'user_name' => 'user-' . md5($email),
+            'user_name' => 'user-'.md5($email),
             'email' => $email,
             'phone' => '600000000',
             'password' => Hash::make('password'),
             'user_level_id' => $levelId,
             'email_verified_at' => now(),
         ]);
-    }
-
-    private function assertJsonContract(array $payload, bool $expectSuccess = true): void
-    {
-        $this->assertArrayHasKey('success', $payload);
-        $this->assertArrayHasKey('data', $payload);
-        $this->assertArrayHasKey('meta', $payload);
-        $this->assertArrayHasKey('message', $payload);
-        $this->assertArrayHasKey('errors', $payload);
-        $this->assertSame($expectSuccess, (bool) $payload['success']);
     }
 }

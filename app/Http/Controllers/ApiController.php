@@ -622,6 +622,12 @@ class ApiController extends Controller
         }
 
         $providerIds = $providers->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $providerCovers = CoverImage::query()
+            ->whereIn('provider_user_id', $providerIds)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('provider_user_id')
+            ->keyBy(fn ($cover) => (int) $cover->provider_user_id);
 
         $ratingsSummaryByProvider = [];
         if (! empty($providerIds)) {
@@ -715,6 +721,7 @@ class ApiController extends Controller
             $userLogoUrl = ! empty($provider->photo)
                 ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null;
+            $providerCover = $providerCovers->get($providerUserId);
             $phone = $provider->phone ?: ($provider->mobile_phone ?: $provider->landline_phone);
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
@@ -726,7 +733,9 @@ class ApiController extends Controller
                 'provider_user_id' => $providerUserId,
                 'title' => $providerName ?: 'Proveedor',
                 'logo_url' => $userLogoUrl,
-                'cover_image_url' => null,
+                'cover_image_url' => $providerCover && $providerCover->url
+                    ? asset('img/uploads/'.ltrim((string) $providerCover->url, '/'))
+                    : null,
                 'average_stars' => (float) ($ratingsSummaryByProvider[$providerUserId]['average_stars'] ?? 0.0),
                 'ratings_count' => (int) ($ratingsSummaryByProvider[$providerUserId]['ratings_count'] ?? 0),
                 'lat' => $userAddress->latitude,
@@ -816,6 +825,12 @@ class ApiController extends Controller
         }
 
         $providerIds = $providers->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $providerCovers = CoverImage::query()
+            ->whereIn('provider_user_id', $providerIds)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('provider_user_id')
+            ->keyBy(fn ($cover) => (int) $cover->provider_user_id);
         $userAddresses = UserAddress::query()
             ->whereIn('user_id', $providerIds)
             ->whereNotNull('latitude')
@@ -892,6 +907,7 @@ class ApiController extends Controller
             $logoUrl = ! empty($provider->photo)
                 ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null;
+            $providerCover = $providerCovers->get($providerUserId);
             $specialtyIds = $serviceTypeIdsByProvider->get($providerUserId, []);
             if (! empty($sti)) {
                 $specialtyIds = array_values(array_intersect(
@@ -933,7 +949,9 @@ class ApiController extends Controller
                 'whatsapp_url' => $whatsappUrl,
                 'has_public_service_detail' => false,
                 'service_id' => null,
-                'cover_image_url' => null,
+                'cover_image_url' => $providerCover && $providerCover->url
+                    ? asset('img/uploads/'.ltrim((string) $providerCover->url, '/'))
+                    : null,
                 'specialty_ids' => $specialtyIds,
                 'specialties' => $specialties,
                 'service_type_ids' => $specialtyIds,
@@ -1230,15 +1248,13 @@ class ApiController extends Controller
     public function serviceStatsRegisterVisit(Request $request)
     {
         $providerUserId = (int) $request->post('provider_user_id');
-        $serviceId = (int) $request->post('service_id');
-
         if ($providerUserId <= 0) {
             return $this->errorResponse('provider_user_id invalido', 422, ['provider_user_id' => ['El proveedor es obligatorio.']]);
         }
 
         DB::table('service_profile_visits')->insert([
             'provider_user_id' => $providerUserId,
-            'service_id' => $serviceId > 0 ? $serviceId : null,
+            'service_id' => null,
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) ($request->userAgent() ?? ''), 0, 255),
             'created_at' => now(),
@@ -1251,7 +1267,6 @@ class ApiController extends Controller
     public function serviceStatsRegisterContactClick(Request $request)
     {
         $providerUserId = (int) $request->post('provider_user_id');
-        $serviceId = (int) $request->post('service_id');
         $channel = trim((string) $request->post('channel', 'whatsapp'));
 
         if ($providerUserId <= 0) {
@@ -1264,7 +1279,7 @@ class ApiController extends Controller
 
         DB::table('service_contact_clicks')->insert([
             'provider_user_id' => $providerUserId,
-            'service_id' => $serviceId > 0 ? $serviceId : null,
+            'service_id' => null,
             'channel' => substr($channel, 0, 40),
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) ($request->userAgent() ?? ''), 0, 255),

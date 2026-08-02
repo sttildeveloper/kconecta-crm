@@ -1,13 +1,13 @@
 @extends('layouts.backoffice')
 
-@section('title', ($isProviderView ?? false) ? 'Kconecta - Servicios' : 'Kconecta - Proveedores de servicios')
+@section('title', ($isProviderView ?? false) ? 'Kconecta - Mi ficha' : 'Kconecta - Proveedores de servicios')
 
 @section('heading')
-    {{ ($isProviderView ?? false) ? 'Servicios' : 'Proveedores de servicios' }}
+    {{ ($isProviderView ?? false) ? 'Mi ficha de proveedor' : 'Proveedores de servicios' }}
 @endsection
 
 @section('subheading')
-    {{ ($isProviderView ?? false) ? 'Gestiona tu ficha de servicios, categorías y multimedia' : 'Gestiona los proveedores de servicios publicados y sus detalles' }}
+    {{ ($isProviderView ?? false) ? 'Gestiona tu información pública, especialidades y multimedia' : 'Gestiona las fichas públicas de los proveedores' }}
 @endsection
 
 @section('header_actions')
@@ -160,9 +160,7 @@
                         <div class="service-description-types">
                             <div class="service-description-types-header">
                                 <h4>Tipos de servicio</h4>
-                                @if (! empty($primaryProviderServiceId))
-                                    <a class="service-map-link" href="{{ url('/post/services/update_form/' . $primaryProviderServiceId) }}">Editar</a>
-                                @endif
+                                <a class="service-map-link" href="{{ url('/post/provider-profile/edit') }}">Editar ficha</a>
                             </div>
                             @if (! empty($providerServiceTypes))
                                 <ul class="service-offered-list">

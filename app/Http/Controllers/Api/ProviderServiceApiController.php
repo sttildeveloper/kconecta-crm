@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CoverImage;
 use App\Models\MoreImage;
-use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
@@ -24,8 +23,11 @@ use Illuminate\Support\Str;
 class ProviderServiceApiController extends Controller
 {
     private const MAX_IMAGE_KB = 5120; // 5 MB
+
     private const MAX_PROVIDER_LOGO_KB = 2048; // 2 MB
+
     private const MAX_VIDEO_KB = 51200; // 50 MB
+
     private const LEGACY_PROVIDER_LOGO_FIELDS = ['logo', 'photo', 'avatar', 'image', 'company_logo'];
 
     private const ALLOWED_IMAGE_MIME_TYPES = [
@@ -51,6 +53,8 @@ class ProviderServiceApiController extends Controller
         if (! $user->isServiceProvider()) {
             return $this->errorResponse('No autorizado', 403);
         }
+
+        return $this->profile($request);
 
         $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
         $services = Service::query()
@@ -142,24 +146,13 @@ class ProviderServiceApiController extends Controller
             return $this->errorResponse('No autorizado', 403);
         }
 
-        $service = Service::query()
-            ->where('user_id', (int) $user->id)
-            ->orderByDesc('id')
-            ->first();
-
-        $serviceAddress = $service
-            ? ServiceAddress::query()->where('service_id', (int) $service->id)->first()
-            : null;
         $userAddress = UserAddress::query()->where('user_id', (int) $user->id)->first();
-        $address = $serviceAddress ?: $userAddress;
-        $cover = $service ? CoverImage::query()->where('service_id', (int) $service->id)->first() : null;
-        $video = $service ? Video::query()->where('service_id', (int) $service->id)->first() : null;
-
-        $serviceIds = Service::query()
-            ->where('user_id', (int) $user->id)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $cover = CoverImage::query()->where('provider_user_id', (int) $user->id)->latest('id')->first();
+        $video = Video::query()->where('provider_user_id', (int) $user->id)->latest('id')->first();
+        $gallery = MoreImage::query()
+            ->where('provider_user_id', (int) $user->id)
+            ->orderBy('id')
+            ->get();
 
         $typeIds = app(ProviderServiceTypeService::class)->typeIdsForProvider((int) $user->id);
 
@@ -177,22 +170,32 @@ class ProviderServiceApiController extends Controller
 
         $payload = [
             'company_name' => $user->user_name,
-            'description' => $service?->description,
-            'phone' => $user->mobile_phone ?: $user->landline_phone,
-            'availability' => $service?->availability,
-            'page_url' => $service?->page_url,
-            'updated_at' => optional($service?->updated_at ?: $user->updated_at)?->toISOString(),
-            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/' . ltrim((string) $cover->url, '/')) : null,
-            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/' . ltrim((string) $video->url, '/')) : null,
-            'address' => $address?->address,
-            'city' => $address?->city,
-            'province' => $address?->province,
-            'postal_code' => $address?->postal_code,
-            'country' => $address?->country,
-            'latitude' => $address?->latitude,
-            'longitude' => $address?->longitude,
+            'title' => $user->provider_title,
+            'description' => $user->provider_description,
+            'phone' => $user->phone ?: $user->landline_phone,
+            'landline_phone' => $user->landline_phone,
+            'availability' => $user->provider_availability,
+            'page_url' => $user->provider_page_url,
+            'updated_at' => optional($user->updated_at)?->toISOString(),
+            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/'.ltrim((string) $cover->url, '/')) : null,
+            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/'.ltrim((string) $video->url, '/')) : null,
+            'more_images' => $gallery->map(fn (MoreImage $image) => [
+                'id' => (int) $image->id,
+                'file' => $image->url,
+                'url' => asset('img/uploads/'.ltrim((string) $image->url, '/')),
+            ])->values()->all(),
+            'address' => $userAddress?->address,
+            'city' => $userAddress?->city,
+            'province' => $userAddress?->province,
+            'postal_code' => $userAddress?->postal_code,
+            'country' => $userAddress?->country,
+            'latitude' => $userAddress?->latitude,
+            'longitude' => $userAddress?->longitude,
             'services' => $types,
-            'services_count' => count($serviceIds),
+            'specialties' => $types,
+            'specialty_ids' => collect($types)->pluck('id')->all(),
+            'service_type_ids' => collect($types)->pluck('id')->all(),
+            'services_count' => count($types),
             'provider_logo_path' => $this->providerLogoPath($user),
             'provider_logo_url' => $this->providerLogoUrl($user),
             'rating_avg' => isset($ratingSummary['average_stars']) ? (float) $ratingSummary['average_stars'] : 0.0,
@@ -234,8 +237,34 @@ class ProviderServiceApiController extends Controller
             }
         }
 
+        $input['specialty_ids'] = $request->input(
+            'specialty_ids',
+            $request->input('service_type_ids', $request->input('service_type', []))
+        );
+
         $validator = Validator::make($input, [
-            'provider_logo' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_PROVIDER_LOGO_KB,
+            'provider_logo' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_PROVIDER_LOGO_KB,
+            'title' => 'sometimes|nullable|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'phone' => 'sometimes|nullable|string|max:40',
+            'landline_phone' => 'sometimes|nullable|string|max:40',
+            'availability' => 'sometimes|nullable|string|max:100',
+            'page_url' => 'sometimes|nullable|string|max:255',
+            'specialty_ids' => 'sometimes|array',
+            'specialty_ids.*' => 'integer|exists:service_type,id',
+            'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
+            'more_images' => 'sometimes|array',
+            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
+            'video' => 'sometimes|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
+            'delete_more_images' => 'sometimes|array',
+            'delete_more_images.*' => 'integer',
+            'address' => 'sometimes|nullable|string|max:255',
+            'city' => 'sometimes|nullable|string|max:120',
+            'province' => 'sometimes|nullable|string|max:120',
+            'postal_code' => 'sometimes|nullable|string|max:30',
+            'country' => 'sometimes|nullable|string|max:120',
+            'latitude' => 'sometimes|nullable|string|max:50',
+            'longitude' => 'sometimes|nullable|string|max:50',
         ], [
             'provider_logo.mimes' => 'El logo debe ser una imagen JPG, JPEG, PNG o WEBP.',
             'provider_logo.max' => 'El logo no puede superar 2MB.',
@@ -266,6 +295,79 @@ class ProviderServiceApiController extends Controller
                 );
             }
         }
+
+        $userUpdates = [];
+        foreach ([
+            'title' => 'provider_title',
+            'description' => 'provider_description',
+            'phone' => 'phone',
+            'landline_phone' => 'landline_phone',
+            'availability' => 'provider_availability',
+            'page_url' => 'provider_page_url',
+        ] as $inputField => $userField) {
+            if ($request->exists($inputField)) {
+                $userUpdates[$userField] = $this->nullableString($request->input($inputField));
+            }
+        }
+
+        if ($userUpdates !== []) {
+            $user->fill($userUpdates);
+            $user->save();
+        }
+
+        if ($request->exists('specialty_ids') || $request->exists('service_type_ids') || $request->exists('service_type')) {
+            app(ProviderServiceTypeService::class)->syncForProvider(
+                (int) $user->id,
+                (array) $input['specialty_ids']
+            );
+        }
+
+        $addressFields = ['address', 'city', 'province', 'postal_code', 'country', 'latitude', 'longitude'];
+        if ($request->hasAny($addressFields)) {
+            $addressPayload = [];
+            foreach ($addressFields as $field) {
+                if ($request->exists($field)) {
+                    $addressPayload[$field] = $this->nullableString($request->input($field));
+                }
+            }
+
+            UserAddress::query()->updateOrCreate(['user_id' => (int) $user->id], $addressPayload);
+        }
+
+        $imagePath = public_path('img/uploads');
+        $videoPath = public_path('video/uploads');
+        if (! is_dir($imagePath)) {
+            @mkdir($imagePath, 0755, true);
+        }
+        if (! is_dir($videoPath)) {
+            @mkdir($videoPath, 0755, true);
+        }
+
+        if ($request->hasFile('cover_image')) {
+            $storedCover = $this->storeUploadedImage($request->file('cover_image'), $imagePath);
+            if (! $storedCover['success']) {
+                return $this->errorResponse($storedCover['error'], 422, ['cover_image' => [$storedCover['error']]]);
+            }
+
+            $existingCover = CoverImage::query()->where('provider_user_id', (int) $user->id)->first();
+            CoverImage::query()->updateOrCreate(
+                ['provider_user_id' => (int) $user->id],
+                [
+                    'service_id' => null,
+                    'property_id' => null,
+                    'is_provider_default' => false,
+                    'source_provider_user_id' => null,
+                    'url' => $storedCover['file_name'],
+                ]
+            );
+            if ($existingCover && $existingCover->url !== $storedCover['file_name']) {
+                $this->deleteStoredFile('img/uploads', (string) $existingCover->url);
+            }
+        }
+
+        $this->persistProviderMoreImages($request, (int) $user->id, $imagePath);
+        $this->persistProviderVideo($request, (int) $user->id, $videoPath);
+        $this->deleteProviderMoreImages((int) $user->id, (array) $request->input('delete_more_images', []));
 
         return $this->profile($request);
     }
@@ -327,6 +429,8 @@ class ProviderServiceApiController extends Controller
             return $this->errorResponse('No autorizado', 403);
         }
 
+        return $this->updateProfile($request);
+
         $validator = Validator::make($request->all(), [
             'availability' => 'required|string|max:100',
             'description' => 'required|string',
@@ -335,10 +439,10 @@ class ProviderServiceApiController extends Controller
             'document_number' => 'nullable|string|max:100',
             'service_type' => 'required|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
-            'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
+            'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'more_images' => 'nullable|array',
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
-            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:' . self::MAX_VIDEO_KB,
+            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
+            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -410,6 +514,16 @@ class ProviderServiceApiController extends Controller
 
     public function show(Request $request, int $id)
     {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        return $this->profile($request);
+
         $service = $this->resolveOwnedService($request, $id);
         if (! $service instanceof Service) {
             return $service;
@@ -420,6 +534,16 @@ class ProviderServiceApiController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        return $this->updateProfile($request);
+
         $service = $this->resolveOwnedService($request, $id);
         if (! $service instanceof Service) {
             return $service;
@@ -433,10 +557,10 @@ class ProviderServiceApiController extends Controller
             'document_number' => 'sometimes|nullable|string|max:100',
             'service_type' => 'sometimes|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
-            'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
+            'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'more_images' => 'nullable|array',
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:' . self::MAX_IMAGE_KB,
-            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:' . self::MAX_VIDEO_KB,
+            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
+            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:120',
             'province' => 'nullable|string|max:120',
@@ -526,6 +650,19 @@ class ProviderServiceApiController extends Controller
 
     public function destroy(Request $request, int $id)
     {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+        if (! $user->isServiceProvider()) {
+            return $this->errorResponse('No autorizado', 403);
+        }
+
+        return $this->errorResponse(
+            'La ficha del proveedor no se puede eliminar desde el antiguo CRUD de servicios.',
+            410
+        );
+
         $service = $this->resolveOwnedService($request, $id);
         if (! $service instanceof Service) {
             return $service;
@@ -618,15 +755,16 @@ class ProviderServiceApiController extends Controller
             'specialties' => $specialties,
             'service_types' => $specialties,
             'cover_image' => $coverFile !== '' ? $coverFile : null,
-            'cover_image_url' => $coverFile !== '' ? asset('img/uploads/' . ltrim($coverFile, '/')) : null,
+            'cover_image_url' => $coverFile !== '' ? asset('img/uploads/'.ltrim($coverFile, '/')) : null,
             'video' => $videoFile !== '' ? $videoFile : null,
-            'video_url' => $videoFile !== '' ? asset('video/uploads/' . ltrim($videoFile, '/')) : null,
+            'video_url' => $videoFile !== '' ? asset('video/uploads/'.ltrim($videoFile, '/')) : null,
             'more_images' => collect($moreImages)->map(function (MoreImage $image) {
                 $file = trim((string) ($image->url ?? ''));
+
                 return [
                     'id' => (int) $image->id,
                     'file' => $file !== '' ? $file : null,
-                    'url' => $file !== '' ? asset('img/uploads/' . ltrim($file, '/')) : null,
+                    'url' => $file !== '' ? asset('img/uploads/'.ltrim($file, '/')) : null,
                 ];
             })->values()->all(),
             'address' => [
@@ -666,6 +804,7 @@ class ProviderServiceApiController extends Controller
     private function nullableString(mixed $value): ?string
     {
         $clean = trim((string) ($value ?? ''));
+
         return $clean !== '' ? $clean : null;
     }
 
@@ -690,7 +829,7 @@ class ProviderServiceApiController extends Controller
             };
         }
 
-        $name = Str::random(30) . '.' . $ext;
+        $name = Str::random(30).'.'.$ext;
         if (! $file->move($imagePath, $name)) {
             return ['success' => false, 'error' => 'Error al guardar la imagen.'];
         }
@@ -720,7 +859,7 @@ class ProviderServiceApiController extends Controller
             };
         }
 
-        $name = Str::random(30) . '.' . $ext;
+        $name = Str::random(30).'.'.$ext;
         if (! $file->move($videoPath, $name)) {
             return ['success' => false, 'error' => 'Error al guardar el video.'];
         }
@@ -749,6 +888,92 @@ class ProviderServiceApiController extends Controller
                 'url' => $stored['file_name'],
                 'service_id' => $serviceId,
             ]);
+        }
+    }
+
+    private function persistProviderMoreImages(Request $request, int $providerId, string $imagePath): void
+    {
+        $files = collect((array) $request->file('more_images', []))
+            ->filter(fn ($file) => $file && $file->isValid())
+            ->values();
+        if ($files->isEmpty()) {
+            return;
+        }
+
+        $defaultImages = MoreImage::query()
+            ->where('provider_user_id', $providerId)
+            ->where('is_provider_default', true)
+            ->get();
+        foreach ($defaultImages as $defaultImage) {
+            $this->deleteStoredFile('img/uploads', (string) $defaultImage->url);
+            $defaultImage->delete();
+        }
+
+        foreach ($files as $file) {
+            $stored = $this->storeUploadedImage($file, $imagePath);
+            if ($stored['success']) {
+                MoreImage::query()->create([
+                    'url' => $stored['file_name'],
+                    'provider_user_id' => $providerId,
+                    'is_provider_default' => false,
+                    'source_provider_user_id' => null,
+                    'service_id' => null,
+                    'property_id' => null,
+                ]);
+            }
+        }
+    }
+
+    private function persistProviderVideo(Request $request, int $providerId, string $videoPath): void
+    {
+        $video = $request->file('video');
+        if (! $video) {
+            return;
+        }
+
+        $stored = $this->storeUploadedVideo($video, $videoPath);
+        if (! $stored['success']) {
+            return;
+        }
+
+        $existingVideo = Video::query()->where('provider_user_id', $providerId)->first();
+        Video::query()->updateOrCreate(
+            ['provider_user_id' => $providerId],
+            [
+                'service_id' => null,
+                'property_id' => null,
+                'is_provider_default' => false,
+                'source_provider_user_id' => null,
+                'url' => $stored['file_name'],
+            ]
+        );
+
+        if ($existingVideo && $existingVideo->url !== $stored['file_name']) {
+            $this->deleteStoredFile('video/uploads', (string) $existingVideo->url);
+        }
+    }
+
+    private function deleteProviderMoreImages(int $providerId, array $ids): void
+    {
+        $imageIds = collect($ids)
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($imageIds === []) {
+            return;
+        }
+
+        $images = MoreImage::query()
+            ->where('provider_user_id', $providerId)
+            ->whereIn('id', $imageIds)
+            ->get();
+
+        foreach ($images as $image) {
+            $this->deleteStoredFile('img/uploads', (string) $image->url);
+            $image->delete();
         }
     }
 
@@ -807,7 +1032,7 @@ class ProviderServiceApiController extends Controller
         }
 
         $safeFile = basename(str_replace('\\', '/', $trimmed));
-        $path = public_path(trim($relativeDir, '/\\') . DIRECTORY_SEPARATOR . $safeFile);
+        $path = public_path(trim($relativeDir, '/\\').DIRECTORY_SEPARATOR.$safeFile);
         if (is_file($path)) {
             @unlink($path);
         }
@@ -824,7 +1049,7 @@ class ProviderServiceApiController extends Controller
     {
         $path = $this->providerLogoPath($user);
 
-        return $path !== null ? asset('img/photo_profile/' . ltrim($path, '/')) : null;
+        return $path !== null ? asset('img/photo_profile/'.ltrim($path, '/')) : null;
     }
 
     private function processProviderLogo(\Illuminate\Http\UploadedFile $file, int $userId): string
@@ -870,8 +1095,8 @@ class ProviderServiceApiController extends Controller
             throw new \RuntimeException('El directorio de logos de perfil no tiene permisos de escritura.');
         }
 
-        $filename = 'user_' . $userId . '_' . Str::random(12) . '.webp';
-        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filename = 'user_'.$userId.'_'.Str::random(12).'.webp';
+        $destination = $directory.DIRECTORY_SEPARATOR.$filename;
         $saved = imagewebp($canvas, $destination, 82);
 
         imagedestroy($canvas);

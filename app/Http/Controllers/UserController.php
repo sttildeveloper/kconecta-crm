@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CoverImage;
+use App\Models\MoreImage;
 use App\Models\Property;
 use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
+use App\Models\ServiceProviderRating;
 use App\Models\ServiceType;
+use App\Models\ServiceWorkCode;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserLevel;
-use App\Models\CoverImage;
-use App\Models\MoreImage;
-use App\Models\ServiceProviderRating;
-use App\Models\ServiceWorkCode;
 use App\Models\Video;
 use App\Services\ProviderCsvImportService;
+use App\Services\ProviderServiceTypeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,10 +24,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
-use App\Services\ProviderServiceTypeService;
 
 class UserController extends Controller
 {
@@ -77,11 +77,11 @@ class UserController extends Controller
         if ($filters['q'] !== '') {
             $search = $filters['q'];
             $query->where(function ($builder) use ($search) {
-                $builder->where('first_name', 'like', '%' . $search . '%')
-                    ->orWhere('last_name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('user_name', 'like', '%' . $search . '%')
-                    ->orWhere('phone', 'like', '%' . $search . '%');
+                $builder->where('first_name', 'like', '%'.$search.'%')
+                    ->orWhere('last_name', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%')
+                    ->orWhere('user_name', 'like', '%'.$search.'%')
+                    ->orWhere('phone', 'like', '%'.$search.'%');
             });
         }
 
@@ -173,7 +173,7 @@ class UserController extends Controller
 
         $users->getCollection()->transform(function (User $row) use ($addressRows, $levelMap, $profileVisitsMap, $contactClicksMap, $serviceTicketsMap, $ratingsSummaryMap) {
             $address = $addressRows->get($row->id)?->first();
-            $name = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
+            $name = trim(($row->first_name ?? '').' '.($row->last_name ?? ''));
             if ($name === '') {
                 $name = $row->user_name ?: ($row->email ?: 'Usuario');
             }
@@ -241,7 +241,7 @@ class UserController extends Controller
         $uploadedFile = $validated['providers_csv'];
         $storedPath = $uploadedFile->storeAs(
             'provider-imports',
-            'preview_' . now()->format('Ymd_His') . '_' . Str::random(12) . '.csv',
+            'preview_'.now()->format('Ymd_His').'_'.Str::random(12).'.csv',
             'local'
         );
 
@@ -253,7 +253,7 @@ class UserController extends Controller
 
             return redirect($this->usersIndexUrl([
                 'level' => (string) $request->input('level', User::LEVEL_SERVICE_PROVIDER),
-            ]))->with('error', 'No se pudo analizar el CSV: ' . $exception->getMessage());
+            ]))->with('error', 'No se pudo analizar el CSV: '.$exception->getMessage());
         }
 
         $preview = [
@@ -300,7 +300,7 @@ class UserController extends Controller
             $analysis = $providerCsvImportService->analyzeFile($absolutePath, true, true);
         } catch (\Throwable $exception) {
             return redirect($this->usersIndexUrl())
-                ->with('error', 'No se pudo completar la importacion: ' . $exception->getMessage());
+                ->with('error', 'No se pudo completar la importacion: '.$exception->getMessage());
         }
 
         $disk->delete($preview['storage_path']);
@@ -671,13 +671,22 @@ class UserController extends Controller
                 $contactClicksQuery->delete();
             }
 
+            if (Schema::hasColumn('cover_image', 'provider_user_id')) {
+                CoverImage::where('provider_user_id', (int) $user->id)->delete();
+            }
+            if (Schema::hasColumn('more_images', 'provider_user_id')) {
+                MoreImage::where('provider_user_id', (int) $user->id)->delete();
+            }
+            if (Schema::hasColumn('video', 'provider_user_id')) {
+                Video::where('provider_user_id', (int) $user->id)->delete();
+            }
+            ProviderService::where('provider_id', (int) $user->id)->delete();
+
             if (! empty($serviceIds)) {
                 CoverImage::whereIn('service_id', $serviceIds)->delete();
                 MoreImage::whereIn('service_id', $serviceIds)->delete();
                 Video::whereIn('service_id', $serviceIds)->delete();
                 ServiceAddress::whereIn('service_id', $serviceIds)->delete();
-                ProviderService::where('provider_id', (int) $user->id)->delete();
-
                 Service::whereIn('id', $serviceIds)->delete();
             }
 
@@ -728,7 +737,7 @@ class UserController extends Controller
             $query = ['level' => User::LEVEL_SERVICE_PROVIDER];
         }
 
-        return url('/users') . '?' . http_build_query($query);
+        return url('/users').'?'.http_build_query($query);
     }
 
     private function clearProviderImportPreview(): void
@@ -784,8 +793,8 @@ class UserController extends Controller
             throw new \RuntimeException('El directorio de logos de perfil no tiene permisos de escritura.');
         }
 
-        $filename = 'user_' . $userId . '_' . Str::random(12) . '.webp';
-        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filename = 'user_'.$userId.'_'.Str::random(12).'.webp';
+        $destination = $directory.DIRECTORY_SEPARATOR.$filename;
         $saved = imagewebp($canvas, $destination, 82);
 
         imagedestroy($canvas);

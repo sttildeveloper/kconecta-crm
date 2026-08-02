@@ -62,6 +62,8 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::get('/agent/service-types', [ProviderServiceApiController::class, 'serviceTypes']);
+    Route::get('/agent/provider-profile', [ProviderServiceApiController::class, 'profile']);
+    Route::patch('/agent/provider-profile', [ProviderServiceApiController::class, 'updateProfile']);
     Route::get('/agent/services/profile', [ProviderServiceApiController::class, 'profile']);
     Route::patch('/agent/services/profile', [ProviderServiceApiController::class, 'updateProfile']);
     Route::get('/agent/services/work-codes', [ProviderServiceApiController::class, 'workCodes']);

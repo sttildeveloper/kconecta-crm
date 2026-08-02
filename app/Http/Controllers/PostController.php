@@ -25,7 +25,6 @@ use App\Models\Orientations;
 use App\Models\Plant;
 use App\Models\PlazaCapacity;
 use App\Models\PowerConsumptionRating;
-use App\Models\ProviderService;
 use App\Models\Property;
 use App\Models\PropertyAddress;
 use App\Models\Province;
@@ -51,12 +50,12 @@ use App\Models\UserLevel;
 use App\Models\Video;
 use App\Models\VisibilityInPortals;
 use App\Models\WheeledAccess;
+use App\Services\ProviderServiceTypeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use App\Services\ProviderServiceTypeService;
 
 class PostController extends Controller
 {
@@ -76,7 +75,7 @@ class PostController extends Controller
 
     private function maxVideoUploadLabel(): string
     {
-        return max(1, (int) config('uploads.video_max_upload_mb', 150)) . 'MB';
+        return max(1, (int) config('uploads.video_max_upload_mb', 150)).'MB';
     }
 
     private function providerPrimaryServiceId(User $user): ?int
@@ -97,7 +96,7 @@ class PostController extends Controller
     {
         static $cache = [];
 
-        $cacheKey = $table . '.' . $column;
+        $cacheKey = $table.'.'.$column;
         if (array_key_exists($cacheKey, $cache)) {
             return $cache[$cacheKey];
         }
@@ -114,30 +113,57 @@ class PostController extends Controller
 
     private function providerMediaQuery(string $modelClass, int $providerId, int $serviceId)
     {
-        $model = new $modelClass();
+        $model = new $modelClass;
         $query = $modelClass::query();
 
-        if ($this->tableHasColumn($model->getTable(), 'user_id')) {
-            $query->where('user_id', $providerId)
-                ->orWhere(function ($nested) use ($serviceId) {
-                    $nested->whereNull('user_id')->where('service_id', $serviceId);
+        if ($this->tableHasColumn($model->getTable(), 'provider_user_id')) {
+            $query->where('provider_user_id', $providerId);
+
+            if ($serviceId > 0) {
+                $query->orWhere(function ($nested) use ($serviceId) {
+                    $nested->whereNull('provider_user_id')->where('service_id', $serviceId);
                 });
+            }
 
             return $query;
         }
 
-        return $query->where('service_id', $serviceId);
+        return $serviceId > 0
+            ? $query->where('service_id', $serviceId)
+            : $query->whereRaw('1 = 0');
     }
 
     private function providerMediaPayload(string $table, int $providerId, int $serviceId, array $payload): array
     {
-        $payload['service_id'] = $serviceId;
-
-        if ($this->tableHasColumn($table, 'user_id')) {
-            $payload['user_id'] = $providerId;
+        if ($this->tableHasColumn($table, 'provider_user_id')) {
+            $payload['provider_user_id'] = $providerId;
+            $payload['service_id'] = null;
+            if ($this->tableHasColumn($table, 'is_provider_default')) {
+                $payload['is_provider_default'] = false;
+                $payload['source_provider_user_id'] = null;
+            }
+        } else {
+            $payload['service_id'] = $serviceId > 0 ? $serviceId : null;
         }
 
         return $payload;
+    }
+
+    private function removeProviderDefaultGallery(int $providerId): void
+    {
+        if (! $this->tableHasColumn('more_images', 'is_provider_default')) {
+            return;
+        }
+
+        $images = MoreImage::query()
+            ->where('provider_user_id', $providerId)
+            ->where('is_provider_default', true)
+            ->get();
+
+        foreach ($images as $image) {
+            $this->deleteStoredFile('img/uploads', (string) $image->url);
+            $image->delete();
+        }
     }
 
     private function providerServiceTypeIds(int $providerId, array $providerServiceIds): array
@@ -179,7 +205,7 @@ class PostController extends Controller
             return $normalized;
         }
 
-        return 'https://' . ltrim($normalized, '/');
+        return 'https://'.ltrim($normalized, '/');
     }
 
     private function normalizeLegacyLabel(?string $value): ?string
@@ -293,7 +319,7 @@ class PostController extends Controller
             $lastDot = strrpos($normalized, '.');
             $integerPart = str_replace('.', '', substr($normalized, 0, $lastDot));
             $decimalPart = substr($normalized, $lastDot + 1);
-            $normalized = $integerPart . '.' . $decimalPart;
+            $normalized = $integerPart.'.'.$decimalPart;
         }
 
         return is_numeric($normalized) ? (float) $normalized : null;
@@ -305,7 +331,7 @@ class PostController extends Controller
             return;
         }
 
-        $filePath = public_path(trim($directory, '/') . '/' . ltrim($fileName, '/'));
+        $filePath = public_path(trim($directory, '/').'/'.ltrim($fileName, '/'));
         if (is_file($filePath)) {
             @unlink($filePath);
         }
@@ -356,7 +382,7 @@ class PostController extends Controller
 
         $mimeType = $file->getMimeType();
         if ($mimeType === 'image/webp' && $targetWidth <= 0 && $targetHeight <= 0) {
-            $fileName = bin2hex(random_bytes(16)) . '.webp';
+            $fileName = bin2hex(random_bytes(16)).'.webp';
             if (! $file->move($imagePath, $fileName)) {
                 return ['success' => false, 'error' => 'Error al mover la imagen WebP.'];
             }
@@ -378,7 +404,7 @@ class PostController extends Controller
             return ['success' => false, 'error' => 'El servidor no puede convertir imagenes a WebP en este momento.'];
         }
 
-        $fileName = bin2hex(random_bytes(16)) . '.webp';
+        $fileName = bin2hex(random_bytes(16)).'.webp';
         $tempPath = $file->getRealPath();
         $image = $this->createGdImageFromPath($tempPath, $mimeType);
 
@@ -428,7 +454,7 @@ class PostController extends Controller
             $image = $resized;
         }
 
-        $webpPath = $imagePath . DIRECTORY_SEPARATOR . $fileName;
+        $webpPath = $imagePath.DIRECTORY_SEPARATOR.$fileName;
         $converted = imagewebp($image, $webpPath, 80);
         imagedestroy($image);
 
@@ -467,8 +493,8 @@ class PostController extends Controller
 
         if (! $video->isValid()) {
             return 'El video no se pudo subir correctamente o supera el limite permitido de '
-                . $this->maxVideoUploadLabel()
-                . ' por archivo.';
+                .$this->maxVideoUploadLabel()
+                .' por archivo.';
         }
 
         if (! in_array($video->getMimeType(), self::ALLOWED_VIDEO_MIME_TYPES, true)) {
@@ -477,8 +503,8 @@ class PostController extends Controller
 
         if ($video->getSize() > $this->maxVideoUploadBytes()) {
             return 'El video excede el limite permitido de '
-                . $this->maxVideoUploadLabel()
-                . ' por archivo.';
+                .$this->maxVideoUploadLabel()
+                .' por archivo.';
         }
 
         return null;
@@ -505,7 +531,7 @@ class PostController extends Controller
             };
         }
 
-        $randomName = bin2hex(random_bytes(16)) . '.' . $extension;
+        $randomName = bin2hex(random_bytes(16)).'.'.$extension;
         if (! $video->move($videoPath, $randomName)) {
             return ['success' => false, 'error' => 'Error al guardar el video.'];
         }
@@ -557,8 +583,8 @@ class PostController extends Controller
             return ['success' => false, 'error' => 'No se pudo crear el directorio del logo del proveedor.'];
         }
 
-        $filename = 'user_' . $userId . '_' . Str::random(12) . '.webp';
-        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filename = 'user_'.$userId.'_'.Str::random(12).'.webp';
+        $destination = $directory.DIRECTORY_SEPARATOR.$filename;
         $saved = imagewebp($canvas, $destination, 82);
 
         imagedestroy($canvas);
@@ -593,7 +619,7 @@ class PostController extends Controller
             return $displayName;
         }
 
-        $displayName = trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+        $displayName = trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
 
         return $displayName !== '' ? $displayName : 'Proveedor de servicios';
     }
@@ -682,23 +708,9 @@ class PostController extends Controller
         $isAdmin = (int) $user->user_level_id === 1;
 
         if ($id === 'service') {
-            $existingProviderServiceId = $this->providerPrimaryServiceId($user);
-            if ($existingProviderServiceId) {
-                return redirect()
-                    ->to('/post/services/update_form/' . $existingProviderServiceId)
-                    ->with('status', 'Ya tienes una ficha de servicios. Puedes actualizarla aqui.');
-            }
-
-            $serviceType = ServiceType::orderBy('name')->get();
-
-            return view('post.forms.form_service', [
-                'user' => $user,
-                'userLevelName' => $userLevelName,
-                'isAdmin' => $isAdmin,
-                'activeNav' => 'services',
-                'mapsKey' => config('services.google.maps_key'),
-                'serviceType' => $serviceType,
-            ]);
+            return redirect()
+                ->to('/post/provider-profile/edit')
+                ->with('status', 'Actualiza tu ficha de proveedor, especialidades y multimedia.');
         }
 
         if (! $user->canManageProperties()) {
@@ -834,8 +846,8 @@ class PostController extends Controller
         if ($filters['q'] !== '') {
             $search = $filters['q'];
             $query->where(function ($builder) use ($search) {
-                $builder->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('reference', 'like', '%' . $search . '%');
+                $builder->where('title', 'like', '%'.$search.'%')
+                    ->orWhere('reference', 'like', '%'.$search.'%');
             });
         }
 
@@ -910,7 +922,7 @@ class PostController extends Controller
             $owner = $isAdmin ? $owners->get($property->user_id) : null;
             $ownerName = '';
             if ($owner) {
-                $ownerName = trim(($owner->first_name ?? '') . ' ' . ($owner->last_name ?? ''));
+                $ownerName = trim(($owner->first_name ?? '').' '.($owner->last_name ?? ''));
                 if ($ownerName === '') {
                     $ownerName = $owner->user_name ?? '';
                 }
@@ -958,7 +970,7 @@ class PostController extends Controller
             foreach ($partnerUsers as $partnerUser) {
                 $partnerName = trim((string) ($partnerUser->user_name ?? ''));
                 if ($partnerName === '') {
-                    $partnerName = trim(($partnerUser->first_name ?? '') . ' ' . ($partnerUser->last_name ?? ''));
+                    $partnerName = trim(($partnerUser->first_name ?? '').' '.($partnerUser->last_name ?? ''));
                 }
                 if ($partnerName === '') {
                     $partnerName = trim((string) ($partnerUser->email ?? ''));
@@ -1742,7 +1754,7 @@ class PostController extends Controller
             return response()->json(['status' => 403]);
         }
 
-        $filePath = public_path('img/uploads/' . $image->url);
+        $filePath = public_path('img/uploads/'.$image->url);
         if (is_file($filePath)) {
             @unlink($filePath);
         }
@@ -1768,13 +1780,13 @@ class PostController extends Controller
             if ($filters['q'] !== '') {
                 $search = $filters['q'];
                 $query->where(function ($builder) use ($search) {
-                    $builder->where('first_name', 'like', '%' . $search . '%')
-                        ->orWhere('last_name', 'like', '%' . $search . '%')
-                        ->orWhere('email', 'like', '%' . $search . '%')
-                        ->orWhere('user_name', 'like', '%' . $search . '%')
-                        ->orWhere('phone', 'like', '%' . $search . '%')
-                        ->orWhere('landline_phone', 'like', '%' . $search . '%')
-                        ->orWhere('address', 'like', '%' . $search . '%');
+                    $builder->where('first_name', 'like', '%'.$search.'%')
+                        ->orWhere('last_name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%')
+                        ->orWhere('user_name', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%')
+                        ->orWhere('landline_phone', 'like', '%'.$search.'%')
+                        ->orWhere('address', 'like', '%'.$search.'%');
                 });
             }
 
@@ -1787,7 +1799,7 @@ class PostController extends Controller
 
             $providers->getCollection()->transform(function (User $provider) use ($addressRows, $levelMap) {
                 $address = $addressRows->get($provider->id)?->first();
-                $name = trim(($provider->first_name ?? '') . ' ' . ($provider->last_name ?? ''));
+                $name = trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
                 if ($name === '') {
                     $name = $provider->user_name ?: ($provider->email ?: 'Proveedor');
                 }
@@ -1845,8 +1857,8 @@ class PostController extends Controller
         if ($filters['q'] !== '') {
             $search = $filters['q'];
             $query->where(function ($builder) use ($search) {
-                $builder->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%');
+                $builder->where('title', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
             });
         }
 
@@ -1906,7 +1918,7 @@ class PostController extends Controller
             $owner = $owners->get($service->user_id);
             $ownerName = '';
             if ($owner) {
-                $ownerName = trim(($owner->first_name ?? '') . ' ' . ($owner->last_name ?? ''));
+                $ownerName = trim(($owner->first_name ?? '').' '.($owner->last_name ?? ''));
                 if ($ownerName === '') {
                     $ownerName = $owner->user_name ?? '';
                 }
@@ -1965,7 +1977,7 @@ class PostController extends Controller
                 ->where('user_id', $user->id)
                 ->orderBy('id')
                 ->first();
-            $name = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+            $name = trim(($user->first_name ?? '').' '.($user->last_name ?? ''));
             if ($name === '') {
                 $name = $user->user_name ?: ($user->email ?: 'Proveedor');
             }
@@ -1991,7 +2003,7 @@ class PostController extends Controller
                 'phone' => $user->phone ?? '',
                 'landline_phone' => $user->landline_phone ?? '',
                 'address' => trim(implode(', ', $addressParts)),
-                'photo' => $user->photo ? asset('img/photo_profile/' . $user->photo) : asset('img/default-avatar-profile-icon.webp'),
+                'photo' => $user->photo ? asset('img/photo_profile/'.$user->photo) : asset('img/default-avatar-profile-icon.webp'),
             ];
 
             $providerServiceIds = Service::where('user_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all();
@@ -2027,12 +2039,12 @@ class PostController extends Controller
                 ->orderByDesc('id')
                 ->first();
             if ($providerCover && ! empty($providerCover->url)) {
-                $heroImage = asset('img/uploads/' . ltrim((string) $providerCover->url, '/'));
+                $heroImage = asset('img/uploads/'.ltrim((string) $providerCover->url, '/'));
                 $landingImages = [$heroImage];
             } elseif ($primaryService) {
                 $landingImages = [];
                 if (! empty($primaryService['image'])) {
-                    $heroImage = asset('img/uploads/' . $primaryService['image']);
+                    $heroImage = asset('img/uploads/'.$primaryService['image']);
                     $landingImages[] = $heroImage;
                 }
                 if ($serviceDescription === '') {
@@ -2049,7 +2061,7 @@ class PostController extends Controller
                     $serviceAddressLabel = $primaryService['service_full_address'];
                 }
                 if (! empty($primaryService['video'])) {
-                    $serviceVideoUrl = asset('video/uploads/' . $primaryService['video']);
+                    $serviceVideoUrl = asset('video/uploads/'.$primaryService['video']);
                 }
             }
 
@@ -2057,14 +2069,14 @@ class PostController extends Controller
                 ->orderByDesc('id')
                 ->first();
             if ($providerVideo && ! empty($providerVideo->url)) {
-                $serviceVideoUrl = asset('video/uploads/' . ltrim((string) $providerVideo->url, '/'));
+                $serviceVideoUrl = asset('video/uploads/'.ltrim((string) $providerVideo->url, '/'));
             }
 
             $galleryImages = $this->providerMediaQuery(MoreImage::class, (int) $user->id, (int) ($primaryService['id'] ?? 0))
                 ->orderBy('id')
                 ->pluck('url')
                 ->filter()
-                ->map(fn ($url) => asset('img/uploads/' . ltrim((string) $url, '/')))
+                ->map(fn ($url) => asset('img/uploads/'.ltrim((string) $url, '/')))
                 ->values()
                 ->all();
 
@@ -2073,7 +2085,7 @@ class PostController extends Controller
                     ->orderBy('id')
                     ->pluck('url')
                     ->filter()
-                    ->map(fn ($url) => asset('img/uploads/' . ltrim((string) $url, '/')))
+                    ->map(fn ($url) => asset('img/uploads/'.ltrim((string) $url, '/')))
                     ->values()
                     ->all();
             }
@@ -2090,14 +2102,14 @@ class PostController extends Controller
 
             $mapQuery = trim((string) $serviceAddressLabel);
             $mapLink = $mapQuery !== ''
-                ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery)
+                ? 'https://www.google.com/maps/search/?api=1&query='.urlencode($mapQuery)
                 : '';
             $mapEmbed = $mapQuery !== ''
-                ? 'https://www.google.com/maps?q=' . urlencode($mapQuery) . '&output=embed'
+                ? 'https://www.google.com/maps?q='.urlencode($mapQuery).'&output=embed'
                 : '';
 
             $whatsappPhone = preg_replace('/\D+/', '', (string) ($providerProfile['phone'] ?? ''));
-            $whatsappLink = $whatsappPhone !== '' ? 'https://wa.me/' . $whatsappPhone : '';
+            $whatsappLink = $whatsappPhone !== '' ? 'https://wa.me/'.$whatsappPhone : '';
 
             $providerLanding = [
                 'primary_service_id' => $primaryServiceModel?->id ? (int) $primaryServiceModel->id : (! empty($primaryService['id']) ? (int) $primaryService['id'] : null),
@@ -2139,6 +2151,11 @@ class PostController extends Controller
             return response()->json(['status' => 401]);
         }
 
+        return response()->json([
+            'status' => 410,
+            'message' => 'La ficha del proveedor no se elimina desde el CRUD legacy de servicios.',
+        ], 410);
+
         $service = Service::find($serviceId);
         if (! $service) {
             return response()->json(['status' => 404]);
@@ -2166,19 +2183,34 @@ class PostController extends Controller
             return redirect()->route('login');
         }
 
-        $isAdmin = (int) $user->user_level_id === 1;
-        $serviceQuery = Service::where('id', $id);
-        if (! $isAdmin) {
-            $serviceQuery->where('user_id', $user->id);
-        }
-        $service = $serviceQuery->get()->toArray();
-        if (empty($service)) {
-            return redirect()
-                ->to('/post/services')
-                ->with('status', 'Ocurrio un error interno');
+        $isAdmin = (int) $user->user_level_id === User::LEVEL_ADMIN;
+        $legacyService = null;
+
+        if ($isAdmin) {
+            $legacyService = Service::query()->find((int) $id);
+            if (! $legacyService) {
+                return redirect()->to('/post/services')->with('status', 'Ocurrio un error interno');
+            }
+            $provider = User::findOrFail((int) $legacyService->user_id);
+        } elseif ($user->isServiceProvider()) {
+            $provider = $user;
+            $legacyService = Service::query()
+                ->where('user_id', (int) $provider->id)
+                ->orderByDesc('id')
+                ->first();
+        } else {
+            return redirect()->to('/home');
         }
 
-        $provider = User::findOrFail((int) $service[0]['user_id']);
+        $serviceId = (int) ($legacyService?->id ?? 0);
+        $service = [[
+            'id' => $serviceId,
+            'user_id' => (int) $provider->id,
+            'title' => $provider->provider_title ?? $legacyService?->title,
+            'description' => $provider->provider_description ?? $legacyService?->description,
+            'availability' => $provider->provider_availability ?? $legacyService?->availability,
+            'page_url' => $provider->provider_page_url ?? $legacyService?->page_url,
+        ]];
         $providerAddress = UserAddress::where('user_id', (int) $provider->id)->first();
 
         $serviceType = ServiceType::orderBy('name')->get()->toArray();
@@ -2186,17 +2218,17 @@ class PostController extends Controller
             ->linkRowsForProvider((int) $provider->id)
             ->toArray();
 
-        $coverImage = $this->providerMediaQuery(CoverImage::class, (int) $provider->id, (int) $id)
+        $coverImage = $this->providerMediaQuery(CoverImage::class, (int) $provider->id, $serviceId)
             ->orderByDesc('id')
             ->get()
             ->toArray();
 
-        $moreImages = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, (int) $id)
+        $moreImages = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, $serviceId)
             ->orderBy('id')
             ->get()
             ->toArray();
 
-        $video = $this->providerMediaQuery(Video::class, (int) $provider->id, (int) $id)
+        $video = $this->providerMediaQuery(Video::class, (int) $provider->id, $serviceId)
             ->orderByDesc('id')
             ->get()
             ->toArray();
@@ -2215,8 +2247,13 @@ class PostController extends Controller
             'video' => $video,
             'provider' => $provider,
             'providerAddress' => $providerAddress,
-            'providerProfileTitle' => $this->providerProfileTitle($provider, Service::find((int) $id)),
+            'providerProfileTitle' => $this->providerProfileTitle($provider, $legacyService),
         ]);
+    }
+
+    public function providerProfileEdit()
+    {
+        return $this->servicesUpdate('0');
     }
 
     public function servicesUpdateSave(Request $request)
@@ -2226,24 +2263,24 @@ class PostController extends Controller
             return redirect()->route('login');
         }
 
-        $serviceId = (int) $request->input('service_id');
-        if (! $serviceId) {
-            return redirect()->back();
-        }
+        $serviceId = (int) $request->input('service_id', 0);
+        $isAdmin = (int) $user->user_level_id === User::LEVEL_ADMIN;
 
-        $isAdmin = (int) $user->user_level_id === 1;
-        $serviceQuery = Service::where('id', $serviceId);
-        if (! $isAdmin) {
-            $serviceQuery->where('user_id', $user->id);
+        if ($isAdmin) {
+            $service = Service::query()->find($serviceId);
+            if (! $service) {
+                return redirect()->to('/post/services')->with('status', 'Ocurrio un error interno');
+            }
+            $provider = User::findOrFail((int) $service->user_id);
+        } elseif ($user->isServiceProvider()) {
+            $provider = $user;
+            $serviceId = (int) (Service::query()
+                ->where('user_id', (int) $provider->id)
+                ->orderByDesc('id')
+                ->value('id') ?? 0);
+        } else {
+            return redirect()->to('/home');
         }
-        $service = $serviceQuery->first();
-        if (! $service) {
-            return redirect()
-                ->to('/post/services')
-                ->with('status', 'Ocurrio un error interno');
-        }
-
-        $provider = User::findOrFail((int) $service->user_id);
         $profileTitle = trim((string) $request->input('title', ''));
         $description = trim((string) $request->input('description', ''));
         $availability = trim((string) $request->input('availability', ''));
@@ -2336,10 +2373,16 @@ class PostController extends Controller
             $previousCoverUrl = $existingCoverImage?->url;
             if ($existingCoverImage) {
                 $existingCoverImage->url = $storedImage['file_name'];
-                if ($this->tableHasColumn('cover_image', 'user_id')) {
-                    $existingCoverImage->user_id = (int) $provider->id;
+                if ($this->tableHasColumn('cover_image', 'provider_user_id')) {
+                    $existingCoverImage->provider_user_id = (int) $provider->id;
+                    $existingCoverImage->service_id = null;
+                    if ($this->tableHasColumn('cover_image', 'is_provider_default')) {
+                        $existingCoverImage->is_provider_default = false;
+                        $existingCoverImage->source_provider_user_id = null;
+                    }
+                } elseif (! $existingCoverImage->service_id && $serviceId > 0) {
+                    $existingCoverImage->service_id = $serviceId;
                 }
-                $existingCoverImage->service_id = $existingCoverImage->service_id ?: $serviceId;
                 $existingCoverImage->save();
             } else {
                 CoverImage::create($this->providerMediaPayload('cover_image', (int) $provider->id, $serviceId, [
@@ -2354,6 +2397,12 @@ class PostController extends Controller
 
         $moreImages = $request->file('more_images', []);
         if (! empty($moreImages)) {
+            $hasValidGalleryUpload = collect((array) $moreImages)
+                ->contains(fn ($file) => $file && $file->isValid());
+            if ($hasValidGalleryUpload) {
+                $this->removeProviderDefaultGallery((int) $provider->id);
+            }
+
             foreach ((array) $moreImages as $file) {
                 if (! $file || ! $file->isValid()) {
                     continue;
@@ -2381,10 +2430,16 @@ class PostController extends Controller
             $previousVideoUrl = $existingVideo?->url;
             if ($existingVideo) {
                 $existingVideo->url = $storedVideo['file_name'];
-                if ($this->tableHasColumn('video', 'user_id')) {
-                    $existingVideo->user_id = (int) $provider->id;
+                if ($this->tableHasColumn('video', 'provider_user_id')) {
+                    $existingVideo->provider_user_id = (int) $provider->id;
+                    $existingVideo->service_id = null;
+                    if ($this->tableHasColumn('video', 'is_provider_default')) {
+                        $existingVideo->is_provider_default = false;
+                        $existingVideo->source_provider_user_id = null;
+                    }
+                } elseif (! $existingVideo->service_id && $serviceId > 0) {
+                    $existingVideo->service_id = $serviceId;
                 }
-                $existingVideo->service_id = $existingVideo->service_id ?: $serviceId;
                 $existingVideo->save();
             } else {
                 Video::create($this->providerMediaPayload('video', (int) $provider->id, $serviceId, [
@@ -2421,124 +2476,15 @@ class PostController extends Controller
             return redirect()->route('login');
         }
 
-        if (! $user->canManageServices()) {
+        if (! $user->isServiceProvider()) {
             return redirect()
                 ->to('/home')
-                ->with('error', 'Tu cuenta no puede crear servicios.');
-        }
-
-        $existingProviderServiceId = $this->providerPrimaryServiceId($user);
-        if ($existingProviderServiceId) {
-            return redirect()
-                ->to('/post/services/update_form/' . $existingProviderServiceId)
-                ->with('status', 'Ya tienes una ficha de servicios. Actualiza ese perfil para gestionar tus categorias y multimedia.');
-        }
-
-        $validated = $request->validate([
-            'availability' => 'required|string|max:100',
-            'description' => 'required|string',
-            'page_url' => 'nullable|string|max:255',
-            'service_type' => 'required|array|min:1',
-            'service_type.*' => 'integer',
-            'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp',
-            'more_images' => 'nullable|array',
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp',
-            'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg',
-        ]);
-
-        $imagePath = public_path('img/uploads');
-        $videoPath = public_path('video/uploads');
-        if (! is_dir($imagePath)) {
-            @mkdir($imagePath, 0755, true);
-        }
-        if (! is_dir($videoPath)) {
-            @mkdir($videoPath, 0755, true);
-        }
-
-        $coverImage = $request->file('cover_image');
-        $storedCover = $this->storeUploadedImage($coverImage, $imagePath);
-        if (! $storedCover['success']) {
-            return redirect()->back()->with('error', $storedCover['error'])->withInput();
-        }
-
-        $service = Service::create([
-            'title' => trim((string) $request->input('title', '')) ?: null,
-            'description' => (string) $validated['description'],
-            'availability' => (string) $validated['availability'],
-            'document_number' => trim((string) ($user->document_number ?? '')),
-            'page_url' => trim((string) $request->input('page_url', '')) ?: null,
-            'user_id' => (int) $user->id,
-        ]);
-
-        $providerAddress = UserAddress::where('user_id', (int) $user->id)->first();
-        $resolvedAddress = trim((string) ($providerAddress?->address ?? $user->address ?? ''));
-        $resolvedAddress = $resolvedAddress !== '' ? $resolvedAddress : null;
-        $resolvedLatitude = trim((string) ($providerAddress?->latitude ?? ''));
-        $resolvedLongitude = trim((string) ($providerAddress?->longitude ?? ''));
-        $resolvedLatitude = $resolvedLatitude !== '' ? $resolvedLatitude : null;
-        $resolvedLongitude = $resolvedLongitude !== '' ? $resolvedLongitude : null;
-
-        CoverImage::create([
-            'url' => $storedCover['file_name'],
-            'service_id' => (int) $service->id,
-        ]);
-
-        app(ProviderServiceTypeService::class)->syncForProvider((int) $service->user_id, (array) $validated['service_type']);
-
-        $serviceAddressPayload = [
-            'service_id' => (int) $service->id,
-            'address' => $resolvedAddress,
-            'city' => ! empty($providerAddress?->city) ? (string) $providerAddress->city : null,
-            'province' => ! empty($providerAddress?->province) ? (string) $providerAddress->province : null,
-            'postal_code' => ! empty($providerAddress?->postal_code) ? (string) $providerAddress->postal_code : null,
-            'country' => ! empty($providerAddress?->country) ? (string) $providerAddress->country : null,
-            'latitude' => $resolvedLatitude,
-            'longitude' => $resolvedLongitude,
-        ];
-
-        $hasServiceAddressData = collect($serviceAddressPayload)
-            ->except('service_id')
-            ->contains(fn ($value) => $value !== null && $value !== '');
-
-        if ($hasServiceAddressData) {
-            ServiceAddress::create($serviceAddressPayload);
-        }
-
-        $moreImages = $request->file('more_images', []);
-        if (! empty($moreImages)) {
-            foreach ((array) $moreImages as $file) {
-                if (! $file || ! $file->isValid()) {
-                    continue;
-                }
-
-                $storedImage = $this->storeUploadedImage($file, $imagePath);
-                if (! $storedImage['success']) {
-                    return redirect()->back()->with('error', $storedImage['error'])->withInput();
-                }
-
-                MoreImage::create([
-                    'url' => $storedImage['file_name'],
-                    'service_id' => (int) $service->id,
-                ]);
-            }
-        }
-
-        $video = $request->file('video');
-        if ($video) {
-            $storedVideo = $this->storeUploadedVideo($video, $videoPath);
-            if (! $storedVideo['success']) {
-                return redirect()->back()->with('error', $storedVideo['error'])->withInput();
-            }
-
-            Video::create([
-                'url' => $storedVideo['file_name'],
-                'service_id' => (int) $service->id,
-            ]);
+                ->with('error', 'Tu cuenta no puede gestionar fichas de proveedor.');
         }
 
         return redirect()
-            ->to('/post/services')
-            ->with('status', 'Servicio creado correctamente.');
+            ->to('/post/provider-profile/edit')
+            ->with('status', 'Los proveedores gestionan una ficha unica; no se crean publicaciones de servicios.');
     }
 
     private function validateResolvedPropertyAddress(Request $request): ?RedirectResponse

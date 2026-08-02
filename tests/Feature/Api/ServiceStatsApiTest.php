@@ -31,7 +31,7 @@ class ServiceStatsApiTest extends TestCase
 
         $this->assertDatabaseHas('service_profile_visits', [
             'provider_user_id' => (int) $provider->id,
-            'service_id' => (int) $service->id,
+            'service_id' => null,
         ]);
     }
 
@@ -55,7 +55,7 @@ class ServiceStatsApiTest extends TestCase
 
         $this->assertDatabaseHas('service_contact_clicks', [
             'provider_user_id' => (int) $provider->id,
-            'service_id' => (int) $service->id,
+            'service_id' => null,
             'channel' => 'whatsapp',
         ]);
     }
@@ -74,7 +74,7 @@ class ServiceStatsApiTest extends TestCase
         return User::query()->create([
             'first_name' => 'Provider',
             'last_name' => 'Stats',
-            'user_name' => 'provider-' . md5($email),
+            'user_name' => 'provider-'.md5($email),
             'email' => $email,
             'phone' => '600000099',
             'password' => Hash::make('password123'),
@@ -83,4 +83,3 @@ class ServiceStatsApiTest extends TestCase
         ]);
     }
 }
-

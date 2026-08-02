@@ -102,7 +102,7 @@ class AdminProviderDeletionTest extends TestCase
         }
 
         $this->actingAs($admin)
-            ->get('/user/delete?id=' . $provider->id)
+            ->get('/user/delete?id='.$provider->id)
             ->assertOk()
             ->assertJsonPath('status', 200);
 
@@ -132,7 +132,7 @@ class AdminProviderDeletionTest extends TestCase
         $agent = $this->makeUser(User::LEVEL_AGENT, 'agent-delete-non-provider@test.dev');
 
         $this->actingAs($admin)
-            ->get('/user/delete?id=' . $agent->id)
+            ->get('/user/delete?id='.$agent->id)
             ->assertStatus(403)
             ->assertJsonPath('message', 'Solo puedes eliminar proveedores de servicio.');
 
@@ -143,6 +143,22 @@ class AdminProviderDeletionTest extends TestCase
     {
         $admin = $this->makeUser(User::LEVEL_ADMIN, 'admin-delete-provider-metrics@test.dev');
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-delete-provider-metrics@test.dev');
+
+        CoverImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+            'url' => 'direct-cover.webp',
+        ]);
+        MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+            'url' => 'direct-gallery.webp',
+        ]);
+        Video::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'service_id' => null,
+            'url' => 'direct-video.mp4',
+        ]);
 
         if (DB::getSchemaBuilder()->hasTable('service_profile_visits')) {
             DB::table('service_profile_visits')->insert([
@@ -166,11 +182,14 @@ class AdminProviderDeletionTest extends TestCase
         }
 
         $this->actingAs($admin)
-            ->get('/user/delete?id=' . $provider->id)
+            ->get('/user/delete?id='.$provider->id)
             ->assertOk()
             ->assertJsonPath('status', 200);
 
         $this->assertDatabaseMissing('user', ['id' => (int) $provider->id]);
+        $this->assertDatabaseMissing('cover_image', ['provider_user_id' => (int) $provider->id]);
+        $this->assertDatabaseMissing('more_images', ['provider_user_id' => (int) $provider->id]);
+        $this->assertDatabaseMissing('video', ['provider_user_id' => (int) $provider->id]);
 
         if (DB::getSchemaBuilder()->hasTable('service_profile_visits')) {
             $this->assertDatabaseMissing('service_profile_visits', ['provider_user_id' => (int) $provider->id]);
@@ -186,7 +205,7 @@ class AdminProviderDeletionTest extends TestCase
         return User::query()->create([
             'first_name' => 'Test',
             'last_name' => 'User',
-            'user_name' => 'user-' . md5($email),
+            'user_name' => 'user-'.md5($email),
             'email' => $email,
             'phone' => '600000000',
             'password' => Hash::make('password'),
