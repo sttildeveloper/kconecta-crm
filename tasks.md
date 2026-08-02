@@ -920,3 +920,16 @@
 - [ ] Pending manual business QA: geolocation allow/deny, marker/contact review and
   explicit Leaflet fallback validation.
 
+## Session Update (2026-08-02) - Provider default photos applied
+
+- [x] Read-only production audit: 2,903 providers, 1 with photo and 2,902 without.
+- [x] Implemented idempotent dry-run/apply command with per-provider file copies.
+- [x] Preserved the existing real photo and avoided a deletable shared default file.
+- [x] Full suite: 148 tests / 1,394 assertions.
+- [x] Verified persistent media volume and 73 GB free before apply.
+- [x] Created and downloaded fresh DB and `photo_profile` backups with matching hashes.
+- [x] Applied 2,902 DB assignments and created 2,902 individual WebP copies.
+- [x] Post-check: 0 providers without photo and 0 copied files with bad hash.
+- [x] Public provider 2378 and its image return HTTP 200.
+- [x] Runbook: `docs/provider-default-photos.md`.
+

@@ -783,3 +783,18 @@ Operate and evolve `kconecta-crm` with focus on:
 - Pendiente: QA manual de permisos de ubicacion, fallback Leaflet, contactos y radio.
 - Fuente tecnica canonica: `docs/public-provider-search.md`.
 
+## ACTIVE CONTEXT - 2026-08-02 (provider default photos)
+
+- Los 2.903 proveedores de servicios tienen ahora `user.photo` no vacio.
+- Se preservo 1 foto propia y se asignaron 2.902 copias individuales del logo
+  Kconecta con patron `provider_{id}_kconecta_default.webp`.
+- No usar un archivo predeterminado compartido: la API elimina la foto anterior
+  cuando el proveedor sube una nueva.
+- Comando: `providers:backfill-default-photos` y opcion explicita `--apply`.
+- Backups pre-apply de BD y volumen:
+  `/root/kconecta_backups/20260802_1449_pre_provider_default_photos/`.
+- Post-validacion: 0 proveedores sin foto, 2.902 archivos, 0 hashes incorrectos.
+- Ficha de referencia `/result_provider/2378` e imagen: HTTP `200`.
+- Suite: 148 pruebas / 1.394 aserciones.
+- Runbook y rollback: `docs/provider-default-photos.md`.
+

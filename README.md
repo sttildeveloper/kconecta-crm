@@ -20,6 +20,9 @@ CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 - Validacion: 146 pruebas y 1.382 aserciones correctas.
 - Documento tecnico: [docs/public-provider-search.md](./docs/public-provider-search.md).
 - Runbook geografico: [docs/provider-address-sanitization.md](./docs/provider-address-sanitization.md).
+- Fotos de proveedor: 2.903 de 2.903 proveedores tienen foto; 2.902 usan copias
+  individuales temporales del logo Kconecta hasta subir una propia.
+- Runbook de fotos: [docs/provider-default-photos.md](./docs/provider-default-photos.md).
 
 ## Provider Canonical Rule
 - El `Proveedor de servicios` no publica servicios individuales.
