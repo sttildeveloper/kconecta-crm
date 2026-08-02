@@ -1,8 +1,8 @@
 ﻿# Kconecta CRM - Roadmap
 
-## Plan activo (2026-08-02) - Estabilizacion posterior al release publico
+## Plan activo (2026-08-03) - Estabilizacion del mapa y multimedia de proveedor
 
-- Release de busqueda publica desplegado en `main`: `52854d7`.
+- Release base de busqueda publica desplegado en `main`: `52854d7`.
 - Completado: Google Places web, busqueda por proximidad, mapa/lista consistentes,
   historial del navegador y saneamiento geografico productivo.
 - Completado: 2.895 direcciones normalizadas, 0 ciudades sin resolver y 0 cambios
@@ -10,9 +10,16 @@
 - Completado: 146 pruebas y 1.382 aserciones, autodeploy y smoke tests online.
 - Recuperado: migraciones de medios aplicadas en produccion y endpoint del mapa sin
   errores de esquema; el filtro de especialidad vacio queda cubierto por regresion.
-- Siguiente hito: QA manual de negocio sobre ubicacion, filtros, contactos y radio.
+- Completado: clustering Google para alta densidad, centro de busqueda estable y
+  panel navegable para clusters con proveedores en coordenadas iguales.
+- Despliegues vigentes: `52a3e39` (filtro), `55012b5` (clustering) y `13ac8da`
+  (panel de proveedores del cluster).
+- Validacion enfocada: 18 pruebas, 182 aserciones y JavaScript renderizado correcto.
+- Siguiente hito: QA visual del panel de cluster, sus enlaces de ficha y contactos.
 - Siguiente hito tecnico: revisar navegacion visual legacy de resultados y validar
   expresamente el fallback Leaflet.
+- Multimedia: migraciones productivas completadas; el backfill productivo de
+  portada/galeria generica continua pendiente de backup, simulacion y autorizacion.
 - Este checkpoint reemplaza las restricciones historicas que indicaban que no habia
   autorizacion de push, despliegue o saneamiento.
 - Documento maestro del flujo: `docs/public-provider-search.md`.

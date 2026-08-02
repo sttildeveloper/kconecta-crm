@@ -163,8 +163,10 @@ en la API. La regresion reproduce la URL del incidente y valida ambos flujos.
 Las busquedas con direccion y coordenadas conservan el centro solicitado y aplican
 un zoom minimo `13`; ya no se alejan automaticamente para encajar todos los
 proveedores de la ciudad. Google Maps agrupa los marcadores cercanos en burbujas
-KCONECTA con contador. Al pulsar una agrupacion, el mapa se acerca progresivamente;
-los proveedores individuales mantienen el marcador de la marca y su ficha.
+KCONECTA con contador. La primera implementacion acercaba progresivamente el mapa;
+los proveedores individuales mantienen el marcador de la marca y su ficha. Ese
+comportamiento inicial fue sustituido por el panel de cluster descrito abajo para
+resolver correctamente coordenadas identicas.
 
 La agrupacion utiliza `@googlemaps/markerclusterer` con version fijada y conserva un
 fallback a marcadores individuales si el recurso externo no esta disponible. El
@@ -177,3 +179,16 @@ motivo, el clic sobre cualquier agrupacion abre un panel con los proveedores del
 circulo, sus datos principales y el enlace a cada ficha. El clic no desplaza
 coordenadas ni ejecuta zoom automatico. El panel se puede cerrar con su boton o con
 la tecla Escape y se adapta como bandeja inferior en movil.
+
+## Estado desplegado (2026-08-03)
+
+- `52a3e39`: normaliza filtros `sti` y descarta valores vacios, invalidos y cero.
+- `55012b5`: incorpora `@googlemaps/markerclusterer@2.6.2`, zoom minimo `13` y
+  clusters visuales KCONECTA.
+- `13ac8da`: sustituye el zoom del cluster por una lista segura y desplazable de
+  proveedores, con ficha, direccion, especialidades y valoracion disponible.
+- Regresion enfocada: 18 pruebas, 182 aserciones; JavaScript renderizado valido.
+- API productiva verificada: 1.522 proveedores para Barcelona y 127 para el caso
+  auditado de L'Hospitalet; el mayor grupo de coordenadas exactas contiene 29.
+- Pendiente: comprobacion visual de que el contador pulsado coincide con las cards
+  mostradas, mas QA de enlaces, contactos y fallback Leaflet.

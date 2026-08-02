@@ -1,6 +1,6 @@
 # Kconecta CRM
 
-## Context checkpoint updated: 2026-08-02 (provider profile ownership)
+## Context checkpoint updated: 2026-08-03 (public map and provider media)
 
 - La ficha del proveedor tiene como raíz canónica `user.id`; el proveedor no publica servicios individuales.
 - Multimedia de proveedor migrada a `provider_user_id` en `cover_image`, `more_images` y `video`.
@@ -11,9 +11,13 @@
 - Detalle técnico y plan de retirada: `docs/provider-profile-ownership-refactor.md`.
 - Backfill local de multimedia genérica validado para los 2.903 proveedores; procedimiento en `docs/provider-default-media.md`.
 
+- Las tres migraciones de propiedad multimedia ya estan aplicadas en produccion.
+- La replica productiva de portadas y galerias genericas sigue pendiente; los archivos
+  locales de prueba no se distribuyen mediante Git.
+
 CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
 
-## Current Production Checkpoint (2026-08-02)
+## Current Production Checkpoint (2026-08-03)
 
 - El home publico permite buscar y contactar proveedores sin registro.
 - El registro de cliente solo es obligatorio para valorar proveedores.
@@ -27,8 +31,14 @@ CRM inmobiliario de Kconecta migrado desde un proyecto legacy.
   sin resolver y 0 direcciones pendientes.
 - Ocho perfiles sin coordenadas permanecen fuera del buscador hasta completar su
   ubicacion, conforme a la regla de registro de proveedor sin direccion obligatoria.
-- Release desplegado: `52854d7`.
-- Validacion: 146 pruebas y 1.382 aserciones correctas.
+- El filtro vacio `sti[]=` se descarta y ya no se convierte en una especialidad `0`.
+- El mapa Google agrupa marcadores densos y conserva el centro solicitado con zoom
+  minimo `13` para busquedas resueltas desde una direccion.
+- Al pulsar un cluster se abre una lista desplazable con todos sus proveedores; no
+  se intenta separar coordenadas exactamente iguales mediante zoom o desplazamiento.
+- Releases de estabilizacion desplegados: `52a3e39`, `55012b5` y `13ac8da`.
+- Validacion enfocada final: 18 pruebas y 182 aserciones correctas; JavaScript del
+  mapa validado con `node --check`.
 - Documento tecnico: [docs/public-provider-search.md](./docs/public-provider-search.md).
 - Runbook geografico: [docs/provider-address-sanitization.md](./docs/provider-address-sanitization.md).
 - Fotos de proveedor: 2.903 de 2.903 proveedores tienen foto; 2.902 usan copias

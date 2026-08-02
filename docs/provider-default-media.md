@@ -68,13 +68,13 @@ La segunda ejecución con `--apply` produjo 0 cambios, confirmando idempotencia.
 - hashes de las seis copias coinciden con las fuentes
 - suite completa: 138 pruebas, 1.292 aserciones
 
-## Producción pendiente
+## Producción pendiente (actualizado 2026-08-03)
 
-Los 17.405 archivos locales están en una ruta de uploads ignorada por Git; no se enviarán mediante `push`. En producción se debe:
+Los 17.405 archivos locales estan en una ruta de uploads ignorada por Git; no se enviaran mediante `push`. Las tres migraciones de propiedad multimedia ya se aplicaron y reconciliaron en produccion. El backfill de portadas y galerias genericas no se ha ejecutado alli. Para realizarlo se debe:
 
 1. Crear backup de DB y de `/var/www/html/public/img/uploads`.
-2. Desplegar código y ejecutar migraciones.
+2. Confirmar que las migraciones `170000`, `170100` y `170200` siguen registradas.
 3. Ejecutar primero la simulación.
-4. Verificar espacio libre y fuente `user.id = 67`.
-5. Ejecutar el comando con `--apply` dentro del contenedor con una sesión que tolere una operación larga.
-6. Repetir simulación y auditoría de conteos/archivos.
+4. Verificar espacio libre, volumen persistente y fuente `user.id = 67`.
+5. Ejecutar el comando con `--apply` solo tras autorizacion explicita y dentro del contenedor con una sesion que tolere una operacion larga.
+6. Repetir simulacion y auditoria de conteos, hashes y archivos.

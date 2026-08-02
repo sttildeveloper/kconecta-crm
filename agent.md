@@ -28,7 +28,7 @@ Operate and evolve `kconecta-crm` with focus on:
 - Active GitHub repo: `https://github.com/sttildeveloper/kconecta-crm`
 - Active remote: `origin`
 - Main branch: `main`
-- Latest deployed commit: `6a082b3` (`fix(cadastral): harden API errors and guard migration for existing table`)
+- Latest deployed commit: `13ac8da` (`feat: list providers from map clusters`)
 - Last operational update: `2026-04-21` (post pushes `703ae94`, `105c0b3`, `9cd087e`)
 - Context checkpoint updated: `2026-04-27` (provider registration/profile/service flows aligned to JM first-stage rules)
 - Context checkpoint updated: `2026-04-29` (cadastral calculator backend + production import validated online)
@@ -38,6 +38,23 @@ Operate and evolve `kconecta-crm` with focus on:
 - Context checkpoint updated: `2026-05-21` (canonical provider logo API deployed for mobile profile parity)
 - Context checkpoint updated: `2026-06-07` (Sprint 1 tickets local-only + property form validation work paused + Apple App Store provider app release becomes active focus)
 - Context checkpoint updated: `2026-07-08` (provider specialties refactor completed locally with canonical pivot model)
+- Context checkpoint updated: `2026-08-03` (public map stabilized, provider-media migrations applied and cluster panel deployed)
+
+## Context checkpoint updated: 2026-08-03 (public discovery and media ownership)
+
+- Public search remains unauthenticated and uses the existing `/result/services` page.
+- Empty `sti[]` values are ignored; they must never become service type `0`.
+- Address searches preserve their selected center and use minimum zoom `13`.
+- Google markers are clustered with `@googlemaps/markerclusterer@2.6.2`.
+- A cluster click opens a provider list instead of repeatedly zooming; this is required
+  because many imported providers share the exact same coordinates.
+- L'Hospitalet audit: 127 providers, 70 exact-coordinate groups, largest stack 29.
+- Production media migrations are applied; production generic cover/gallery backfill is not.
+- Do not remove `service`, `service_address` or legacy `service_id` until web/mobile QA
+  and the dependency inventory are complete.
+- Current focused verification: 18 tests, 182 assertions and rendered map JS passes `node --check`.
+- Operational details: `docs/public-provider-search.md`,
+  `docs/provider-profile-ownership-refactor.md` and `docs/provider-default-media.md`.
 
 ## Context checkpoint updated: 2026-07-08 (provider specialties canonical pivot)
 - Provider ↔ service-type relation refactor completed locally.

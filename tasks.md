@@ -962,7 +962,9 @@
 - [x] Confirmed 1,522 geolocated providers in Barcelona.
 - [x] Fixed blank `sti[]=` so searches without a specialty do not become type `0`.
 - [x] Added page/API regression; `PublicDiscoveryApiTest`: 14 tests, 131 assertions.
-- [ ] Complete manual online map and marker smoke validation after autodeploy.
+- [x] Commits `52a3e39`, `55012b5` and `13ac8da` autodeployed and verified in production.
+- [x] Production API returns 1,522 valid-coordinate Barcelona providers.
+- [ ] Complete manual business QA for provider cards, profile links and contacts.
 
 ## Session Update (2026-08-02) - Provider map clustering
 
@@ -971,7 +973,8 @@
 - [x] Group nearby Google markers into branded count clusters through zoom 19.
 - [x] Keep individual Kconecta markers and a no-cluster fallback.
 - [x] Focused public search/home suite: 18 tests, 179 assertions.
-- [ ] Validate cluster interaction and individual provider popups online after autodeploy.
+- [x] Confirmed the initial online clustering/zoom behavior before replacing cluster clicks with the provider panel.
+- [ ] Validate individual provider popup/contact behavior as part of business QA.
 
 ## Session Update (2026-08-02) - Stacked provider cluster panel
 
@@ -979,6 +982,16 @@
 - [x] Replaced automatic cluster zoom with a scrollable provider list panel.
 - [x] Added provider name, address, specialties, rating and profile link without shifting coordinates.
 - [x] Added close button, Escape support and responsive mobile presentation.
-- [x] Rendered map JavaScript passes `node --check`; focused regression passes.
-- [ ] Validate that online cluster count matches the number of rendered provider cards.
+- [x] Rendered map JavaScript passes `node --check`; focused regression is 18 tests / 182 assertions.
+- [x] Commit `13ac8da` deployed; production HTML, JavaScript and responsive CSS verified.
+- [x] Production audit for the test area: 127 providers, with a maximum exact stack of 29.
+- [ ] Validate visually that an online cluster count matches its rendered provider cards and links.
+
+## Session Update (2026-08-03) - Current handoff
+
+- [x] Public map/schema incident resolved without replacing production with a local dump.
+- [x] Blank specialty searches, dense markers and exact-coordinate stacks have regression coverage.
+- [x] Git `main`, `origin/main` and production code verified at `13ac8da` before this documentation update.
+- [ ] Run production default cover/gallery backfill only after fresh DB/uploads backup and dry-run.
+- [ ] Keep `service`, `service_address` and legacy `service_id` compatibility until web/mobile QA and reference inventory reach zero.
 
