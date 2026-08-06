@@ -500,12 +500,13 @@
     width: 100%;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 1rem;
 }
 
 .providers-results-page .container-service-main-block {
     width: 100%;
+    min-width: 0;
     max-width: none;
     min-height: 18rem;
     height: auto;
@@ -514,6 +515,7 @@
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
     column-gap: 0;
+    overflow: hidden;
 }
 
 .providers-results-page .container-image {
@@ -530,8 +532,10 @@
 
 .providers-results-page .container-details {
     width: 100%;
+    min-width: 0;
     height: 100%;
     padding: 1.15rem 1.15rem 1rem;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -560,6 +564,7 @@
 
 .providers-results-page .results-card-updated {
     color: #7f91a6;
+    text-align: right;
 }
 
 .providers-results-page .container-row-data {
@@ -573,12 +578,14 @@
 }
 
 .providers-results-page .container-row-data span {
+    min-width: 0;
     margin-left: 0;
     color: #62758e;
     font-size: 0.93rem;
     display: flex;
     gap: 0.45rem;
     align-items: flex-start;
+    overflow-wrap: anywhere;
 }
 
 .providers-results-page .container-row-data span svg {
@@ -599,6 +606,10 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.7rem;
+}
+
+.providers-results-page .container-btns-redirect > a {
+    min-width: 0;
 }
 
 .providers-results-page .whatsapp-btn-contact-link {
@@ -1075,6 +1086,10 @@
     .providers-results-page .container-btns-redirect {
         grid-template-columns: 1fr;
         width: 100%;
+    }
+
+    .providers-results-page .card-grid {
+        grid-template-columns: 1fr;
     }
 
     .providers-results-page .results-actions {
