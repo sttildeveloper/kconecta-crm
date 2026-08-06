@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'Legal' }} - {{ $legalConfig['brand_name'] ?? 'Kconecta' }}</title>
     <link rel="stylesheet" href="{{ asset('css/legal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/site-footer.css') }}?v={{ filemtime(public_path('css/components/site-footer.css')) }}">
 </head>
 <body>
 <div class="legal-wrap">
@@ -17,6 +18,6 @@
         @yield('content')
     </div>
 </div>
+@include('layouts.partials.site-footer')
 </body>
 </html>
-

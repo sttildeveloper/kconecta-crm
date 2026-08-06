@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Kconecta - {{ $mode === 'register' ? 'Crear cuenta' : 'Iniciar sesion' }}</title>
         <link rel="stylesheet" href="{{ asset('css/page/login.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/components/site-footer.css') }}?v={{ filemtime(public_path('css/components/site-footer.css')) }}">
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
     </head>
     <body>
@@ -206,6 +207,8 @@
         @if (!empty($mapsKey))
             <script src="https://maps.googleapis.com/maps/api/js?key={{ $mapsKey }}&libraries=places"></script>
         @endif
+        @include('layouts.partials.site-footer')
+
         <script>
             (() => {
                 const companyRow = document.getElementById('company_name_row');

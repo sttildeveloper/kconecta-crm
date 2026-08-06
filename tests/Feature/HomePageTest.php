@@ -74,6 +74,25 @@ class HomePageTest extends TestCase
         $this->assertSame(3, substr_count($response->getContent(), 'class="home-article-card"'));
     }
 
+    public function test_announcement_and_header_share_the_sticky_navigation_container(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSeeInOrder([
+                'class="home-sticky-navigation"',
+                'class="home-announcement"',
+                'class="home-header"',
+            ], false);
+
+        $css = file_get_contents(public_path('css/page/home.css'));
+
+        $this->assertIsString($css);
+        $this->assertMatchesRegularExpression(
+            '/\.home-sticky-navigation\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0;/s',
+            $css
+        );
+    }
+
     public function test_public_blog_uses_the_same_publication_order_and_hides_drafts(): void
     {
         DB::table('blog_posts')->insert([

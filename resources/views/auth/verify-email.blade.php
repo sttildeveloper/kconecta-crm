@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Kconecta - Verifica tu correo</title>
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
+        <link rel="stylesheet" href="{{ asset('css/components/site-footer.css') }}?v={{ filemtime(public_path('css/components/site-footer.css')) }}">
         <style>
             body {
                 margin: 0;
@@ -12,13 +13,14 @@
                 background: #f8fafc;
                 min-height: 100vh;
                 display: flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 padding: 1rem;
             }
             .verify-card {
                 width: min(100%, 34rem);
-                margin: 0 auto;
+                margin: auto;
                 background: #fff;
                 border: 1px solid #e5e7eb;
                 border-radius: .8rem;
@@ -61,5 +63,6 @@
                 <button type="submit" class="verify-btn">Aceptar</button>
             </form>
         </div>
+        @include('layouts.partials.site-footer')
     </body>
 </html>

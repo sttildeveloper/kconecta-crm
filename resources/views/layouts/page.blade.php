@@ -8,6 +8,7 @@
         <noscript><link rel="stylesheet" href="{{ asset('css/libraries/bulma.css') }}"></noscript>
         <link rel="stylesheet" href="{{ asset('css/page/index.css') }}">
         <link rel="stylesheet" href="{{ asset('css/page/cookie.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/components/site-footer.css') }}?v={{ filemtime(public_path('css/components/site-footer.css')) }}">
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
         <meta name="robots" content="index, follow">
         <meta name="author" content="Kconecta">
@@ -54,40 +55,8 @@
             </button>
         </div>
         @yield('content')
-        <footer class="footer" style="padding-top: 0.6rem;">
-            <div class="container-text-row-1">
-                <h2>Tu espacio ideal, a un toque de distancia: Compra, Alquila, Vive!</h2>
-            </div>
-            <div class="row-images">
-                <img src="{{ asset('img/footer_1.webp') }}" class="img_1" alt="Kconecta">
-                <a href="https://www.vendoyo.es" target="_blank" class="__no-loader">
-                    <img src="{{ asset('img/banner_gestiona_sin_comisiones.webp') }}" class="img_1" alt="VendoYo">
-                </a>
+        @include('layouts.partials.site-footer')
 
-                <div class="text-row">
-                    <h3>Contactenos</h3>
-                    <div class="row-li">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8acab9" d="M19 9A7 7 0 1 0 5 9c0 1.387.409 2.677 1.105 3.765h-.008L12 22l5.903-9.235h-.007A6.97 6.97 0 0 0 19 9m-7 3a3 3 0 1 1 0-6a3 3 0 0 1 0 6"/></svg>
-                        <span>Av. de Josep Tarradelas 117, 08029 Barcelona</span>
-                    </div>
-                    <div class="row-li">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><g fill="none"><path fill="#8acab9" d="M20 16v4c-2.758 0-5.07-.495-7-1.325c-3.841-1.652-6.176-4.63-7.5-7.675C4.4 8.472 4 5.898 4 4h4l1 4l-3.5 3c1.324 3.045 3.659 6.023 7.5 7.675L16 15z"/><path stroke="#8acab9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 18.675c1.93.83 4.242 1.325 7 1.325v-4l-4-1zm0 0C9.159 17.023 6.824 14.045 5.5 11m0 0C4.4 8.472 4 5.898 4 4h4l1 4z"/></g></svg>
-                        <span>650 66 59 68</span>
-                    </div>
-                    <div class="row-li">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8acab9" d="m20 8l-8 5l-8-5V6l8 5l8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2"/></svg>
-                        <span>info@kconecta.com</span>
-                    </div>
-                </div>
-                <img src="{{ asset('img/ucrania_1.webp') }}" class="img_3" alt="Kconecta Ucrania">
-            </div>
-            <div class="container-row-3">
-                <h3>(c) 2024 Kconecta Tablon de anuncios inmobiliario particulares y profesionales gratis.</h3>
-                <div class="container-imgs">
-                    <img src="{{ asset('img/google_play.webp') }}" class="img_1" alt="Kconecta Google Play">
-                    <img src="{{ asset('img/app_store.webp') }}" class="img_2" alt="Kconecta App Store">
-                </div>
-            </div>
             <div id="cookieBanner" class="cookie-banner hide">
                 <img src="{{ asset('img/cookie-monster-clipart-24.webp') }}" class="img-cookie" alt="Cookie Kconecta">
                 <h1>COOKIES</h1>
@@ -97,7 +66,6 @@
                     <button class="deny" onclick="cookieConfig()">Denegar</button>
                 </div>
             </div>
-        </footer>
         <script src="{{ asset('js/control_page_show.js') }}"></script>
         <script src="{{ asset('js/cookie_config.js') }}"></script>
         <script>

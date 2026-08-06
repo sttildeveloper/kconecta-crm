@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>@yield('title', $title ?? 'Kconecta')</title>
         <link rel="stylesheet" href="{{ asset('css/page/dashboard.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/components/site-footer.css') }}?v={{ filemtime(public_path('css/components/site-footer.css')) }}">
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
         @yield('styles')
     </head>
@@ -83,6 +84,8 @@
                 @yield('content')
             </main>
         </div>
+
+        @include('layouts.partials.site-footer')
 
         <script src="{{ asset('js/libraries/bulma.modal.min.js') }}"></script>
         <script>
