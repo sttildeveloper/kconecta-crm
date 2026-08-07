@@ -228,6 +228,34 @@ class ImportProviderCsvCommandTest extends TestCase
         }
     }
 
+    public function test_import_resolves_an_andalusian_municipality_to_its_province(): void
+    {
+        ServiceType::query()->create(['name' => 'Pintura']);
+
+        $path = $this->makeCsv([
+            'nombre_razon_social,direccion,whatsapp,tipos_servicios,categoria,ciudad,latitude,longitude',
+            'Pinturas Utrera,"Calle Real, 12, 41710 Utrera, España",+34611111113,Pintura,Pintura,Utrera,37.184100,-5.780900',
+        ]);
+
+        try {
+            $result = app(ProviderCsvImportService::class)->analyzeFile($path, true);
+
+            $this->assertFalse($result['summary']['blocked']);
+            $this->assertSame(1, $result['summary']['created']);
+
+            $provider = User::query()->where('user_name', 'Pinturas Utrera')->firstOrFail();
+
+            $this->assertDatabaseHas('user_address', [
+                'user_id' => $provider->id,
+                'city' => 'Utrera',
+                'province' => 'Sevilla',
+                'state' => 'Sevilla',
+            ]);
+        } finally {
+            @unlink($path);
+        }
+    }
+
     private function makeCsv(array $lines): string
     {
         $path = tempnam(sys_get_temp_dir(), 'providers-import-');
