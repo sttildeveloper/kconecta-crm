@@ -479,6 +479,7 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertSee('new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })', false)
             ->assertSee('id="map-cluster-panel"', false)
             ->assertSee('renderClusterPanel(providers)', false)
+            ->assertSee('map-cluster-provider--without-logo', false)
             ->assertSee('onClusterClick:', false)
             ->assertSee('zoom = Math.max(13, zoom || 13)', false);
     }

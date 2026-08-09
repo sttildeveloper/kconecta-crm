@@ -641,6 +641,8 @@
 .providers-results-page .container-search-map-data {
     width: 100%;
     padding: 0;
+    container-name: provider-map-area;
+    container-type: inline-size;
 }
 
 .container-result-all.providers-results-page .container-properties .container-body-data-result .container-search-map-data {
@@ -811,12 +813,16 @@
     right: 1rem;
     bottom: 1rem;
     width: min(23rem, calc(100% - 2rem));
+    box-sizing: border-box;
     padding: 1rem;
     border: 1px solid rgba(180, 207, 220, 0.9);
     border-radius: 1.15rem;
     background: rgba(255, 255, 255, 0.97);
     box-shadow: 0 20px 50px rgba(25, 52, 78, 0.2);
     backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .providers-results-page .map-cluster-panel[hidden] {
@@ -868,7 +874,8 @@
 }
 
 .providers-results-page .map-cluster-panel__list {
-    height: calc(100% - 7.2rem);
+    min-height: 0;
+    flex: 1 1 auto;
     overflow-y: auto;
     padding-right: 0.3rem;
     scrollbar-color: #73c8ce #edf5f6;
@@ -879,12 +886,18 @@
     display: grid;
     grid-template-columns: 3rem minmax(0, 1fr);
     gap: 0.75rem;
-    padding: 0.8rem 0;
-    border-bottom: 1px solid #e8eff4;
+    padding: 0.8rem;
+    border: 1px solid #e1ebf2;
+    border-radius: 0.9rem;
+    background: #fbfdff;
 }
 
-.providers-results-page .map-cluster-provider:last-child {
-    border-bottom: 0;
+.providers-results-page .map-cluster-provider + .map-cluster-provider {
+    margin-top: 0.65rem;
+}
+
+.providers-results-page .map-cluster-provider--without-logo {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .providers-results-page .map-cluster-provider > img {
@@ -908,6 +921,7 @@
     color: #193450;
     font-size: 0.94rem;
     line-height: 1.25;
+    overflow-wrap: break-word;
 }
 
 .providers-results-page .map-cluster-provider__location,
@@ -1040,6 +1054,34 @@
     padding: 0.7rem 0.95rem;
     align-items: center;
     gap: 0.45rem;
+}
+
+@container provider-map-area (max-width: 70rem) {
+    .providers-results-page .results-map-layout {
+        grid-template-columns: minmax(240px, 17rem) minmax(0, 1fr);
+    }
+
+    .providers-results-page .map-cluster-panel {
+        width: min(21rem, calc(100% - 2rem));
+    }
+}
+
+@container provider-map-area (max-width: 56rem) {
+    .providers-results-page .results-map-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .providers-results-page .results-map-list-panel {
+        max-height: 22rem;
+    }
+
+    .providers-results-page .container-column-view-data-map-macro {
+        overflow-y: auto;
+    }
+
+    .providers-results-page .map-cluster-panel {
+        width: min(23rem, calc(100% - 2rem));
+    }
 }
 
 @media screen and (max-width: 1180px) {

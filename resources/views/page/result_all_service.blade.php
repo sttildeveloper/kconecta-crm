@@ -368,6 +368,8 @@
                     logo.alt = "";
                     logo.loading = "lazy";
                     card.appendChild(logo);
+                } else {
+                    card.classList.add("map-cluster-provider--without-logo");
                 }
 
                 const content = document.createElement("div");
