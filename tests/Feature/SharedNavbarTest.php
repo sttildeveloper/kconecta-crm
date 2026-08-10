@@ -61,17 +61,17 @@ class SharedNavbarTest extends TestCase
         }
     }
 
-    public function test_mobile_menu_uses_a_native_disclosure_control(): void
+    public function test_mobile_menu_uses_an_accessible_disclosure_control(): void
     {
         $partial = file_get_contents(resource_path('views/layouts/partials/site-navbar.blade.php'));
         $css = file_get_contents(public_path('css/components/site-navbar.css'));
 
         $this->assertIsString($partial);
         $this->assertIsString($css);
-        $this->assertStringContainsString('<details class="home-navigation-disclosure"', $partial);
-        $this->assertStringContainsString('<summary', $partial);
+        $this->assertStringContainsString('<div class="home-navigation-disclosure"', $partial);
+        $this->assertStringContainsString('aria-expanded="false"', $partial);
         $this->assertStringContainsString(
-            '.home-navigation-disclosure[open] .home-navigation',
+            '.home-navigation-disclosure.is-open .home-navigation',
             $css
         );
     }

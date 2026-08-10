@@ -176,10 +176,6 @@
     list-style: none;
 }
 
-.home-menu-button::-webkit-details-marker {
-    display: none;
-}
-
 .home-menu-button span {
     display: block;
     width: 100%;
@@ -199,6 +195,7 @@
 
     .home-navigation-disclosure {
         flex: 0 0 auto;
+        display: block;
         margin-left: auto;
     }
 
@@ -216,7 +213,7 @@
         box-shadow: var(--home-shadow);
     }
 
-    .home-navigation-disclosure[open] .home-navigation {
+    .home-navigation-disclosure.is-open .home-navigation {
         display: grid;
     }
 

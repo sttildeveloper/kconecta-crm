@@ -15,15 +15,17 @@
                 <img src="{{ asset('img/kconecta_icon.webp') }}" alt="" width="42" height="42">
             </a>
 
-            <details class="home-navigation-disclosure" data-home-navigation-disclosure>
-                <summary
+            <div class="home-navigation-disclosure" data-home-navigation-disclosure>
+                <button
                     class="home-menu-button"
+                    type="button"
                     aria-label="Abrir menú"
+                    aria-expanded="false"
                     aria-controls="home-navigation"
                     data-home-menu-button
                 >
                     <span></span><span></span><span></span>
-                </summary>
+                </button>
 
                 <nav class="home-navigation" id="home-navigation" aria-label="Navegación principal" data-home-navigation>
                     <div class="home-navigation__links">
@@ -42,7 +44,7 @@
                         @endauth
                     </div>
                 </nav>
-            </details>
+            </div>
         </div>
     </header>
 </div>
