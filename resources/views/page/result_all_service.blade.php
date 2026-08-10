@@ -9,7 +9,7 @@
 @section('css')
     <link rel="stylesheet" href="<?= base_url()."css/page/details.css" ?>">
     <link rel="stylesheet" href="<?= base_url()."css/page/result_all.css" ?>">
-    <link rel="stylesheet" href="<?= base_url()."css/page/result_all_services.css" ?>">
+    <link rel="stylesheet" href="<?= base_url().'css/page/result_all_services.css?v='.filemtime(public_path('css/page/result_all_services.css')) ?>">
     <link rel="stylesheet" href="<?= base_url()."css/ui/input_number_cont.css" ?>">
     <link rel="stylesheet" href="<?= base_url()."css/ui/input_radio.css" ?>">
     <link rel="stylesheet" href="<?= base_url()."css/ui/input_checkbox.css" ?>">
@@ -56,8 +56,14 @@
                 <h1>Encuentra profesionales en toda España</h1>
                 <p>Compara proveedores verificados y localiza especialistas por zona desde el mapa o la lista.</p>
             </div>
-            <div class="results-hero-illustration" aria-hidden="true">
-                <div class="results-hero-illustration__skyline"></div>
+            <div class="results-hero-illustration">
+                <div class="results-hero-illustration__skyline">
+                    <img
+                        src="{{ asset('img/img-hero-landing-quiero.webp') }}"
+                        alt="Profesional de servicios Kconecta"
+                        fetchpriority="high"
+                    >
+                </div>
             </div>
         </section>
 

@@ -1,10 +1,6 @@
 (() => {
     "use strict";
 
-    const menuButton = document.querySelector("[data-home-menu-button]");
-    const navigation = document.querySelector("[data-home-navigation]");
-    const announcement = document.querySelector(".home-announcement");
-    const announcementClose = document.querySelector("[data-home-announcement-close]");
     const searchForm = document.querySelector("[data-home-search]");
     const locationInput = document.querySelector("[data-home-location]");
     const latitudeInput = document.querySelector("[data-home-latitude]");
@@ -280,24 +276,6 @@
             finish(applied);
         });
     };
-
-    menuButton?.addEventListener("click", () => {
-        const isOpen = navigation?.classList.toggle("is-open") || false;
-        menuButton.setAttribute("aria-expanded", String(isOpen));
-        menuButton.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
-    });
-
-    navigation?.querySelectorAll("a").forEach((link) => {
-        link.addEventListener("click", () => {
-            navigation.classList.remove("is-open");
-            menuButton?.setAttribute("aria-expanded", "false");
-            menuButton?.setAttribute("aria-label", "Abrir menú");
-        });
-    });
-
-    announcementClose?.addEventListener("click", () => {
-        announcement.hidden = true;
-    });
 
     locationInput?.addEventListener("input", () => {
         clearResolvedLocation();

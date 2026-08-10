@@ -84,7 +84,7 @@ class HomePageTest extends TestCase
                 'class="home-header"',
             ], false);
 
-        $css = file_get_contents(public_path('css/page/home.css'));
+        $css = file_get_contents(public_path('css/components/site-navbar.css'));
 
         $this->assertIsString($css);
         $this->assertMatchesRegularExpression(
