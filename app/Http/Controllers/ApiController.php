@@ -1045,8 +1045,9 @@ class ApiController extends Controller
         $whatsappUrl = $whatsappPhone !== ''
             ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
             : null;
+        $authUser = $request->user() ?: $request->user('sanctum');
         $ratingSummary = app(ServiceRatingService::class)
-            ->providerRatingSummary($providerUserId, $request->user());
+            ->providerRatingSummary($providerUserId, $authUser);
 
         $payload = [
             'id' => $providerUserId,

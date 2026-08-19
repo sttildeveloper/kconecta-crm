@@ -802,6 +802,32 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('message', 'Proveedor no encontrado');
     }
 
+    public function test_public_provider_detail_rejects_non_numeric_provider_ids_without_server_error(): void
+    {
+        $this->getJson('/api/providers/not-a-number')->assertNotFound();
+        $this->getJson('/api/public/providers/not-a-number')->assertNotFound();
+    }
+
+    public function test_public_provider_detail_returns_my_stars_for_sanctum_bearer_token(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-detail-token@test.dev');
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-detail-token-client@test.dev');
+        DB::table('service_provider_ratings')->insert([
+            'provider_user_id' => (int) $provider->id,
+            'client_user_id' => (int) $client->id,
+            'stars' => 4,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $token = $client->createToken('public-provider-detail-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/public/providers/'.$provider->id)
+            ->assertOk()
+            ->assertJsonPath('data.my_stars', 4);
+    }
+
     private function makeUser(int $levelId, string $email): User
     {
         return User::query()->create([
