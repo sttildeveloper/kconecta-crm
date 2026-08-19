@@ -192,3 +192,70 @@ la tecla Escape y se adapta como bandeja inferior en movil.
   auditado de L'Hospitalet; el mayor grupo de coordenadas exactas contiene 29.
 - Pendiente: comprobacion visual de que el contador pulsado coincide con las cards
   mostradas, mas QA de enlaces, contactos y fallback Leaflet.
+
+## Contrato de detalle publico por proveedor (2026-08-19)
+
+La ficha publica movil deja de depender de `service.id`. El identificador canonico
+es siempre `provider_user_id`, incluso si el proveedor conserva registros legacy
+en `service`.
+
+Endpoints equivalentes:
+
+- `GET /api/public/providers/{providerUserId}`
+- `GET /api/providers/{providerUserId}`
+
+Respuesta correcta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 66,
+    "provider_user_id": 66,
+    "service_id": null,
+    "name": "Proveedor",
+    "company_name": "Empresa",
+    "title": "Titulo comercial",
+    "description": "Descripcion publica",
+    "availability": "Lunes a viernes",
+    "page_url": "https://example.com",
+    "email": "contacto@example.com",
+    "phone": "+34612345678",
+    "whatsapp_phone": "34612345678",
+    "whatsapp_url": "https://wa.me/34612345678?...",
+    "logo_url": "https://kconecta.com/img/photo_profile/logo.webp",
+    "cover_image_url": "https://kconecta.com/img/uploads/cover.webp",
+    "video_url": "https://kconecta.com/video/uploads/video.mp4",
+    "gallery": [{ "id": 1, "url": "https://kconecta.com/img/uploads/photo.webp" }],
+    "address": "Carrer de Mallorca, 120",
+    "city": "Barcelona",
+    "province": "Barcelona",
+    "postal_code": "08036",
+    "country": "Espana",
+    "latitude": "41.3920",
+    "longitude": "2.1640",
+    "specialty_ids": [23],
+    "specialties": [{ "id": 23, "name": "Reformas integrales" }],
+    "average_stars": 5,
+    "ratings_count": 1,
+    "provider_url": "https://kconecta.com/result_provider/66",
+    "has_public_provider_detail": true,
+    "has_public_service_detail": false
+  },
+  "meta": null,
+  "message": null,
+  "errors": null,
+  "status": 200
+}
+```
+
+Reglas:
+
+- `id` y `provider_user_id` siempre contienen el mismo ID de usuario proveedor.
+- `service_id` es `null` y nunca se usa para navegar.
+- titulo, descripcion, disponibilidad y URL proceden de los campos canonicos del
+  usuario proveedor, no de `service`.
+- portada, galeria y video se consultan por `provider_user_id`.
+- no se exponen visitas, clics ni otras metricas privadas en esta respuesta publica.
+- un usuario inexistente, inactivo o con rol distinto devuelve `404` con el
+  contrato de error v1.

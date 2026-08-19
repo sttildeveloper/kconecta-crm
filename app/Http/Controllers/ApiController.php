@@ -970,6 +970,135 @@ class ApiController extends Controller
         ]);
     }
 
+    public function publicProviderDetail(Request $request, int $providerUserId)
+    {
+        $providerQuery = User::query()
+            ->where('id', $providerUserId)
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
+
+        if (Schema::hasColumn('user', 'is_active')) {
+            $providerQuery->where('is_active', 1);
+        }
+
+        $provider = $providerQuery->first();
+        if (! $provider) {
+            return $this->errorResponse('Proveedor no encontrado', 404);
+        }
+
+        $address = UserAddress::query()
+            ->where('user_id', $providerUserId)
+            ->first();
+        $cover = CoverImage::query()
+            ->where('provider_user_id', $providerUserId)
+            ->latest('id')
+            ->first();
+        $video = Video::query()
+            ->where('provider_user_id', $providerUserId)
+            ->latest('id')
+            ->first();
+        $gallery = MoreImage::query()
+            ->where('provider_user_id', $providerUserId)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (MoreImage $image) => [
+                'id' => (int) $image->id,
+                'url' => ! empty($image->url)
+                    ? asset('img/uploads/'.ltrim((string) $image->url, '/'))
+                    : null,
+            ])
+            ->filter(fn (array $image) => ! empty($image['url']))
+            ->values()
+            ->all();
+
+        $specialtyIds = app(ProviderServiceTypeService::class)
+            ->typeIdsForProvider($providerUserId);
+        $specialties = empty($specialtyIds)
+            ? []
+            : ServiceType::query()
+                ->whereIn('id', $specialtyIds)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (ServiceType $type) => [
+                    'id' => (int) $type->id,
+                    'name' => $type->name,
+                ])
+                ->values()
+                ->all();
+
+        $displayName = trim((string) ($provider->user_name ?? ''));
+        if ($displayName === '') {
+            $displayName = trim(($provider->first_name ?? '').' '.($provider->last_name ?? ''));
+        }
+        if ($displayName === '') {
+            $displayName = 'Proveedor';
+        }
+
+        $title = trim((string) ($provider->provider_title ?? ''));
+        if ($title === '') {
+            $title = $displayName;
+        }
+
+        $phone = $provider->phone
+            ?: (($provider->mobile_phone ?? null) ?: ($provider->landline_phone ?? null));
+        $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
+        $whatsappPhone = ltrim((string) $cleanPhone, '+');
+        $whatsappUrl = $whatsappPhone !== ''
+            ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
+            : null;
+        $ratingSummary = app(ServiceRatingService::class)
+            ->providerRatingSummary($providerUserId, $request->user());
+
+        $payload = [
+            'id' => $providerUserId,
+            'provider_user_id' => $providerUserId,
+            'service_id' => null,
+            'name' => $displayName,
+            'company_name' => (string) ($provider->user_name ?? ''),
+            'title' => $title,
+            'description' => (string) ($provider->provider_description ?? ''),
+            'availability' => (string) ($provider->provider_availability ?? ''),
+            'page_url' => (string) ($provider->provider_page_url ?? ''),
+            'email' => (string) ($provider->email ?? ''),
+            'phone' => (string) ($phone ?? ''),
+            'whatsapp_phone' => $whatsappPhone !== '' ? $whatsappPhone : null,
+            'whatsapp_url' => $whatsappUrl,
+            'logo_url' => ! empty($provider->photo)
+                ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
+                : null,
+            'cover_image_url' => $cover && ! empty($cover->url)
+                ? asset('img/uploads/'.ltrim((string) $cover->url, '/'))
+                : null,
+            'video_url' => $video && ! empty($video->url)
+                ? asset('video/uploads/'.ltrim((string) $video->url, '/'))
+                : null,
+            'gallery' => $gallery,
+            'more_images' => $gallery,
+            'address' => $address?->address,
+            'city' => $address?->city,
+            'province' => $address?->province,
+            'postal_code' => $address?->postal_code,
+            'country' => $address?->country,
+            'latitude' => $address?->latitude,
+            'longitude' => $address?->longitude,
+            'specialty_ids' => collect($specialties)->pluck('id')->all(),
+            'specialties' => $specialties,
+            'service_type_ids' => collect($specialties)->pluck('id')->all(),
+            'service_types' => $specialties,
+            'average_stars' => (float) ($ratingSummary['average_stars'] ?? 0.0),
+            'ratings_count' => (int) ($ratingSummary['ratings_count'] ?? 0),
+            'updated_at' => optional($provider->updated_at)?->toISOString(),
+            'provider_url' => url('/result_provider/'.$providerUserId),
+            'has_public_provider_detail' => true,
+            'has_public_service_detail' => false,
+        ];
+
+        if (isset($ratingSummary['my_stars'])) {
+            $payload['my_stars'] = (int) $ratingSummary['my_stars'];
+        }
+
+        return $this->successResponse($payload, null, null, 200, ['status' => 200]);
+    }
+
     public function publicServiceDetail(Request $request, string $id)
     {
         $service = Service::query()->where('id', (int) $id)->first();

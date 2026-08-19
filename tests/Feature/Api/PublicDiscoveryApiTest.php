@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\CoverImage;
+use App\Models\MoreImage;
 use App\Models\ProviderService;
 use App\Models\Service;
 use App\Models\ServiceAddress;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Models\Video;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -691,6 +694,112 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertJsonPath('data.0.has_public_service_detail', false)
             ->assertJsonPath('data.0.specialty_ids', [(int) $cerrajeria->id])
             ->assertJsonPath('data.0.service_type_ids', [(int) $cerrajeria->id]);
+    }
+
+    public function test_public_provider_detail_uses_provider_profile_without_legacy_service(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-detail@test.dev');
+        $provider->forceFill([
+            'user_name' => 'Reformas Canonicas',
+            'provider_title' => 'Reformas integrales en Barcelona',
+            'provider_description' => 'Ficha propiedad del proveedor.',
+            'provider_availability' => 'Lunes a viernes',
+            'provider_page_url' => 'https://reformas.test',
+            'photo' => 'provider-logo.webp',
+            'phone' => '+34 612 345 678',
+        ])->save();
+
+        UserAddress::query()->create([
+            'user_id' => (int) $provider->id,
+            'address' => 'Carrer de Mallorca, 120',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'postal_code' => '08036',
+            'country' => 'España',
+            'latitude' => '41.3920',
+            'longitude' => '2.1640',
+        ]);
+        $specialty = ServiceType::query()->create(['name' => 'Reformas integrales']);
+        ProviderService::query()->create([
+            'provider_id' => (int) $provider->id,
+            'service_type_id' => (int) $specialty->id,
+        ]);
+        CoverImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'provider-cover.webp',
+        ]);
+        MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'provider-gallery.webp',
+        ]);
+        Video::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'provider-video.mp4',
+        ]);
+
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'provider-detail-client@test.dev');
+        DB::table('service_provider_ratings')->insert([
+            'provider_user_id' => (int) $provider->id,
+            'client_user_id' => (int) $client->id,
+            'stars' => 5,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/public/providers/'.$provider->id);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('data.id', (int) $provider->id)
+            ->assertJsonPath('data.provider_user_id', (int) $provider->id)
+            ->assertJsonPath('data.service_id', null)
+            ->assertJsonPath('data.title', 'Reformas integrales en Barcelona')
+            ->assertJsonPath('data.description', 'Ficha propiedad del proveedor.')
+            ->assertJsonPath('data.city', 'Barcelona')
+            ->assertJsonPath('data.specialty_ids', [(int) $specialty->id])
+            ->assertJsonPath('data.average_stars', 5)
+            ->assertJsonPath('data.ratings_count', 1)
+            ->assertJsonPath('data.has_public_provider_detail', true)
+            ->assertJsonPath('data.has_public_service_detail', false)
+            ->assertJsonCount(1, 'data.gallery')
+            ->assertJsonMissingPath('data.profile_visits')
+            ->assertJsonStructure(['data' => [
+                'logo_url',
+                'cover_image_url',
+                'video_url',
+                'whatsapp_url',
+                'provider_url',
+            ]]);
+    }
+
+    public function test_public_provider_detail_ignores_legacy_service_content_and_rejects_non_providers(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-detail-legacy@test.dev');
+        $provider->forceFill([
+            'user_name' => 'Proveedor Canonico',
+            'provider_title' => 'Titulo canonico',
+            'provider_description' => 'Descripcion canonica',
+        ])->save();
+
+        Service::query()->create([
+            'title' => 'Titulo legacy que no debe salir',
+            'description' => 'Descripcion legacy que no debe salir',
+            'availability' => 'Legacy',
+            'user_id' => (int) $provider->id,
+        ]);
+
+        $this->getJson('/api/providers/'.$provider->id)
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Titulo canonico')
+            ->assertJsonPath('data.description', 'Descripcion canonica')
+            ->assertJsonPath('data.service_id', null);
+
+        $client = $this->makeUser(User::LEVEL_FINAL_CLIENT, 'not-provider-detail@test.dev');
+        $this->getJson('/api/public/providers/'.$client->id)
+            ->assertNotFound()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Proveedor no encontrado');
     }
 
     private function makeUser(int $levelId, string $email): User

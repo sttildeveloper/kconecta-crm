@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CadastralController;
 use App\Http\Controllers\Api\Internal\OrchestratorController;
 use App\Http\Controllers\Api\PropertyApiController;
-use App\Http\Controllers\Api\CadastralController;
 use App\Http\Controllers\Api\ProviderServiceApiController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +15,8 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/public/services/{id}', [ApiController::class, 'publicServiceDetail']);
     Route::get('/providers', [ApiController::class, 'publicProvidersDiscovery']);
     Route::get('/public/providers', [ApiController::class, 'publicProvidersDiscovery']);
+    Route::get('/providers/{providerUserId}', [ApiController::class, 'publicProviderDetail']);
+    Route::get('/public/providers/{providerUserId}', [ApiController::class, 'publicProviderDetail']);
     Route::get('/service-types', [ApiController::class, 'publicServiceTypes']);
     Route::get('/public/service-types', [ApiController::class, 'publicServiceTypes']);
     Route::get('/properties_for_map', [ApiController::class, 'dataPropertiesForMap']);
