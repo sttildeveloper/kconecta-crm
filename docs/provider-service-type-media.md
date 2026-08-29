@@ -161,9 +161,44 @@ Respaldo previo verificado:
 - asociaciones simultaneas `provider_user_id + service_id`: 0
 - fichas e imagenes 71, 90, 101 y 4628: HTTP 200
 
-La fase de galerias sigue pendiente y requiere una autorizacion separada. La
-implementacion del limite se preparo localmente, pero todavia no se ha desplegado
-ni se ha ejecutado el poblador de galerias en produccion.
+La regla de galeria se desplego con el commit `73f3282` y la poblacion se aplico
+en produccion el 2026-08-30.
+
+Respaldo previo verificado:
+
+```text
+/root/kconecta_backups/20260829_224407_pre_provider_galleries
+```
+
+- DB valida: `db_production_no_tablespaces.sql.gz`
+- SHA-256 DB: `340c25e6ad2a04dfc7284e48c2f07af085d47aecf130ccda754f24a904a7ccf1`
+- el intento inicial rechazado por falta de privilegio `PROCESS` esta marcado
+  `INVALID_PROCESS_PRIVILEGE_DO_NOT_RESTORE` y no debe restaurarse
+- uploads: `img_uploads.tar.gz`
+- SHA-256 uploads: `489b57b824b0f1eef8dbce931a812d7fa57676dd9b9a21813ca11b1e89fb95c0`
+- espacio libre previo: 70 GiB
+
+Resultado:
+
+- proveedores: 4.552
+- proveedores con especialidades: 4.544
+- galerias reales preservadas: 3 proveedores / 13 imagenes
+- proveedores poblados con galeria generica: 4.541
+- imagenes genericas de galeria creadas: 4.772
+- archivos nuevos: 4.772 / 444,09 MiB estimados
+- portadas modificadas: 0
+- segunda simulacion: 0 cambios pendientes
+- asignaciones distintas de `min(especialidades, 5)`: 0
+- galerias generadas con mas de cinco imagenes: 0
+- archivos ausentes, hashes incorrectos, nombres invalidos o huerfanos: 0
+- rutas duplicadas o asociaciones simultaneas con `service_id`: 0
+- fichas 68, 90, 115 y 4538: HTTP 200
+- imagenes de muestra de proveedores 68, 90 y 115: HTTP 200
+
+Excepcion heredada preservada: el proveedor 4538 ya tenia seis fotos reales
+antes de la poblacion. No se elimino ninguna automaticamente. La validacion web
+y API impide agregar mas y requiere eliminar al menos una para que esa galeria
+quede dentro del maximo de cinco.
 
 ## Validacion de la nueva regla
 
@@ -172,3 +207,6 @@ ni se ha ejecutado el poblador de galerias en produccion.
 - simulacion local del poblador: 2.902 proveedores, 0 fuentes faltantes y
   2.899 proveedores con cambios pendientes
 - la simulacion fue solo lectura; no se aplicaron cambios locales ni de produccion
+
+El prompt para alinear la aplicacion movil se encuentra en
+`docs/mobile-provider-gallery-codex-prompt.md`.

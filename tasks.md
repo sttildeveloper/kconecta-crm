@@ -1030,5 +1030,12 @@
 - [x] Focused regression: 20 tests / 134 assertions.
 - [x] Complete regression suite: 169 tests / 1,591 assertions.
 - [x] Read-only local population simulation: 0 missing specialty sources and no writes applied.
-- [ ] Deploy the limit and populate production galleries only after explicit authorization and fresh backups.
+- [x] Deployed the limit in commit `73f3282` after explicit authorization.
+- [x] Created and integrity-checked fresh DB/uploads backups before production population.
+- [x] Production dry run: 4,552 providers, 4,772 planned gallery copies and 0 missing sources.
+- [x] Production apply: 4,772 generic gallery rows/files for 4,541 providers; 0 covers modified.
+- [x] Production audit: 0 pending assignments, missing files, bad hashes, orphans, duplicate paths or generated galleries over five.
+- [x] Public smoke checks for providers 68, 90, 115 and their gallery images return HTTP 200.
+- [x] Saved the mobile Codex handoff prompt in `docs/mobile-provider-gallery-codex-prompt.md`.
+- [ ] Decide manually which real photo to remove from legacy provider 4538, whose six pre-existing real images were preserved.
 
