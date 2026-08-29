@@ -335,7 +335,7 @@ class BackfillProviderServiceTypeMedia extends Command
         $configured = trim((string) $this->option('fallback-image'));
         $path = $configured !== ''
             ? $configured
-            : public_path('img/home-services-hero-v2.webp');
+            : public_path('img/hero-bg.webp');
 
         if (! File::isFile($path) || ! File::isReadable($path) || File::size($path) <= 0) {
             throw new RuntimeException('No se puede leer la imagen general para proveedores sin especialidades: '.$path);

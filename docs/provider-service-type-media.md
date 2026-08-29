@@ -27,7 +27,7 @@ Cada nombre comienza por el `service_type.id`, por ejemplo:
 - Si existe alguna imagen real de galeria, no se agregan genericas a esa galeria.
 - Los proveedores sin especialidades no reciben galeria porque no existe una
   correspondencia fiable. Su portada usa la imagen general de servicios
-  `public/img/home-services-hero-v2.webp`.
+  `public/img/hero-bg.webp`.
 - Cada copia se almacena en `public/img/uploads/providers/{provider_id}/`.
 - La base guarda la ruta relativa `providers/{provider_id}/{archivo}.webp`.
 - Las filas genericas usan `provider_user_id`, `is_provider_default = 1`,
