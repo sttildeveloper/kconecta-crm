@@ -68,7 +68,7 @@
         </section>
 
         <div class="results-search-card">
-            <form action="" method="get" id="form-filter-result">
+            <form action="{{ url('/result/services') }}" method="get" id="form-filter-result">
                 <input type="hidden" name="page" value="1" id="input-page-nav">
                 <input type="hidden" name="mode" id="mode" value="<?= $mode ?>">
                 <input type="hidden" name="city" id="city" value="<?= $city ?>">
@@ -941,19 +941,18 @@
 
     if (btn_clear_service_filters){
         btn_clear_service_filters.addEventListener("click", ()=>{
-            document.getElementById("input-page-nav").value = "1";
-            document.getElementById("city").value = "";
-            document.getElementById("province").value = "";
-            document.getElementById("latitude").value = "";
-            document.getElementById("longitude").value = "";
-            document.getElementById("zoom").value = "";
-            document.getElementById("address").value = "";
+            const cleanResultsUrl = new URL(form_filter.action);
+            const currentMode = document.getElementById("mode")?.value;
+            if (currentMode && currentMode !== "0") {
+                cleanResultsUrl.searchParams.set("mode", currentMode);
+            }
 
-            document.querySelectorAll('input[name="sti[]"]').forEach((checkbox) => {
-                checkbox.checked = false;
-            });
+            const pageLoader = document.getElementById("loader-page-change");
+            if (pageLoader) {
+                pageLoader.style.display = "flex";
+            }
 
-            controll_inputs_filters();
+            window.location.assign(cleanResultsUrl.toString());
         });
     }
 

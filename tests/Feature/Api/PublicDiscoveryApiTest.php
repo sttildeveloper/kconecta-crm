@@ -484,6 +484,9 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertSee('renderClusterPanel(providers)', false)
             ->assertSee('window.addEventListener("pagehide", closeClusterPanel)', false)
             ->assertSee('window.addEventListener("pageshow", closeClusterPanel)', false)
+            ->assertSee('action="'.url('/result/services').'"', false)
+            ->assertSee('const cleanResultsUrl = new URL(form_filter.action)', false)
+            ->assertSee('window.location.assign(cleanResultsUrl.toString())', false)
             ->assertSee('map-cluster-provider--without-logo', false)
             ->assertSee('onClusterClick:', false)
             ->assertSee('zoom = Math.max(13, zoom || 13)', false);
@@ -493,6 +496,23 @@ class PublicDiscoveryApiTest extends TestCase
             '/\.providers-results-page \.map-cluster-panel\s*\{[^}]*z-index:\s*9;/s',
             $mapCss
         );
+    }
+
+    public function test_clean_results_url_removes_location_and_selected_specialties(): void
+    {
+        $type = ServiceType::query()->create(['name' => 'Servicio para limpiar']);
+
+        $this->get('/result/services?mode=2&address=Barcelona&city=Barcelona&province=Barcelona&latitude=41.38&longitude=2.14&zoom=13&sti[]='.$type->id)
+            ->assertOk()
+            ->assertSee('1 categorías seleccionadas')
+            ->assertSee('value="Barcelona"', false);
+
+        $this->get('/result/services?mode=2')
+            ->assertOk()
+            ->assertSee('Sin especialidades seleccionadas')
+            ->assertSee('Afina la búsqueda por especialidad')
+            ->assertDontSee('1 categorías seleccionadas')
+            ->assertSee('name="address" id="address" value=""', false);
     }
 
     public function test_services_for_map_includes_provider_without_service_when_contact_and_coordinates_exist(): void
