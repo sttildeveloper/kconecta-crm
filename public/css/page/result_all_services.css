@@ -812,7 +812,7 @@
 
 .providers-results-page .map-cluster-panel {
     position: absolute;
-    z-index: 20;
+    z-index: 9;
     top: 5.25rem;
     right: 1rem;
     bottom: 1rem;

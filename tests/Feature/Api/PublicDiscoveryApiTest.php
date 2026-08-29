@@ -482,9 +482,17 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertSee('new window.markerClusterer.SuperClusterAlgorithm({ radius: 80, maxZoom: 19 })', false)
             ->assertSee('id="map-cluster-panel"', false)
             ->assertSee('renderClusterPanel(providers)', false)
+            ->assertSee('window.addEventListener("pagehide", closeClusterPanel)', false)
+            ->assertSee('window.addEventListener("pageshow", closeClusterPanel)', false)
             ->assertSee('map-cluster-provider--without-logo', false)
             ->assertSee('onClusterClick:', false)
             ->assertSee('zoom = Math.max(13, zoom || 13)', false);
+
+        $mapCss = file_get_contents(public_path('css/page/result_all_services.css'));
+        $this->assertMatchesRegularExpression(
+            '/\.providers-results-page \.map-cluster-panel\s*\{[^}]*z-index:\s*9;/s',
+            $mapCss
+        );
     }
 
     public function test_services_for_map_includes_provider_without_service_when_contact_and_coordinates_exist(): void

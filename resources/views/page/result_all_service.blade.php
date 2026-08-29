@@ -342,6 +342,13 @@
             }
         };
 
+        // Browsers may restore the open panel from the back-forward cache while
+        // the global page loader is visible. Always start navigation with the
+        // transient map panel closed so it cannot appear over the loader.
+        closeClusterPanel();
+        window.addEventListener("pagehide", closeClusterPanel);
+        window.addEventListener("pageshow", closeClusterPanel);
+
         const appendClusterText = (parent, className, text) => {
             if (!text) {
                 return;
