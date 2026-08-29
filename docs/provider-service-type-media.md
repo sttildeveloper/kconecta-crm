@@ -109,7 +109,31 @@ Las copias genericas anteriores se pueden regenerar desde el comando historico
 
 ## Produccion
 
-Esta ejecucion se realizo solo en la base local. No se ha ejecutado el comando en
-produccion ni se ha copiado multimedia al volumen productivo. Antes de hacerlo se
-requiere autorizacion expresa, respaldo fresco de base de datos y volumen
-`public/img/uploads`, simulacion y comprobacion de espacio libre.
+La fase exclusiva de portadas se aplico en produccion el 2026-08-29 mediante:
+
+```bash
+php artisan providers:backfill-service-type-media --covers-only --apply
+```
+
+Respaldo previo verificado:
+
+```text
+/root/kconecta_backups/20260829_202944_pre_service_type_covers
+```
+
+- DB: `05de0b33dba5b610b2ed467b342ba5b9184c0e2bff4f9c11cc2967863c590e97`
+- uploads: `b008f3ca128fd439eccce5b5d09d244706f28f9628d07d7eef5b4f07008fd8c5`
+- espacio libre previo: 73 GiB
+- proveedores: 4.552
+- portadas reales preservadas: 4
+- portadas genericas creadas: 4.548
+- proveedores sin especialidad con portada general: 8
+- galerias creadas o modificadas: 0
+- segunda simulacion: 0 cambios pendientes
+- proveedores con portada: 4.552 de 4.552
+- archivos fisicos genericos: 4.548
+- archivos ausentes, hashes incorrectos o huerfanos: 0
+- asociaciones simultaneas `provider_user_id + service_id`: 0
+- fichas e imagenes 71, 90, 101 y 4628: HTTP 200
+
+La fase de galerias sigue pendiente y requiere una autorizacion separada.

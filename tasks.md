@@ -1009,7 +1009,12 @@
 - [x] Focused regression: 17 tests / 128 assertions.
 - [x] Complete regression suite: 162 tests / 1,542 assertions.
 - [x] Runbook: `docs/provider-service-type-media.md`.
-- [ ] Production remains unchanged; require explicit authorization and fresh DB/uploads backups before apply.
+- [x] Production cover-only phase applied after verified DB/uploads backups.
 - [x] Added `--covers-only` production scope and a neutral fallback cover for providers without specialties.
 - [x] Production authorization received for the cover-only phase on 2026-08-29.
+- [x] Production result: 4,552/4,552 providers have a cover; 4 real covers preserved and 4,548 generic covers created.
+- [x] Production gallery remained unchanged; 0 generic gallery rows were created.
+- [x] Production audit: 0 pending changes, missing files, bad hashes, orphan files or dual legacy links.
+- [x] Online smoke test: provider pages and cover images 71, 90, 101 and 4628 return HTTP 200.
+- [ ] Gallery population remains a separate, explicitly authorized phase.
 
