@@ -327,11 +327,16 @@ class PostController extends Controller
 
     private function deleteStoredFile(string $directory, ?string $fileName): void
     {
-        if (! $fileName) {
+        $normalized = str_replace('\\', '/', trim((string) $fileName));
+        if (
+            $normalized === ''
+            || str_starts_with($normalized, '/')
+            || preg_match('#(^|/)\.\.(/|$)#', $normalized)
+        ) {
             return;
         }
 
-        $filePath = public_path(trim($directory, '/').'/'.ltrim($fileName, '/'));
+        $filePath = public_path(trim($directory, '/').'/'.ltrim($normalized, '/'));
         if (is_file($filePath)) {
             @unlink($filePath);
         }

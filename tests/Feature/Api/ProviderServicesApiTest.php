@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -186,43 +187,55 @@ class ProviderServicesApiTest extends TestCase
     public function test_custom_upload_replaces_provider_default_media(): void
     {
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-replace-default@test.dev');
+        $providerDirectory = public_path('img/uploads/providers/'.$provider->id);
+        File::ensureDirectoryExists($providerDirectory);
+        File::put($providerDirectory.'/default-cover.webp', 'default-cover');
+        File::put($providerDirectory.'/default-gallery-1.webp', 'default-gallery-1');
+        File::put($providerDirectory.'/default-gallery-2.webp', 'default-gallery-2');
         CoverImage::query()->create([
             'provider_user_id' => (int) $provider->id,
             'is_provider_default' => true,
             'source_provider_user_id' => 67,
-            'url' => 'default-cover.webp',
+            'url' => 'providers/'.$provider->id.'/default-cover.webp',
         ]);
         MoreImage::query()->create([
             'provider_user_id' => (int) $provider->id,
             'is_provider_default' => true,
             'source_provider_user_id' => 67,
-            'url' => 'default-gallery-1.webp',
+            'url' => 'providers/'.$provider->id.'/default-gallery-1.webp',
         ]);
         MoreImage::query()->create([
             'provider_user_id' => (int) $provider->id,
             'is_provider_default' => true,
             'source_provider_user_id' => 67,
-            'url' => 'default-gallery-2.webp',
+            'url' => 'providers/'.$provider->id.'/default-gallery-2.webp',
         ]);
 
-        $this->actingAs($provider, 'sanctum')
-            ->patch('/api/agent/provider-profile', [
-                'cover_image' => UploadedFile::fake()->image('custom-cover.jpg'),
-                'more_images' => [UploadedFile::fake()->image('custom-gallery.jpg')],
-            ])
-            ->assertOk();
+        try {
+            $this->actingAs($provider, 'sanctum')
+                ->patch('/api/agent/provider-profile', [
+                    'cover_image' => UploadedFile::fake()->image('custom-cover.jpg'),
+                    'more_images' => [UploadedFile::fake()->image('custom-gallery.jpg')],
+                ])
+                ->assertOk();
 
-        $this->assertDatabaseHas('cover_image', [
-            'provider_user_id' => (int) $provider->id,
-            'is_provider_default' => false,
-            'source_provider_user_id' => null,
-        ]);
-        $this->assertSame(1, MoreImage::query()->where('provider_user_id', $provider->id)->count());
-        $this->assertDatabaseHas('more_images', [
-            'provider_user_id' => (int) $provider->id,
-            'is_provider_default' => false,
-            'source_provider_user_id' => null,
-        ]);
+            $this->assertDatabaseHas('cover_image', [
+                'provider_user_id' => (int) $provider->id,
+                'is_provider_default' => false,
+                'source_provider_user_id' => null,
+            ]);
+            $this->assertSame(1, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+            $this->assertDatabaseHas('more_images', [
+                'provider_user_id' => (int) $provider->id,
+                'is_provider_default' => false,
+                'source_provider_user_id' => null,
+            ]);
+            $this->assertFileDoesNotExist($providerDirectory.'/default-cover.webp');
+            $this->assertFileDoesNotExist($providerDirectory.'/default-gallery-1.webp');
+            $this->assertFileDoesNotExist($providerDirectory.'/default-gallery-2.webp');
+        } finally {
+            File::deleteDirectory($providerDirectory);
+        }
     }
 
     public function test_profile_patch_validates_media_and_specialty_inputs(): void

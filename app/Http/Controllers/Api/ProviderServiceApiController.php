@@ -1026,13 +1026,16 @@ class ProviderServiceApiController extends Controller
 
     private function deleteStoredFile(string $relativeDir, string $fileName): void
     {
-        $trimmed = trim($fileName);
-        if ($trimmed === '') {
+        $normalized = str_replace('\\', '/', trim($fileName));
+        if (
+            $normalized === ''
+            || str_starts_with($normalized, '/')
+            || preg_match('#(^|/)\.\.(/|$)#', $normalized)
+        ) {
             return;
         }
 
-        $safeFile = basename(str_replace('\\', '/', $trimmed));
-        $path = public_path(trim($relativeDir, '/\\').DIRECTORY_SEPARATOR.$safeFile);
+        $path = public_path(trim($relativeDir, '/\\').'/'.ltrim($normalized, '/'));
         if (is_file($path)) {
             @unlink($path);
         }

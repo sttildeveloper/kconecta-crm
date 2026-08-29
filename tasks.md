@@ -995,3 +995,21 @@
 - [ ] Run production default cover/gallery backfill only after fresh DB/uploads backup and dry-run.
 - [ ] Keep `service`, `service_address` and legacy `service_id` compatibility until web/mobile QA and reference inventory reach zero.
 
+## Session Update (2026-08-29) - Local service-type provider media
+
+- [x] Validated the 28 WebP source images in `public/img/service-types/WEBP`.
+- [x] Implemented idempotent dry-run/apply command `providers:backfill-service-type-media`.
+- [x] Preserve all real cover/gallery rows and replace only generic provider media.
+- [x] Store independent copies under `img/uploads/providers/{provider_id}/`.
+- [x] Hardened web/API deletion so providers can replace nested default files safely.
+- [x] Created and verified local pre-apply DB backup; SHA-256 `69419A58BE1D5343B2AF22326F7A57B7A2B3A8F76CBF3D101E15C6EBC9E0889E`.
+- [x] Applied locally: 2,892 covers, 97 gallery images and 2,989 new files.
+- [x] Removed 17,357 previous generic copies; 7 providers without specialties remain unchanged.
+- [x] Post-audit: 0 pending changes, missing files, bad hashes, invalid names or orphan files.
+- [x] Focused regression: 17 tests / 128 assertions.
+- [x] Complete regression suite: 162 tests / 1,542 assertions.
+- [x] Runbook: `docs/provider-service-type-media.md`.
+- [ ] Production remains unchanged; require explicit authorization and fresh DB/uploads backups before apply.
+- [x] Added `--covers-only` production scope and a neutral fallback cover for providers without specialties.
+- [x] Production authorization received for the cover-only phase on 2026-08-29.
+

@@ -1,0 +1,115 @@
+# Multimedia generica por tipo de servicio
+
+Fecha de validacion local: 2026-08-29
+
+## Objetivo
+
+Asignar a cada proveedor copias independientes de las imagenes genericas que
+corresponden a sus especialidades. Las fuentes WebP se encuentran en:
+
+```text
+public/img/service-types/WEBP
+```
+
+Cada nombre comienza por el `service_type.id`, por ejemplo:
+
+```text
+27-fontaneria.webp
+```
+
+## Regla de asignacion
+
+- Las fotos reales del proveedor nunca se reemplazan.
+- Si no existe una portada real, la especialidad con menor ID se usa como portada.
+- Las especialidades restantes se copian como galeria.
+- Si la portada es real y la galeria esta vacia, todas las especialidades se usan
+  como galeria.
+- Si existe alguna imagen real de galeria, no se agregan genericas a esa galeria.
+- Los proveedores sin especialidades no reciben galeria porque no existe una
+  correspondencia fiable. Su portada usa la imagen general de servicios
+  `public/img/home-services-hero-v2.webp`.
+- Cada copia se almacena en `public/img/uploads/providers/{provider_id}/`.
+- La base guarda la ruta relativa `providers/{provider_id}/{archivo}.webp`.
+- Las filas genericas usan `provider_user_id`, `is_provider_default = 1`,
+  `source_provider_user_id = null` y `service_id = null`.
+
+Las copias independientes permiten que el proveedor sustituya o elimine su
+multimedia sin modificar la imagen fuente ni la ficha de otro proveedor.
+
+## Comando
+
+Simulacion, sin escrituras:
+
+```bash
+php artisan providers:backfill-service-type-media
+```
+
+Aplicacion:
+
+```bash
+php artisan providers:backfill-service-type-media --apply
+```
+
+Aplicacion exclusiva de portadas, sin modificar galerias:
+
+```bash
+php artisan providers:backfill-service-type-media --covers-only --apply
+```
+
+El comando es idempotente, comprueba hashes de copias preexistentes, conserva
+contenido real y revierte las filas y archivos nuevos si ocurre una excepcion
+antes de confirmar la transaccion.
+
+## Resultado local
+
+- proveedores: 2.902
+- proveedores con especialidades: 2.895
+- proveedores sin especialidades y sin cambios: 7
+- proveedores sin imagen fuente para alguna especialidad: 0
+- portadas reales preservadas: 3
+- galerias reales preservadas: 2 proveedores / 7 imagenes
+- portadas genericas nuevas: 2.892
+- imagenes genericas nuevas de galeria: 97
+- copias nuevas: 2.989
+- multimedia generica anterior retirada: 17.357 archivos
+- espacio de las copias nuevas: 245,56 MiB
+
+Los 7 proveedores sin especialidades conservan sus 42 archivos genericos
+anteriores (una portada y cinco imagenes por proveedor) hasta que se les asigne
+una especialidad valida.
+
+## Respaldo local previo
+
+```text
+backups/20260829_170118_pre_service_type_media_local/db_local.sql.gz
+```
+
+- bytes: `710911`
+- SHA-256: `69419A58BE1D5343B2AF22326F7A57B7A2B3A8F76CBF3D101E15C6EBC9E0889E`
+
+Las copias genericas anteriores se pueden regenerar desde el comando historico
+`providers:backfill-default-media` tras restaurar el respaldo de base de datos.
+
+## Validacion
+
+- segunda simulacion: 0 proveedores con cambios
+- rutas genericas nuevas en base de datos: 2.989
+- archivos fisicos nuevos: 2.989
+- rutas duplicadas: 0
+- archivos ausentes: 0
+- nombres invalidos: 0
+- hashes distintos de la fuente: 0
+- archivos huerfanos: 0
+- proveedores con especialidades sin portada: 0
+- asociaciones simultaneas `provider_user_id + service_id`: 0
+- fichas 68, 90 y 101: HTTP 200
+- archivos de portada y galeria verificados: HTTP 200
+- regresion focal: 17 pruebas / 128 aserciones
+- suite completa: 162 pruebas / 1.542 aserciones
+
+## Produccion
+
+Esta ejecucion se realizo solo en la base local. No se ha ejecutado el comando en
+produccion ni se ha copiado multimedia al volumen productivo. Antes de hacerlo se
+requiere autorizacion expresa, respaldo fresco de base de datos y volumen
+`public/img/uploads`, simulacion y comprobacion de espacio libre.
