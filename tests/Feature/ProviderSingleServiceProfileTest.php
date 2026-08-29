@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CoverImage;
+use App\Models\MoreImage;
 use App\Models\Service;
 use App\Models\ServiceType;
 use App\Models\User;
@@ -104,6 +105,51 @@ class ProviderSingleServiceProfileTest extends TestCase
             'service_type_id' => (int) $type->id,
         ]);
         $this->assertSame(0, Service::query()->where('user_id', (int) $provider->id)->count());
+    }
+
+    public function test_web_profile_rejects_a_sixth_gallery_image_before_updating_profile(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-web-gallery-limit@test.dev');
+        foreach (range(1, 5) as $number) {
+            MoreImage::query()->create([
+                'provider_user_id' => (int) $provider->id,
+                'url' => 'web-gallery-'.$number.'.webp',
+                'is_provider_default' => false,
+            ]);
+        }
+
+        $this->actingAs($provider)
+            ->from('/post/provider-profile/edit')
+            ->post('/post/provider-profile', [
+                'title' => 'No debe guardarse',
+                'more_images' => [UploadedFile::fake()->image('sixth.jpg')],
+            ])
+            ->assertRedirect('/post/provider-profile/edit')
+            ->assertSessionHasErrors('more_images');
+
+        $this->assertNull($provider->fresh()->provider_title);
+        $this->assertSame(5, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+    }
+
+    public function test_web_profile_allows_deleting_and_replacing_an_image_at_the_gallery_limit(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-web-gallery-replace@test.dev');
+        $images = collect(range(1, 5))->map(fn (int $number) => MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'web-replace-gallery-'.$number.'.webp',
+            'is_provider_default' => false,
+        ]));
+
+        $this->actingAs($provider)
+            ->post('/post/provider-profile', [
+                'delete_more_images' => [(int) $images->first()->id],
+                'more_images' => [UploadedFile::fake()->image('replacement.jpg')],
+            ])
+            ->assertRedirect('/post/services')
+            ->assertSessionDoesntHaveErrors();
+
+        $this->assertDatabaseMissing('more_images', ['id' => (int) $images->first()->id]);
+        $this->assertSame(5, MoreImage::query()->where('provider_user_id', $provider->id)->count());
     }
 
     private function makeUser(int $levelId, string $email): User

@@ -21,13 +21,14 @@ Cada nombre comienza por el `service_type.id`, por ejemplo:
 
 - Las fotos reales del proveedor nunca se reemplazan.
 - Si no existe una portada real, la especialidad con menor ID se usa como portada.
-- Las especialidades restantes se copian como galeria.
-- Si la portada es real y la galeria esta vacia, todas las especialidades se usan
-  como galeria.
+- La portada es independiente y no cuenta dentro del limite de la galeria.
+- Si la galeria real esta vacia, se copia una imagen por especialidad, incluida
+  la especialidad representada en la portada, con un maximo de cinco imagenes.
+- Si existen mas de cinco especialidades, se usan las cinco con menor ID.
 - Si existe alguna imagen real de galeria, no se agregan genericas a esa galeria.
 - Los proveedores sin especialidades no reciben galeria porque no existe una
-  correspondencia fiable. Su portada usa la imagen general de servicios
-  `public/img/hero-bg.webp`.
+  correspondencia fiable; una ejecucion completa retira sus galerias genericas
+  anteriores. Su portada usa la imagen general de servicios `public/img/hero-bg.webp`.
 - Cada copia se almacena en `public/img/uploads/providers/{provider_id}/`.
 - La base guarda la ruta relativa `providers/{provider_id}/{archivo}.webp`.
 - Las filas genericas usan `provider_user_id`, `is_provider_default = 1`,
@@ -35,6 +36,26 @@ Cada nombre comienza por el `service_type.id`, por ejemplo:
 
 Las copias independientes permiten que el proveedor sustituya o elimine su
 multimedia sin modificar la imagen fuente ni la ficha de otro proveedor.
+
+## Limite compartido de galeria
+
+El limite canonico se define en `config/uploads.php` como
+`provider_gallery_max_images = 5` y se aplica sobre el total final de la galeria:
+
+```text
+existentes - eliminadas - genericas sustituidas + nuevas <= 5
+```
+
+- La edicion web valida el limite antes de modificar datos o archivos y muestra
+  el maximo en el formulario.
+- La API movil canonica y sus aliases legacy devuelven HTTP 422 si el total
+  proyectado supera cinco.
+- La respuesta del perfil API publica `gallery_max_images` para que el cliente
+  movil pueda reproducir la misma restriccion visual.
+- Al subir al menos una foto real, las fotos genericas de muestra se retiran;
+  las fotos reales existentes se conservan salvo que el proveedor marque su
+  eliminacion.
+- El comando de poblacion nunca genera mas de cinco fotos de galeria.
 
 ## Comando
 
@@ -60,7 +81,11 @@ El comando es idempotente, comprueba hashes de copias preexistentes, conserva
 contenido real y revierte las filas y archivos nuevos si ocurre una excepcion
 antes de confirmar la transaccion.
 
-## Resultado local
+## Resultado local de la ejecucion anterior
+
+Este bloque conserva el registro de la poblacion realizada antes de adoptar la
+regla actual de una imagen de galeria por especialidad. No describe la simulacion
+pendiente indicada al final del documento.
 
 - proveedores: 2.902
 - proveedores con especialidades: 2.895
@@ -136,4 +161,14 @@ Respaldo previo verificado:
 - asociaciones simultaneas `provider_user_id + service_id`: 0
 - fichas e imagenes 71, 90, 101 y 4628: HTTP 200
 
-La fase de galerias sigue pendiente y requiere una autorizacion separada.
+La fase de galerias sigue pendiente y requiere una autorizacion separada. La
+implementacion del limite se preparo localmente, pero todavia no se ha desplegado
+ni se ha ejecutado el poblador de galerias en produccion.
+
+## Validacion de la nueva regla
+
+- regresion focal: 20 pruebas / 134 aserciones
+- suite completa: 169 pruebas / 1.591 aserciones
+- simulacion local del poblador: 2.902 proveedores, 0 fuentes faltantes y
+  2.899 proveedores con cambios pendientes
+- la simulacion fue solo lectura; no se aplicaron cambios locales ni de produccion

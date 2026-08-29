@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\CoverImage;
 use App\Models\MoreImage;
 use App\Models\User;
+use App\Support\ProviderGalleryRules;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -115,7 +116,7 @@ class BackfillProviderServiceTypeMedia extends Command
                 : ($typeIds === [] ? $fallbackSource : $sources->get($typeIds[0]));
             $galleryTypeIds = ($coversOnly || $typeIds === [] || $realGallery->isNotEmpty())
                 ? []
-                : ($realCover ? $typeIds : array_slice($typeIds, 1));
+                : array_slice($typeIds, 0, ProviderGalleryRules::maximum());
             $gallerySources = collect($galleryTypeIds)
                 ->map(fn (int $typeId) => $sources->get($typeId))
                 ->values();
@@ -134,7 +135,6 @@ class BackfillProviderServiceTypeMedia extends Command
 
             $coverNeedsChange = $currentCoverUrls !== $desiredCoverUrls;
             $galleryNeedsChange = ! $coversOnly
-                && $typeIds !== []
                 && $currentGalleryUrls !== $desiredGalleryUrls;
             if (! $coverNeedsChange && ! $galleryNeedsChange) {
                 continue;

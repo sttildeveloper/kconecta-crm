@@ -97,12 +97,18 @@ class BackfillProviderServiceTypeMediaCommandTest extends TestCase
             $singleCover = CoverImage::query()->where('provider_user_id', $single->id)->firstOrFail();
             $this->assertTrue((bool) $singleCover->is_provider_default);
             $this->assertStringStartsWith('providers/'.$single->id.'/default-cover-7-', $singleCover->url);
-            $this->assertSame(0, MoreImage::query()->where('provider_user_id', $single->id)->count());
+            $this->assertSame(1, MoreImage::query()->where('provider_user_id', $single->id)->count());
+            $this->assertStringStartsWith(
+                'providers/'.$single->id.'/default-gallery-7-',
+                (string) MoreImage::query()->where('provider_user_id', $single->id)->value('url')
+            );
 
             $multipleCover = CoverImage::query()->where('provider_user_id', $multiple->id)->firstOrFail();
-            $multipleGallery = MoreImage::query()->where('provider_user_id', $multiple->id)->firstOrFail();
+            $multipleGallery = MoreImage::query()->where('provider_user_id', $multiple->id)->orderBy('url')->get();
             $this->assertStringStartsWith('providers/'.$multiple->id.'/default-cover-7-', $multipleCover->url);
-            $this->assertStringStartsWith('providers/'.$multiple->id.'/default-gallery-8-', $multipleGallery->url);
+            $this->assertCount(2, $multipleGallery);
+            $this->assertStringStartsWith('providers/'.$multiple->id.'/default-gallery-7-', $multipleGallery[0]->url);
+            $this->assertStringStartsWith('providers/'.$multiple->id.'/default-gallery-8-', $multipleGallery[1]->url);
 
             $this->assertSame('real-cover.webp', CoverImage::query()->where('provider_user_id', $realCover->id)->value('url'));
             $this->assertStringStartsWith(
@@ -120,14 +126,12 @@ class BackfillProviderServiceTypeMediaCommandTest extends TestCase
                 $withoutSpecialtyCover
             );
             $this->assertFileExists(public_path('img/uploads/'.$withoutSpecialtyCover));
-            $this->assertStringContainsString(
-                'old-gallery',
-                (string) MoreImage::query()->where('provider_user_id', $withoutSpecialty->id)->value('url')
-            );
+            $this->assertSame(0, MoreImage::query()->where('provider_user_id', $withoutSpecialty->id)->count());
 
             $this->assertFileExists(public_path('img/uploads/'.$multipleCover->url));
             $this->assertSame('carpentry-image', File::get(public_path('img/uploads/'.$multipleCover->url)));
-            $this->assertSame('locksmith-image', File::get(public_path('img/uploads/'.$multipleGallery->url)));
+            $this->assertSame('carpentry-image', File::get(public_path('img/uploads/'.$multipleGallery[0]->url)));
+            $this->assertSame('locksmith-image', File::get(public_path('img/uploads/'.$multipleGallery[1]->url)));
 
             $this->artisan('providers:backfill-service-type-media', [
                 '--source-dir' => $sourceDirectory,
@@ -186,6 +190,44 @@ class BackfillProviderServiceTypeMediaCommandTest extends TestCase
             File::deleteDirectory(public_path('img/uploads/providers/'.$typed->id));
             File::deleteDirectory(public_path('img/uploads/providers/'.$untyped->id));
             File::delete(public_path('img/uploads/'.$galleryFile));
+        }
+    }
+
+    public function test_gallery_population_uses_at_most_five_specialties(): void
+    {
+        $sourceDirectory = storage_path('framework/testing/service-type-limit-'.bin2hex(random_bytes(4)));
+        File::ensureDirectoryExists($sourceDirectory);
+        $provider = $this->provider('service-type-limit@test.dev');
+
+        foreach (range(1, 6) as $typeId) {
+            File::put($sourceDirectory.'/'.$typeId.'-service.webp', 'service-image-'.$typeId);
+            DB::table('service_type')->updateOrInsert(['id' => $typeId], ['name' => 'Servicio '.$typeId]);
+        }
+        $this->specialties($provider, range(1, 6));
+        $fallbackPath = $sourceDirectory.'/general.webp';
+        File::put($fallbackPath, 'general-cover');
+
+        try {
+            $this->artisan('providers:backfill-service-type-media', [
+                '--source-dir' => $sourceDirectory,
+                '--fallback-image' => $fallbackPath,
+                '--apply' => true,
+            ])->expectsOutputToContain('5 imagenes de galeria')->assertSuccessful();
+
+            $gallery = MoreImage::query()
+                ->where('provider_user_id', (int) $provider->id)
+                ->orderBy('url')
+                ->get();
+            $this->assertCount(5, $gallery);
+            foreach (range(1, 5) as $index => $typeId) {
+                $this->assertStringStartsWith(
+                    'providers/'.$provider->id.'/default-gallery-'.$typeId.'-',
+                    $gallery[$index]->url
+                );
+            }
+        } finally {
+            File::deleteDirectory($sourceDirectory);
+            File::deleteDirectory(public_path('img/uploads/providers/'.$provider->id));
         }
     }
 

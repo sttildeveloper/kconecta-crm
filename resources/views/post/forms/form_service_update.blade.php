@@ -346,7 +346,7 @@
                         @if (! empty($moreImages))
                             <div class="provider-gallery-grid">
                                 @foreach ($moreImages as $image)
-                                    <div class="provider-gallery-item">
+                                    <div class="provider-gallery-item" data-gallery-default="{{ ! empty($image['is_provider_default']) ? '1' : '0' }}">
                                         <img src="{{ asset('img/uploads/' . $image['url']) }}" alt="Imagen del proveedor">
                                         <label class="provider-gallery-delete">
                                             <input type="checkbox" name="delete_more_images[]" value="{{ $image['id'] }}">
@@ -362,7 +362,11 @@
                         <div class="provider-file-field">
                             <label class="provider-form-field">
                                 <span>Agregar imagenes</span>
-                                <input type="file" name="more_images[]" multiple accept="image/png,image/jpeg,image/jpg,image/webp">
+                                <input id="provider-gallery-input" type="file" name="more_images[]" multiple accept="image/png,image/jpeg,image/jpg,image/webp">
+                                <small>Maximo {{ \App\Support\ProviderGalleryRules::maximum() }} imagenes en la galeria. La portada no cuenta.</small>
+                                @error('more_images')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </label>
                         </div>
                     </div>
@@ -403,6 +407,29 @@
             const submitBtn = document.getElementById('provider-profile-submit-btn');
             const coverInput = document.getElementById('cover-image-input');
             const coverPreview = document.getElementById('cover-image-preview');
+            const galleryInput = document.getElementById('provider-gallery-input');
+            const galleryMaximum = {{ \App\Support\ProviderGalleryRules::maximum() }};
+
+            const projectedGalleryCount = () => {
+                const items = Array.from(document.querySelectorAll('.provider-gallery-item'));
+                const newCount = galleryInput?.files?.length || 0;
+                const replacesDefaults = newCount > 0;
+                const remainingCount = items.filter((item) => {
+                    const markedForDeletion = item.querySelector('input[name="delete_more_images[]"]')?.checked;
+                    const isDefault = item.dataset.galleryDefault === '1';
+
+                    return ! markedForDeletion && ! (replacesDefaults && isDefault);
+                }).length;
+
+                return remainingCount + newCount;
+            };
+
+            galleryInput?.addEventListener('change', () => {
+                if (projectedGalleryCount() > galleryMaximum) {
+                    alert(`La galeria admite un maximo de ${galleryMaximum} imagenes.`);
+                    galleryInput.value = '';
+                }
+            });
 
             coverInput?.addEventListener('change', () => {
                 const file = coverInput.files && coverInput.files[0];
@@ -411,7 +438,13 @@
                 }
             });
 
-            form?.addEventListener('submit', () => {
+            form?.addEventListener('submit', (event) => {
+                if (projectedGalleryCount() > galleryMaximum) {
+                    event.preventDefault();
+                    alert(`La galeria admite un maximo de ${galleryMaximum} imagenes.`);
+                    return;
+                }
+
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.textContent = 'Guardando...';

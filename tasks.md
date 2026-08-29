@@ -1018,3 +1018,17 @@
 - [x] Online smoke test: provider pages and cover images 71, 90, 101 and 4628 return HTTP 200.
 - [ ] Gallery population remains a separate, explicitly authorized phase.
 
+## Session Update (2026-08-29) - Provider gallery maximum
+
+- [x] Centralized the provider gallery maximum at five images; the cover remains independent.
+- [x] Enforced the projected final count before writes in the provider web editor.
+- [x] Enforced the same rule in the canonical mobile API and legacy service aliases.
+- [x] Exposed `gallery_max_images` in the mobile provider-profile payload.
+- [x] Updated population to create one gallery image per specialty, including the primary specialty, capped at five.
+- [x] Preserve real gallery photos and replace generic samples when a provider uploads real photos.
+- [x] Fixed provider media query grouping so a requested deletion cannot expand to every canonical gallery row.
+- [x] Focused regression: 20 tests / 134 assertions.
+- [x] Complete regression suite: 169 tests / 1,591 assertions.
+- [x] Read-only local population simulation: 0 missing specialty sources and no writes applied.
+- [ ] Deploy the limit and populate production galleries only after explicit authorization and fresh backups.
+

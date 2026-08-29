@@ -14,6 +14,7 @@ use App\Models\UserAddress;
 use App\Models\Video;
 use App\Services\ProviderServiceTypeService;
 use App\Services\ServiceRatingService;
+use App\Support\ProviderGalleryRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -184,6 +185,7 @@ class ProviderServiceApiController extends Controller
                 'file' => $image->url,
                 'url' => asset('img/uploads/'.ltrim((string) $image->url, '/')),
             ])->values()->all(),
+            'gallery_max_images' => ProviderGalleryRules::maximum(),
             'address' => $userAddress?->address,
             'city' => $userAddress?->city,
             'province' => $userAddress?->province,
@@ -253,7 +255,7 @@ class ProviderServiceApiController extends Controller
             'specialty_ids' => 'sometimes|array',
             'specialty_ids.*' => 'integer|exists:service_type,id',
             'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
-            'more_images' => 'sometimes|array',
+            'more_images' => 'sometimes|array|max:'.ProviderGalleryRules::maximum(),
             'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'video' => 'sometimes|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
             'delete_more_images' => 'sometimes|array',
@@ -268,10 +270,30 @@ class ProviderServiceApiController extends Controller
         ], [
             'provider_logo.mimes' => 'El logo debe ser una imagen JPG, JPEG, PNG o WEBP.',
             'provider_logo.max' => 'El logo no puede superar 2MB.',
+            'more_images.max' => ProviderGalleryRules::limitMessage(),
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse('Datos invalidos', 422, $validator->errors()->toArray());
+        }
+
+        $newGalleryCount = collect((array) $request->file('more_images', []))
+            ->filter(fn ($file) => $file && $file->isValid())
+            ->count();
+        $existingGallery = MoreImage::query()
+            ->where('provider_user_id', (int) $user->id)
+            ->get();
+        $projectedGalleryCount = ProviderGalleryRules::projectedCount(
+            $existingGallery,
+            (array) $request->input('delete_more_images', []),
+            $newGalleryCount,
+            $newGalleryCount > 0
+        );
+
+        if ($projectedGalleryCount > ProviderGalleryRules::maximum()) {
+            return $this->errorResponse('Datos invalidos', 422, [
+                'more_images' => [ProviderGalleryRules::limitMessage()],
+            ]);
         }
 
         $logoFile = $input['provider_logo'] ?? null;
@@ -440,7 +462,7 @@ class ProviderServiceApiController extends Controller
             'service_type' => 'required|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
             'cover_image' => 'required|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
-            'more_images' => 'nullable|array',
+            'more_images' => 'nullable|array|max:'.ProviderGalleryRules::maximum(),
             'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',
@@ -558,7 +580,7 @@ class ProviderServiceApiController extends Controller
             'service_type' => 'sometimes|array|min:1',
             'service_type.*' => 'integer|exists:service_type,id',
             'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
-            'more_images' => 'nullable|array',
+            'more_images' => 'nullable|array|max:'.ProviderGalleryRules::maximum(),
             'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'video' => 'nullable|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
             'address' => 'nullable|string|max:255',

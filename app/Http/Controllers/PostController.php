@@ -51,6 +51,7 @@ use App\Models\Video;
 use App\Models\VisibilityInPortals;
 use App\Models\WheeledAccess;
 use App\Services\ProviderServiceTypeService;
+use App\Support\ProviderGalleryRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -117,13 +118,15 @@ class PostController extends Controller
         $query = $modelClass::query();
 
         if ($this->tableHasColumn($model->getTable(), 'provider_user_id')) {
-            $query->where('provider_user_id', $providerId);
+            $query->where(function ($ownerQuery) use ($providerId, $serviceId) {
+                $ownerQuery->where('provider_user_id', $providerId);
 
-            if ($serviceId > 0) {
-                $query->orWhere(function ($nested) use ($serviceId) {
-                    $nested->whereNull('provider_user_id')->where('service_id', $serviceId);
-                });
-            }
+                if ($serviceId > 0) {
+                    $ownerQuery->orWhere(function ($legacyQuery) use ($serviceId) {
+                        $legacyQuery->whereNull('provider_user_id')->where('service_id', $serviceId);
+                    });
+                }
+            });
 
             return $query;
         }
@@ -2286,6 +2289,35 @@ class PostController extends Controller
         } else {
             return redirect()->to('/home');
         }
+
+        $request->validate([
+            'more_images' => ['nullable', 'array', 'max:'.ProviderGalleryRules::maximum()],
+            'more_images.*' => ['file', 'mimes:jpg,jpeg,png,webp'],
+            'delete_more_images' => ['nullable', 'array'],
+            'delete_more_images.*' => ['integer'],
+        ], [
+            'more_images.max' => ProviderGalleryRules::limitMessage(),
+            'more_images.*.mimes' => 'Cada imagen de la galeria debe ser JPG, JPEG, PNG o WEBP.',
+        ]);
+
+        $newGalleryCount = collect((array) $request->file('more_images', []))
+            ->filter(fn ($file) => $file && $file->isValid())
+            ->count();
+        $deleteMoreImageIds = $this->normalizePositiveIds($request->input('delete_more_images', []));
+        $existingGallery = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, $serviceId)->get();
+        $projectedGalleryCount = ProviderGalleryRules::projectedCount(
+            $existingGallery,
+            $deleteMoreImageIds,
+            $newGalleryCount,
+            $newGalleryCount > 0
+        );
+
+        if ($projectedGalleryCount > ProviderGalleryRules::maximum()) {
+            return redirect()->back()->withInput()->withErrors([
+                'more_images' => ProviderGalleryRules::limitMessage(),
+            ]);
+        }
+
         $profileTitle = trim((string) $request->input('title', ''));
         $description = trim((string) $request->input('description', ''));
         $availability = trim((string) $request->input('availability', ''));
@@ -2457,7 +2489,6 @@ class PostController extends Controller
             }
         }
 
-        $deleteMoreImageIds = $this->normalizePositiveIds($request->input('delete_more_images', []));
         if (! empty($deleteMoreImageIds)) {
             $images = $this->providerMediaQuery(MoreImage::class, (int) $provider->id, $serviceId)
                 ->whereIn('id', $deleteMoreImageIds)

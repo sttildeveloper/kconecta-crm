@@ -70,6 +70,7 @@ class ProviderServicesApiTest extends TestCase
             ->assertJsonPath('data.description', 'Ficha directa del proveedor')
             ->assertJsonPath('data.address', 'Calle Test 1')
             ->assertJsonPath('data.specialty_ids.0', (int) $type->id)
+            ->assertJsonPath('data.gallery_max_images', 5)
             ->assertJsonPath('data.more_images.0.file', 'provider-gallery.webp');
 
         $this->assertSame(0, Service::query()->where('user_id', $provider->id)->count());
@@ -250,6 +251,69 @@ class ProviderServicesApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonStructure(['errors' => ['specialty_ids.0', 'cover_image']]);
+    }
+
+    public function test_profile_patch_rejects_more_than_five_new_gallery_images_before_updating_profile(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-gallery-batch-limit@test.dev');
+
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'title' => 'No debe guardarse',
+                'more_images' => collect(range(1, 6))
+                    ->map(fn (int $number) => UploadedFile::fake()->image('gallery-'.$number.'.jpg'))
+                    ->all(),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['errors' => ['more_images']]);
+
+        $this->assertNull($provider->fresh()->provider_title);
+        $this->assertSame(0, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+    }
+
+    public function test_mobile_legacy_service_alias_uses_the_same_gallery_limit(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-mobile-gallery-limit@test.dev');
+
+        $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/services', [
+                'more_images' => collect(range(1, 6))
+                    ->map(fn (int $number) => UploadedFile::fake()->image('mobile-gallery-'.$number.'.jpg'))
+                    ->all(),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['errors' => ['more_images']]);
+
+        $this->assertSame(0, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+    }
+
+    public function test_profile_patch_enforces_projected_gallery_total_and_allows_delete_then_replace_at_limit(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-gallery-total-limit@test.dev');
+        $images = collect(range(1, 5))->map(fn (int $number) => MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => 'existing-gallery-'.$number.'.webp',
+            'is_provider_default' => false,
+        ]));
+
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'more_images' => [UploadedFile::fake()->image('sixth.jpg')],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['errors' => ['more_images']]);
+
+        $this->assertSame(5, MoreImage::query()->where('provider_user_id', $provider->id)->count());
+
+        $this->actingAs($provider, 'sanctum')
+            ->patch('/api/agent/provider-profile', [
+                'delete_more_images' => [(int) $images->first()->id],
+                'more_images' => [UploadedFile::fake()->image('replacement.jpg')],
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseMissing('more_images', ['id' => (int) $images->first()->id]);
+        $this->assertSame(5, MoreImage::query()->where('provider_user_id', $provider->id)->count());
     }
 
     public function test_provider_can_list_specialty_catalog(): void
