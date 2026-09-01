@@ -30,6 +30,8 @@ class ProviderCsvImportService
         $hasProviderDescription = Schema::hasColumn('user', 'provider_description');
         $hasProviderPageUrl = Schema::hasColumn('user', 'provider_page_url');
         $hasProviderAvailability = Schema::hasColumn('user', 'provider_availability');
+        $hasProviderPhone = Schema::hasColumn('user', 'provider_phone');
+        $hasProviderLandlinePhone = Schema::hasColumn('user', 'provider_landline_phone');
 
         $summary = [
             'rows' => count($rows),
@@ -128,7 +130,9 @@ class ProviderCsvImportService
                     $hasProviderTitle,
                     $hasProviderDescription,
                     $hasProviderPageUrl,
-                    $hasProviderAvailability
+                    $hasProviderAvailability,
+                    $hasProviderPhone,
+                    $hasProviderLandlinePhone
                 ) {
                     if ($existing && $updateExisting) {
                         $payload = [
@@ -140,9 +144,15 @@ class ProviderCsvImportService
 
                         if ($normalized['phone'] !== null) {
                             $payload['phone'] = $normalized['phone'];
+                            if ($hasProviderPhone) {
+                                $payload['provider_phone'] = $normalized['phone'];
+                            }
                         }
                         if ($normalized['landline_phone'] !== null) {
                             $payload['landline_phone'] = $normalized['landline_phone'];
+                            if ($hasProviderLandlinePhone) {
+                                $payload['provider_landline_phone'] = $normalized['landline_phone'];
+                            }
                         }
                         if ($normalized['address_full'] !== null) {
                             $payload['address'] = $normalized['address_full'];
@@ -189,6 +199,14 @@ class ProviderCsvImportService
 
                         if ($hasProviderAvailability) {
                             $payload['provider_availability'] = null;
+                        }
+
+                        if ($hasProviderPhone) {
+                            $payload['provider_phone'] = $normalized['phone'];
+                        }
+
+                        if ($hasProviderLandlinePhone) {
+                            $payload['provider_landline_phone'] = $normalized['landline_phone'];
                         }
 
                         if ($hasIsActive) {

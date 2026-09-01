@@ -597,7 +597,7 @@ class ApiController extends Controller
             }
         }
 
-        $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'phone'];
+        $userColumns = ['id', 'user_name', 'first_name', 'last_name', 'photo', 'provider_phone', 'provider_landline_phone'];
         if (Schema::hasColumn('user', 'mobile_phone')) {
             $userColumns[] = 'mobile_phone';
         }
@@ -720,7 +720,7 @@ class ApiController extends Controller
                 ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null;
             $providerCover = $providerCovers->get($providerUserId);
-            $phone = $provider->phone ?: ($provider->mobile_phone ?: $provider->landline_phone);
+            $phone = $provider->provider_phone ?: $provider->provider_landline_phone;
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
             $whatsappUrl = ! empty($whatsappPhone) ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio') : null;
@@ -920,9 +920,7 @@ class ApiController extends Controller
                 ->values()
                 ->all();
 
-            $phone = $provider->phone
-                ?? (property_exists($provider, 'mobile_phone') ? $provider->mobile_phone : null)
-                ?? (property_exists($provider, 'landline_phone') ? $provider->landline_phone : null);
+            $phone = $provider->provider_phone ?: $provider->provider_landline_phone;
             $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
             $whatsappPhone = ltrim((string) $cleanPhone, '+');
             $whatsappUrl = $whatsappPhone !== ''
@@ -998,14 +996,25 @@ class ApiController extends Controller
             ->first();
         $gallery = MoreImage::query()
             ->where('provider_user_id', $providerUserId)
+            ->orderByRaw('CASE WHEN position IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('position')
             ->orderBy('id')
             ->get()
-            ->map(fn (MoreImage $image) => [
-                'id' => (int) $image->id,
-                'url' => ! empty($image->url)
-                    ? asset('img/uploads/'.ltrim((string) $image->url, '/'))
-                    : null,
-            ])
+            ->values()
+            ->map(function (MoreImage $image, int $position) {
+                $file = ltrim(str_replace('\\', '/', trim((string) $image->url)), '/');
+                $path = $file !== '' && ! preg_match('#(^|/)\.\.(/|$)#', $file)
+                    ? 'img/uploads/'.$file
+                    : null;
+
+                return [
+                    'id' => (int) $image->id,
+                    'path' => $path,
+                    'file' => $image->url,
+                    'url' => $path ? asset($path) : null,
+                    'position' => $position,
+                ];
+            })
             ->filter(fn (array $image) => ! empty($image['url']))
             ->values()
             ->all();
@@ -1038,8 +1047,7 @@ class ApiController extends Controller
             $title = $displayName;
         }
 
-        $phone = $provider->phone
-            ?: (($provider->mobile_phone ?? null) ?: ($provider->landline_phone ?? null));
+        $phone = $provider->provider_phone ?: $provider->provider_landline_phone;
         $cleanPhone = preg_replace('/[^0-9+]/', '', (string) $phone);
         $whatsappPhone = ltrim((string) $cleanPhone, '+');
         $whatsappUrl = $whatsappPhone !== ''
@@ -1066,8 +1074,14 @@ class ApiController extends Controller
             'logo_url' => ! empty($provider->photo)
                 ? asset('img/photo_profile/'.ltrim((string) $provider->photo, '/'))
                 : null,
+            'cover_image_path' => $cover && ! empty($cover->url)
+                ? 'img/uploads/'.ltrim((string) $cover->url, '/')
+                : null,
             'cover_image_url' => $cover && ! empty($cover->url)
                 ? asset('img/uploads/'.ltrim((string) $cover->url, '/'))
+                : null,
+            'video_path' => $video && ! empty($video->url)
+                ? 'video/uploads/'.ltrim((string) $video->url, '/')
                 : null,
             'video_url' => $video && ! empty($video->url)
                 ? asset('video/uploads/'.ltrim((string) $video->url, '/'))

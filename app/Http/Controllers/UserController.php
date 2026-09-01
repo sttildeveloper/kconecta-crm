@@ -15,8 +15,10 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserLevel;
 use App\Models\Video;
+use App\Services\ProfilePhotoService;
 use App\Services\ProviderCsvImportService;
 use App\Services\ProviderServiceTypeService;
+use App\Support\PersonalProfileRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +27,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
@@ -463,15 +464,7 @@ class UserController extends Controller
             $user = User::findOrFail($targetUserId);
         }
 
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('user', 'email')->ignore($user->id)],
-            'phone' => ['nullable', 'string', 'max:30'],
-            'landline_phone' => ['nullable', 'string', 'max:30'],
-            'document_type' => ['nullable', 'string', 'max:25'],
-            'document_number' => ['nullable', 'string', 'max:50'],
-            'address' => ['nullable', 'string', 'max:255'],
+        $validated = $request->validate(array_merge(PersonalProfileRules::forUpdate($user), [
             'address_place_id' => ['nullable', 'string', 'max:255'],
             'address_street_name' => ['nullable', 'string', 'max:255'],
             'address_street_number' => ['nullable', 'string', 'max:50'],
@@ -483,9 +476,7 @@ class UserController extends Controller
             'address_country' => ['nullable', 'string', 'max:255'],
             'address_lat' => ['nullable', 'numeric'],
             'address_lng' => ['nullable', 'numeric'],
-            'password' => ['nullable', 'string', 'min:6'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ]));
 
         $addressRecord = UserAddress::firstOrNew(['user_id' => $user->id]);
         $addressInput = trim((string) ($validated['address'] ?? ''));
@@ -520,7 +511,7 @@ class UserController extends Controller
         if ($request->hasFile('photo')) {
             try {
                 $file = $request->file('photo');
-                $filename = $this->processProfilePhoto($file, (int) $user->id);
+                $filename = app(ProfilePhotoService::class)->store($file, (int) $user->id);
                 $user->photo = $filename;
                 $photoUpdated = true;
             } catch (\Throwable $exception) {
@@ -748,79 +739,5 @@ class UserController extends Controller
         }
 
         session()->forget(self::PROVIDER_IMPORT_SESSION_KEY);
-    }
-
-    private function processProfilePhoto(\Illuminate\Http\UploadedFile $file, int $userId): string
-    {
-        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
-            throw new \RuntimeException('GD/WebP no disponible en el servidor.');
-        }
-
-        $source = $this->createImageResourceFromUpload($file);
-        if (! $source) {
-            throw new \RuntimeException('No se pudo procesar la imagen subida.');
-        }
-
-        $sourceWidth = imagesx($source);
-        $sourceHeight = imagesy($source);
-        $squareSize = min($sourceWidth, $sourceHeight);
-        $sourceX = (int) floor(($sourceWidth - $squareSize) / 2);
-        $sourceY = (int) floor(($sourceHeight - $squareSize) / 2);
-
-        $canvas = imagecreatetruecolor(350, 350);
-        imagealphablending($canvas, true);
-        imagesavealpha($canvas, true);
-
-        imagecopyresampled(
-            $canvas,
-            $source,
-            0,
-            0,
-            $sourceX,
-            $sourceY,
-            350,
-            350,
-            $squareSize,
-            $squareSize
-        );
-
-        $directory = public_path('img/photo_profile');
-        if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
-            throw new \RuntimeException('No se pudo crear el directorio de logos de perfil.');
-        }
-
-        if (! is_writable($directory)) {
-            throw new \RuntimeException('El directorio de logos de perfil no tiene permisos de escritura.');
-        }
-
-        $filename = 'user_'.$userId.'_'.Str::random(12).'.webp';
-        $destination = $directory.DIRECTORY_SEPARATOR.$filename;
-        $saved = imagewebp($canvas, $destination, 82);
-
-        imagedestroy($canvas);
-        imagedestroy($source);
-
-        if (! $saved) {
-            throw new \RuntimeException('No se pudo guardar la imagen en formato WebP.');
-        }
-
-        return $filename;
-    }
-
-    private function createImageResourceFromUpload(\Illuminate\Http\UploadedFile $file): \GdImage|false
-    {
-        $mime = (string) $file->getMimeType();
-        $path = $file->getRealPath();
-
-        if (! $path) {
-            return false;
-        }
-
-        return match ($mime) {
-            'image/jpeg', 'image/jpg' => @imagecreatefromjpeg($path),
-            'image/png' => @imagecreatefrompng($path),
-            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
-            default => false,
-        };
     }
 }

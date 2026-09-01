@@ -793,9 +793,7 @@ class PageController extends Controller
             $providerDisplayName = 'Proveedor';
         }
 
-        $providerPhone = $provider->phone
-            ?? ($provider->mobile_phone ?? null)
-            ?? ($provider->landline_phone ?? null);
+        $providerPhone = $provider->provider_phone ?: $provider->provider_landline_phone;
         $providerWhatsappPhone = preg_replace('/\D+/', '', (string) $providerPhone);
         $providerWhatsappLink = $providerWhatsappPhone !== ''
             ? 'https://wa.me/'.$providerWhatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
@@ -1124,9 +1122,7 @@ class PageController extends Controller
         $item['user'] = $user?->toArray() ?? [];
 
         if ($user) {
-            $item['user']['phone'] = $user->phone
-                ?? ($user->mobile_phone ?? null)
-                ?? ($user->landline_phone ?? null);
+            $item['user']['phone'] = $user->provider_phone ?: $user->provider_landline_phone;
 
             if (empty($item['user']['photo'])) {
                 $item['user']['photo'] = 'default-avatar-profile-icon.webp';

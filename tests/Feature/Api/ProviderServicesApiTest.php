@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Models\Video;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -179,9 +180,10 @@ class ProviderServicesApiTest extends TestCase
             ->patch('/api/agent/provider-profile', [
                 'delete_more_images' => [(int) $ownImage->id, (int) $foreignImage->id],
             ])
-            ->assertOk();
+            ->assertUnprocessable()
+            ->assertJsonStructure(['errors' => ['gallery_delete_ids']]);
 
-        $this->assertDatabaseMissing('more_images', ['id' => (int) $ownImage->id]);
+        $this->assertDatabaseHas('more_images', ['id' => (int) $ownImage->id]);
         $this->assertDatabaseHas('more_images', ['id' => (int) $foreignImage->id]);
     }
 
@@ -326,6 +328,181 @@ class ProviderServicesApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.id', (int) $type->id)
             ->assertJsonPath('data.0.name', 'Pintura');
+    }
+
+    public function test_commercial_patch_is_partial_and_does_not_modify_personal_fields(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'commercial-separation@test.dev');
+        $provider->forceFill([
+            'address' => 'Direccion personal',
+            'provider_phone' => '600111222',
+            'provider_landline_phone' => '930001111',
+        ])->save();
+
+        $this->actingAs($provider, 'sanctum')
+            ->patchJson('/api/agent/provider-profile', [
+                'title' => 'Ficha comercial',
+                'phone' => '699999999',
+                'first_name' => 'Manipulado',
+                'email' => 'manipulado@test.dev',
+                'document_number' => 'OTRO',
+                'password' => 'manipulada',
+                'photo' => 'otra.webp',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Ficha comercial')
+            ->assertJsonPath('data.phone', '699999999');
+
+        $provider->refresh();
+        $this->assertSame('Test', $provider->first_name);
+        $this->assertSame('commercial-separation@test.dev', $provider->email);
+        $this->assertNull($provider->document_number);
+        $this->assertSame('600000000', $provider->phone);
+        $this->assertSame('Direccion personal', $provider->address);
+        $this->assertSame('699999999', $provider->provider_phone);
+        $this->assertTrue(Hash::check('password', $provider->password));
+
+        $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/provider-profile', [
+                '_method' => 'PATCH',
+                'provider_logo' => UploadedFile::fake()->image('must-be-ignored.jpg'),
+            ], ['Accept' => 'application/json'])
+            ->assertOk();
+        $this->assertNull($provider->fresh()->photo);
+    }
+
+    public function test_multipart_contract_decodes_specialties_and_can_clear_them(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-multipart@test.dev');
+        $first = ServiceType::query()->create(['name' => 'Electricidad']);
+        $second = ServiceType::query()->create(['name' => 'Fontaneria']);
+
+        $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/provider-profile', [
+                '_method' => 'PATCH',
+                'specialty_ids' => json_encode([(int) $first->id, (int) $second->id]),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.specialty_ids', [(int) $first->id, (int) $second->id]);
+
+        $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/provider-profile', [
+                '_method' => 'PATCH',
+                'specialty_ids' => '[]',
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.specialty_ids', []);
+
+        $this->assertDatabaseMissing('provider_services', ['provider_id' => (int) $provider->id]);
+    }
+
+    public function test_canonical_gallery_upload_appends_real_images_and_converts_to_webp(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-gallery-upload@test.dev');
+        $existingName = 'existing-'.$provider->id.'.webp';
+        File::put(public_path('img/uploads/'.$existingName), 'existing');
+        $existing = MoreImage::query()->create([
+            'provider_user_id' => (int) $provider->id,
+            'url' => $existingName,
+            'position' => 0,
+            'is_provider_default' => false,
+        ]);
+
+        try {
+            $response = $this->actingAs($provider, 'sanctum')
+                ->post('/api/agent/provider-profile', [
+                    '_method' => 'PATCH',
+                    'gallery_images' => [UploadedFile::fake()->image('new-image.png', 1200, 800)],
+                ], ['Accept' => 'application/json']);
+
+            $response->assertOk()
+                ->assertJsonCount(2, 'data.gallery')
+                ->assertJsonPath('data.gallery.0.id', (int) $existing->id)
+                ->assertJsonPath('data.gallery.0.position', 0)
+                ->assertJsonPath('data.gallery.1.position', 1);
+
+            $newImage = MoreImage::query()
+                ->where('provider_user_id', $provider->id)
+                ->where('id', '<>', $existing->id)
+                ->firstOrFail();
+            $this->assertStringEndsWith('.webp', $newImage->url);
+            $this->assertFileExists(public_path('img/uploads/'.$newImage->url));
+        } finally {
+            MoreImage::query()->where('provider_user_id', $provider->id)->pluck('url')->each(
+                fn ($file) => File::delete(public_path('img/uploads/'.$file))
+            );
+        }
+    }
+
+    public function test_gallery_order_and_delete_are_validated_persisted_and_remove_physical_file(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-gallery-order@test.dev');
+        $images = collect(range(1, 3))->map(function (int $number) use ($provider) {
+            $name = 'ordered-'.$provider->id.'-'.$number.'.webp';
+            File::put(public_path('img/uploads/'.$name), 'image-'.$number);
+
+            return MoreImage::query()->create([
+                'provider_user_id' => (int) $provider->id,
+                'url' => $name,
+                'position' => $number - 1,
+            ]);
+        });
+        $reversedIds = $images->reverse()->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+
+        try {
+            $this->actingAs($provider, 'sanctum')
+                ->patchJson('/api/agent/provider-profile', ['gallery_order' => $reversedIds])
+                ->assertOk()
+                ->assertJsonPath('data.gallery.0.id', $reversedIds[0])
+                ->assertJsonPath('data.gallery.1.id', $reversedIds[1])
+                ->assertJsonPath('data.gallery.2.id', $reversedIds[2]);
+
+            $deleteImage = $images->first();
+            $this->actingAs($provider, 'sanctum')
+                ->post('/api/agent/provider-profile', [
+                    '_method' => 'PATCH',
+                    'gallery_delete_ids' => json_encode([(int) $deleteImage->id]),
+                ], ['Accept' => 'application/json'])
+                ->assertOk()
+                ->assertJsonCount(2, 'data.gallery');
+
+            $this->assertDatabaseMissing('more_images', ['id' => (int) $deleteImage->id]);
+            $this->assertFileDoesNotExist(public_path('img/uploads/'.$deleteImage->url));
+        } finally {
+            $images->each(fn (MoreImage $image) => File::delete(public_path('img/uploads/'.$image->url)));
+        }
+    }
+
+    public function test_cover_and_video_replacement_keep_new_files_and_delete_old_files(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-media-replace@test.dev');
+        $oldCover = 'old-cover-'.$provider->id.'.webp';
+        $oldVideo = 'old-video-'.$provider->id.'.mp4';
+        File::put(public_path('img/uploads/'.$oldCover), 'old cover');
+        File::put(public_path('video/uploads/'.$oldVideo), 'old video');
+        CoverImage::query()->create(['provider_user_id' => $provider->id, 'url' => $oldCover]);
+        Video::query()->create(['provider_user_id' => $provider->id, 'url' => $oldVideo]);
+
+        $response = $this->actingAs($provider, 'sanctum')
+            ->post('/api/agent/provider-profile', [
+                '_method' => 'PATCH',
+                'cover_image' => UploadedFile::fake()->image('cover.png', 1600, 900),
+                'video' => UploadedFile::fake()->create('presentation.mp4', 100, 'video/mp4'),
+            ], ['Accept' => 'application/json']);
+
+        $response->assertOk()
+            ->assertJsonPath('data.cover_image_path', fn ($path) => is_string($path) && str_ends_with($path, '.webp'))
+            ->assertJsonPath('data.video_path', fn ($path) => is_string($path) && str_ends_with($path, '.mp4'));
+
+        $cover = CoverImage::query()->where('provider_user_id', $provider->id)->firstOrFail();
+        $video = Video::query()->where('provider_user_id', $provider->id)->firstOrFail();
+        $this->assertFileExists(public_path('img/uploads/'.$cover->url));
+        $this->assertFileExists(public_path('video/uploads/'.$video->url));
+        $this->assertFileDoesNotExist(public_path('img/uploads/'.$oldCover));
+        $this->assertFileDoesNotExist(public_path('video/uploads/'.$oldVideo));
+
+        File::delete(public_path('img/uploads/'.$cover->url));
+        File::delete(public_path('video/uploads/'.$video->url));
     }
 
     private function makeUser(int $levelId, string $email): User

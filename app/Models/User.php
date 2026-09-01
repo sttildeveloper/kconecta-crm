@@ -14,10 +14,15 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable;
 
     public const LEVEL_ADMIN = 1;
+
     public const LEVEL_FREE = 2;
+
     public const LEVEL_PREMIUM = 3;
+
     public const LEVEL_SERVICE_PROVIDER = 4;
+
     public const LEVEL_AGENT = 5;
+
     public const LEVEL_FINAL_CLIENT = 6;
 
     protected $table = 'user';
@@ -43,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'provider_description',
         'provider_page_url',
         'provider_availability',
+        'provider_phone',
+        'provider_landline_phone',
         'user_level_id',
         'is_active',
         'email_verified_at',

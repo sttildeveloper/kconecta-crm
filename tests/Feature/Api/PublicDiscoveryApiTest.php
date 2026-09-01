@@ -520,7 +520,7 @@ class PublicDiscoveryApiTest extends TestCase
         $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-no-service-map@test.dev');
         $provider->forceFill([
             'user_name' => 'Proveedor Sin Service',
-            'phone' => '+34612345678',
+            'provider_phone' => '+34612345678',
         ])->save();
 
         UserAddress::query()->create([
@@ -734,7 +734,7 @@ class PublicDiscoveryApiTest extends TestCase
             'provider_availability' => 'Lunes a viernes',
             'provider_page_url' => 'https://reformas.test',
             'photo' => 'provider-logo.webp',
-            'phone' => '+34 612 345 678',
+            'provider_phone' => '+34 612 345 678',
         ])->save();
 
         UserAddress::query()->create([
@@ -828,6 +828,28 @@ class PublicDiscoveryApiTest extends TestCase
             ->assertNotFound()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'Proveedor no encontrado');
+    }
+
+    public function test_public_map_and_provider_detail_never_fall_back_to_personal_address(): void
+    {
+        $provider = $this->makeUser(User::LEVEL_SERVICE_PROVIDER, 'provider-personal-location@test.dev');
+        $provider->forceFill([
+            'address' => 'Direccion personal secreta, Madrid',
+            'provider_title' => 'Proveedor sin ubicacion comercial',
+            'provider_phone' => '600123123',
+        ])->save();
+
+        $this->getJson('/api/services_for_map?city=Madrid')
+            ->assertOk()
+            ->assertJsonMissing(['provider_user_id' => (int) $provider->id]);
+
+        $this->getJson('/api/public/providers/'.$provider->id)
+            ->assertOk()
+            ->assertJsonPath('data.address', null)
+            ->assertJsonPath('data.city', null)
+            ->assertJsonPath('data.latitude', null)
+            ->assertJsonPath('data.longitude', null)
+            ->assertJsonMissing(['address' => 'Direccion personal secreta, Madrid']);
     }
 
     public function test_public_provider_detail_rejects_non_numeric_provider_ids_without_server_error(): void

@@ -1039,3 +1039,32 @@
 - [x] Saved the mobile Codex handoff prompt in `docs/mobile-provider-gallery-codex-prompt.md`.
 - [ ] Decide manually which real photo to remove from legacy provider 4538, whose six pre-existing real images were preserved.
 
+## Session Update (2026-09-02) - Mobile provider profile API contract
+
+- [x] Added canonical partial `GET|PATCH /api/me` contract with multipart
+  `_method=PATCH`, unique email validation and verification invalidation.
+- [x] Added safe 2 MB personal photo replacement, converted to 350 x 350 WEBP.
+- [x] Separated commercial phone fields from personal account phone fields and
+  backfilled current provider contacts locally.
+- [x] Kept structured `user_address` as the only commercial location source for
+  the public provider endpoint and services map; no personal-address fallback.
+- [x] Added canonical `gallery` payload with path, URL and persistent position;
+  retained `more_images` as a legacy alias.
+- [x] Added canonical multipart `gallery_images[]`, JSON-compatible
+  `gallery_delete_ids` and exact `gallery_order` validation.
+- [x] Enforced ownership, physical deletion, stable ordering, maximum five
+  images and transactional rollback for multi-image gallery persistence.
+- [x] Convert commercial cover/gallery uploads to WEBP with a maximum 1920 px
+  side; preserve safe video replacement and return path plus URL.
+- [x] Added migration-repository compatibility defaults required by the legacy
+  local/production migrations table.
+- [x] Applied and audited the three new migrations locally: 0 provider gallery
+  rows without position and 0 providers with an uncopied existing phone.
+- [x] Documented the backend contract in
+  `docs/mobile-provider-profile-api-contract.md` and updated the mobile Codex
+  handoff prompt.
+- [x] Focused integration regression: 63 tests / 466 assertions.
+- [x] Complete CRM regression: 177 tests / 1,667 assertions.
+- [ ] Commit and push only after explicit authorization; production migrations
+  and smoke verification remain pending.
+

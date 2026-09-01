@@ -25,11 +25,7 @@ class ProviderServiceApiController extends Controller
 {
     private const MAX_IMAGE_KB = 5120; // 5 MB
 
-    private const MAX_PROVIDER_LOGO_KB = 2048; // 2 MB
-
     private const MAX_VIDEO_KB = 51200; // 50 MB
-
-    private const LEGACY_PROVIDER_LOGO_FIELDS = ['logo', 'photo', 'avatar', 'image', 'company_logo'];
 
     private const ALLOWED_IMAGE_MIME_TYPES = [
         'image/jpeg',
@@ -152,6 +148,8 @@ class ProviderServiceApiController extends Controller
         $video = Video::query()->where('provider_user_id', (int) $user->id)->latest('id')->first();
         $gallery = MoreImage::query()
             ->where('provider_user_id', (int) $user->id)
+            ->orderByRaw('CASE WHEN position IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('position')
             ->orderBy('id')
             ->get();
 
@@ -169,22 +167,27 @@ class ProviderServiceApiController extends Controller
         $ratingSummary = app(ServiceRatingService::class)->providerRatingSummary((int) $user->id);
         $providerKpis = $this->buildProviderKpis((int) $user->id);
 
+        $galleryPayload = $gallery->values()->map(
+            fn (MoreImage $image, int $position) => $this->galleryImagePayload($image, $position)
+        )->all();
+        $coverPath = $this->mediaPath('img/uploads', $cover?->url);
+        $videoFilePath = $this->mediaPath('video/uploads', $video?->url);
+
         $payload = [
             'company_name' => $user->user_name,
             'title' => $user->provider_title,
             'description' => $user->provider_description,
-            'phone' => $user->phone ?: $user->landline_phone,
-            'landline_phone' => $user->landline_phone,
+            'phone' => $user->provider_phone,
+            'landline_phone' => $user->provider_landline_phone,
             'availability' => $user->provider_availability,
             'page_url' => $user->provider_page_url,
             'updated_at' => optional($user->updated_at)?->toISOString(),
-            'cover_image_url' => $cover && ! empty($cover->url) ? asset('img/uploads/'.ltrim((string) $cover->url, '/')) : null,
-            'video_url' => $video && ! empty($video->url) ? asset('video/uploads/'.ltrim((string) $video->url, '/')) : null,
-            'more_images' => $gallery->map(fn (MoreImage $image) => [
-                'id' => (int) $image->id,
-                'file' => $image->url,
-                'url' => asset('img/uploads/'.ltrim((string) $image->url, '/')),
-            ])->values()->all(),
+            'cover_image_path' => $coverPath,
+            'cover_image_url' => $coverPath ? asset($coverPath) : null,
+            'video_path' => $videoFilePath,
+            'video_url' => $videoFilePath ? asset($videoFilePath) : null,
+            'gallery' => $galleryPayload,
+            'more_images' => $galleryPayload,
             'gallery_max_images' => ProviderGalleryRules::maximum(),
             'address' => $userAddress?->address,
             'city' => $userAddress?->city,
@@ -230,22 +233,29 @@ class ProviderServiceApiController extends Controller
         }
 
         $input = $request->all();
-        if (! $request->hasFile('provider_logo')) {
-            foreach (self::LEGACY_PROVIDER_LOGO_FIELDS as $legacyField) {
-                if ($request->hasFile($legacyField)) {
-                    $input['provider_logo'] = $request->file($legacyField);
-                    break;
-                }
-            }
+
+        $specialtyField = $this->firstPresentField($request, ['specialty_ids', 'service_type_ids', 'service_type']);
+        if ($specialtyField !== null) {
+            $input['specialty_ids'] = $this->decodeMultipartArray($request->input($specialtyField));
         }
 
-        $input['specialty_ids'] = $request->input(
-            'specialty_ids',
-            $request->input('service_type_ids', $request->input('service_type', []))
-        );
+        $deleteField = $this->firstPresentField($request, ['gallery_delete_ids', 'delete_more_images']);
+        if ($deleteField !== null) {
+            $input['gallery_delete_ids'] = $this->decodeMultipartArray($request->input($deleteField));
+        }
+
+        if ($request->exists('gallery_order')) {
+            $input['gallery_order'] = $this->decodeMultipartArray($request->input('gallery_order'));
+        }
+
+        $galleryFiles = $request->hasFile('gallery_images')
+            ? (array) $request->file('gallery_images', [])
+            : (array) $request->file('more_images', []);
+        if ($galleryFiles !== []) {
+            $input['gallery_images'] = $galleryFiles;
+        }
 
         $validator = Validator::make($input, [
-            'provider_logo' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_PROVIDER_LOGO_KB,
             'title' => 'sometimes|nullable|string|max:255',
             'description' => 'sometimes|nullable|string',
             'phone' => 'sometimes|nullable|string|max:40',
@@ -255,11 +265,13 @@ class ProviderServiceApiController extends Controller
             'specialty_ids' => 'sometimes|array',
             'specialty_ids.*' => 'integer|exists:service_type,id',
             'cover_image' => 'sometimes|file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
-            'more_images' => 'sometimes|array|max:'.ProviderGalleryRules::maximum(),
-            'more_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
+            'gallery_images' => 'sometimes|array|max:'.ProviderGalleryRules::maximum(),
+            'gallery_images.*' => 'file|mimes:jpg,jpeg,png,webp|max:'.self::MAX_IMAGE_KB,
             'video' => 'sometimes|file|mimes:mp4,mov,avi,mpeg,mpg|max:'.self::MAX_VIDEO_KB,
-            'delete_more_images' => 'sometimes|array',
-            'delete_more_images.*' => 'integer',
+            'gallery_delete_ids' => 'sometimes|array',
+            'gallery_delete_ids.*' => 'integer|distinct|min:1',
+            'gallery_order' => 'sometimes|array',
+            'gallery_order.*' => 'integer|distinct|min:1',
             'address' => 'sometimes|nullable|string|max:255',
             'city' => 'sometimes|nullable|string|max:120',
             'province' => 'sometimes|nullable|string|max:120',
@@ -268,16 +280,19 @@ class ProviderServiceApiController extends Controller
             'latitude' => 'sometimes|nullable|string|max:50',
             'longitude' => 'sometimes|nullable|string|max:50',
         ], [
-            'provider_logo.mimes' => 'El logo debe ser una imagen JPG, JPEG, PNG o WEBP.',
-            'provider_logo.max' => 'El logo no puede superar 2MB.',
-            'more_images.max' => ProviderGalleryRules::limitMessage(),
+            'gallery_images.max' => ProviderGalleryRules::limitMessage(),
         ]);
 
         if ($validator->fails()) {
-            return $this->errorResponse('Datos invalidos', 422, $validator->errors()->toArray());
+            $errors = $validator->errors()->toArray();
+            if (isset($errors['gallery_images']) && $request->hasFile('more_images')) {
+                $errors['more_images'] = $errors['gallery_images'];
+            }
+
+            return $this->errorResponse('Datos invalidos', 422, $errors);
         }
 
-        $newGalleryCount = collect((array) $request->file('more_images', []))
+        $newGalleryCount = collect($galleryFiles)
             ->filter(fn ($file) => $file && $file->isValid())
             ->count();
         $existingGallery = MoreImage::query()
@@ -285,36 +300,48 @@ class ProviderServiceApiController extends Controller
             ->get();
         $projectedGalleryCount = ProviderGalleryRules::projectedCount(
             $existingGallery,
-            (array) $request->input('delete_more_images', []),
+            (array) ($input['gallery_delete_ids'] ?? []),
             $newGalleryCount,
             $newGalleryCount > 0
         );
 
-        if ($projectedGalleryCount > ProviderGalleryRules::maximum()) {
+        $hasGalleryMutation = $newGalleryCount > 0 || $deleteField !== null;
+        if ($hasGalleryMutation && $projectedGalleryCount > ProviderGalleryRules::maximum()) {
+            $errors = [
+                'gallery_images' => [ProviderGalleryRules::limitMessage()],
+            ];
+            if ($request->hasFile('more_images')) {
+                $errors['more_images'] = $errors['gallery_images'];
+            }
+
+            return $this->errorResponse('Datos invalidos', 422, $errors);
+        }
+
+        $deleteIds = $this->normalizedIds((array) ($input['gallery_delete_ids'] ?? []));
+        $orderIds = $this->normalizedIds((array) ($input['gallery_order'] ?? []));
+        $ownedGalleryIds = $existingGallery->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $unknownDeleteIds = array_values(array_diff($deleteIds, $ownedGalleryIds));
+        if ($unknownDeleteIds !== []) {
             return $this->errorResponse('Datos invalidos', 422, [
-                'more_images' => [ProviderGalleryRules::limitMessage()],
+                'gallery_delete_ids' => ['La galeria contiene imagenes inexistentes o que no pertenecen al proveedor.'],
             ]);
         }
 
-        $logoFile = $input['provider_logo'] ?? null;
-        if ($logoFile) {
-            try {
-                $newFileName = $this->processProviderLogo($logoFile, (int) $user->id);
-                $oldFileName = (string) ($user->photo ?? '');
-                $user->photo = $newFileName;
-                $user->save();
+        if ($orderIds !== [] && $newGalleryCount > 0) {
+            return $this->errorResponse('Datos invalidos', 422, [
+                'gallery_order' => ['Ordena la galeria en una peticion separada de la subida de imagenes.'],
+            ]);
+        }
 
-                if ($oldFileName !== '' && $oldFileName !== $newFileName) {
-                    $this->deleteStoredFile('img/photo_profile', $oldFileName);
-                }
-            } catch (\Throwable $exception) {
-                report($exception);
-
-                return $this->errorResponse(
-                    'No se pudo procesar el logo en este momento. Verifica que sea una imagen JPG, PNG o WEBP e intentalo de nuevo.',
-                    422,
-                    ['provider_logo' => ['No se pudo procesar el archivo enviado.']]
-                );
+        if ($request->exists('gallery_order')) {
+            $expectedOrderIds = array_values(array_diff($ownedGalleryIds, $deleteIds));
+            sort($expectedOrderIds);
+            $comparableOrderIds = $orderIds;
+            sort($comparableOrderIds);
+            if ($expectedOrderIds !== $comparableOrderIds) {
+                return $this->errorResponse('Datos invalidos', 422, [
+                    'gallery_order' => ['El orden debe incluir exactamente todas las imagenes finales de la galeria.'],
+                ]);
             }
         }
 
@@ -322,8 +349,8 @@ class ProviderServiceApiController extends Controller
         foreach ([
             'title' => 'provider_title',
             'description' => 'provider_description',
-            'phone' => 'phone',
-            'landline_phone' => 'landline_phone',
+            'phone' => 'provider_phone',
+            'landline_phone' => 'provider_landline_phone',
             'availability' => 'provider_availability',
             'page_url' => 'provider_page_url',
         ] as $inputField => $userField) {
@@ -337,7 +364,7 @@ class ProviderServiceApiController extends Controller
             $user->save();
         }
 
-        if ($request->exists('specialty_ids') || $request->exists('service_type_ids') || $request->exists('service_type')) {
+        if ($specialtyField !== null) {
             app(ProviderServiceTypeService::class)->syncForProvider(
                 (int) $user->id,
                 (array) $input['specialty_ids']
@@ -372,26 +399,54 @@ class ProviderServiceApiController extends Controller
             }
 
             $existingCover = CoverImage::query()->where('provider_user_id', (int) $user->id)->first();
-            CoverImage::query()->updateOrCreate(
-                ['provider_user_id' => (int) $user->id],
-                [
-                    'service_id' => null,
-                    'property_id' => null,
-                    'is_provider_default' => false,
-                    'source_provider_user_id' => null,
-                    'url' => $storedCover['file_name'],
-                ]
-            );
+            try {
+                CoverImage::query()->updateOrCreate(
+                    ['provider_user_id' => (int) $user->id],
+                    [
+                        'service_id' => null,
+                        'property_id' => null,
+                        'is_provider_default' => false,
+                        'source_provider_user_id' => null,
+                        'url' => $storedCover['file_name'],
+                    ]
+                );
+            } catch (\Throwable $exception) {
+                $this->deleteStoredFile('img/uploads', $storedCover['file_name']);
+                report($exception);
+
+                return $this->errorResponse(
+                    'No se pudo actualizar la portada en este momento.',
+                    422,
+                    ['cover_image' => ['No se pudo guardar la portada.']]
+                );
+            }
             if ($existingCover && $existingCover->url !== $storedCover['file_name']) {
                 $this->deleteStoredFile('img/uploads', (string) $existingCover->url);
             }
         }
 
-        $this->persistProviderMoreImages($request, (int) $user->id, $imagePath);
-        $this->persistProviderVideo($request, (int) $user->id, $videoPath);
-        $this->deleteProviderMoreImages((int) $user->id, (array) $request->input('delete_more_images', []));
+        $galleryError = $this->applyProviderGalleryChanges(
+            (int) $user->id,
+            $galleryFiles,
+            $deleteIds,
+            $request->exists('gallery_order') ? $orderIds : null,
+            $imagePath
+        );
+        if ($galleryError !== null) {
+            return $this->errorResponse($galleryError, 422, ['gallery_images' => [$galleryError]]);
+        }
 
-        return $this->profile($request);
+        $videoError = $this->persistProviderVideo($request, (int) $user->id, $videoPath);
+        if ($videoError !== null) {
+            return $this->errorResponse($videoError, 422, ['video' => [$videoError]]);
+        }
+
+        $response = $this->profile($request);
+        $response->setData(array_merge((array) $response->getData(true), [
+            'message' => 'Ficha comercial actualizada correctamente.',
+        ]));
+
+        return $response;
     }
 
     public function workCodes(Request $request)
@@ -841,18 +896,50 @@ class ProviderServiceApiController extends Controller
             return ['success' => false, 'error' => 'Formato de imagen no soportado.'];
         }
 
-        $ext = strtolower((string) $file->getClientOriginalExtension());
-        if ($ext === '') {
-            $ext = match ($mime) {
-                'image/jpeg' => 'jpg',
-                'image/png' => 'png',
-                'image/webp' => 'webp',
-                default => 'jpg',
-            };
+        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
+            return ['success' => false, 'error' => 'El servidor no puede convertir imagenes a WEBP.'];
         }
 
-        $name = Str::random(30).'.'.$ext;
-        if (! $file->move($imagePath, $name)) {
+        $source = $this->createImageResourceFromUpload($file);
+        if (! $source) {
+            return ['success' => false, 'error' => 'No se pudo procesar la imagen.'];
+        }
+
+        if (! is_dir($imagePath) && ! @mkdir($imagePath, 0755, true) && ! is_dir($imagePath)) {
+            imagedestroy($source);
+
+            return ['success' => false, 'error' => 'No se pudo preparar el almacenamiento de imagenes.'];
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $scale = min(1, 1920 / max($sourceWidth, $sourceHeight));
+        $targetWidth = max(1, (int) round($sourceWidth * $scale));
+        $targetHeight = max(1, (int) round($sourceHeight * $scale));
+        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+        imagecopyresampled(
+            $canvas,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $targetWidth,
+            $targetHeight,
+            $sourceWidth,
+            $sourceHeight
+        );
+
+        $name = Str::random(30).'.webp';
+        $saved = imagewebp($canvas, $imagePath.DIRECTORY_SEPARATOR.$name, 82);
+        imagedestroy($canvas);
+        imagedestroy($source);
+
+        if (! $saved) {
             return ['success' => false, 'error' => 'Error al guardar la imagen.'];
         }
 
@@ -913,90 +1000,148 @@ class ProviderServiceApiController extends Controller
         }
     }
 
-    private function persistProviderMoreImages(Request $request, int $providerId, string $imagePath): void
-    {
-        $files = collect((array) $request->file('more_images', []))
+    private function applyProviderGalleryChanges(
+        int $providerId,
+        array $files,
+        array $deleteIds,
+        ?array $orderIds,
+        string $imagePath
+    ): ?string {
+        $files = collect($files)
             ->filter(fn ($file) => $file && $file->isValid())
             ->values();
-        if ($files->isEmpty()) {
-            return;
+        if ($files->isEmpty() && $deleteIds === [] && $orderIds === null) {
+            return null;
         }
 
-        $defaultImages = MoreImage::query()
-            ->where('provider_user_id', $providerId)
-            ->where('is_provider_default', true)
-            ->get();
-        foreach ($defaultImages as $defaultImage) {
-            $this->deleteStoredFile('img/uploads', (string) $defaultImage->url);
-            $defaultImage->delete();
-        }
-
+        $storedNames = [];
         foreach ($files as $file) {
             $stored = $this->storeUploadedImage($file, $imagePath);
-            if ($stored['success']) {
-                MoreImage::query()->create([
-                    'url' => $stored['file_name'],
-                    'provider_user_id' => $providerId,
-                    'is_provider_default' => false,
-                    'source_provider_user_id' => null,
-                    'service_id' => null,
-                    'property_id' => null,
-                ]);
+            if (! $stored['success']) {
+                foreach ($storedNames as $storedName) {
+                    $this->deleteStoredFile('img/uploads', $storedName);
+                }
+
+                return $stored['error'];
             }
+            $storedNames[] = $stored['file_name'];
         }
+
+        $filesToDeleteAfterCommit = [];
+        try {
+            DB::transaction(function () use (
+                $providerId,
+                $deleteIds,
+                $orderIds,
+                $storedNames,
+                &$filesToDeleteAfterCommit
+            ): void {
+                $imagesToDelete = collect();
+                if ($deleteIds !== [] || $storedNames !== []) {
+                    $imagesToDelete = MoreImage::query()
+                        ->where('provider_user_id', $providerId)
+                        ->where(function ($query) use ($deleteIds, $storedNames): void {
+                            if ($deleteIds !== []) {
+                                $query->whereIn('id', $deleteIds);
+                            }
+                            if ($storedNames !== []) {
+                                $method = $deleteIds !== [] ? 'orWhere' : 'where';
+                                $query->{$method}('is_provider_default', true);
+                            }
+                        })
+                        ->get();
+                }
+
+                $filesToDeleteAfterCommit = $imagesToDelete
+                    ->pluck('url')
+                    ->map(fn ($path) => (string) $path)
+                    ->all();
+                if ($imagesToDelete->isNotEmpty()) {
+                    MoreImage::query()->whereIn('id', $imagesToDelete->pluck('id'))->delete();
+                }
+
+                $nextPosition = (int) MoreImage::query()
+                    ->where('provider_user_id', $providerId)
+                    ->max('position');
+                if (MoreImage::query()->where('provider_user_id', $providerId)->exists()) {
+                    $nextPosition++;
+                }
+
+                foreach ($storedNames as $storedName) {
+                    MoreImage::query()->create([
+                        'url' => $storedName,
+                        'position' => $nextPosition++,
+                        'provider_user_id' => $providerId,
+                        'is_provider_default' => false,
+                        'source_provider_user_id' => null,
+                        'service_id' => null,
+                        'property_id' => null,
+                    ]);
+                }
+
+                if ($orderIds !== null) {
+                    foreach ($orderIds as $position => $imageId) {
+                        MoreImage::query()
+                            ->where('provider_user_id', $providerId)
+                            ->where('id', $imageId)
+                            ->update(['position' => $position]);
+                    }
+                } else {
+                    $this->normalizeProviderGalleryPositions($providerId);
+                }
+            });
+        } catch (\Throwable $exception) {
+            foreach ($storedNames as $storedName) {
+                $this->deleteStoredFile('img/uploads', $storedName);
+            }
+            report($exception);
+
+            return 'No se pudo actualizar la galeria en este momento.';
+        }
+
+        foreach ($filesToDeleteAfterCommit as $fileName) {
+            $this->deleteStoredFile('img/uploads', $fileName);
+        }
+
+        return null;
     }
 
-    private function persistProviderVideo(Request $request, int $providerId, string $videoPath): void
+    private function persistProviderVideo(Request $request, int $providerId, string $videoPath): ?string
     {
         $video = $request->file('video');
         if (! $video) {
-            return;
+            return null;
         }
 
         $stored = $this->storeUploadedVideo($video, $videoPath);
         if (! $stored['success']) {
-            return;
+            return $stored['error'];
         }
 
         $existingVideo = Video::query()->where('provider_user_id', $providerId)->first();
-        Video::query()->updateOrCreate(
-            ['provider_user_id' => $providerId],
-            [
-                'service_id' => null,
-                'property_id' => null,
-                'is_provider_default' => false,
-                'source_provider_user_id' => null,
-                'url' => $stored['file_name'],
-            ]
-        );
+        try {
+            Video::query()->updateOrCreate(
+                ['provider_user_id' => $providerId],
+                [
+                    'service_id' => null,
+                    'property_id' => null,
+                    'is_provider_default' => false,
+                    'source_provider_user_id' => null,
+                    'url' => $stored['file_name'],
+                ]
+            );
+        } catch (\Throwable $exception) {
+            $this->deleteStoredFile('video/uploads', $stored['file_name']);
+            report($exception);
+
+            return 'No se pudo actualizar el video en este momento.';
+        }
 
         if ($existingVideo && $existingVideo->url !== $stored['file_name']) {
             $this->deleteStoredFile('video/uploads', (string) $existingVideo->url);
         }
-    }
 
-    private function deleteProviderMoreImages(int $providerId, array $ids): void
-    {
-        $imageIds = collect($ids)
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn ($value) => $value > 0)
-            ->unique()
-            ->values()
-            ->all();
-
-        if ($imageIds === []) {
-            return;
-        }
-
-        $images = MoreImage::query()
-            ->where('provider_user_id', $providerId)
-            ->whereIn('id', $imageIds)
-            ->get();
-
-        foreach ($images as $image) {
-            $this->deleteStoredFile('img/uploads', (string) $image->url);
-            $image->delete();
-        }
+        return null;
     }
 
     private function persistVideo(Request $request, int $serviceId, string $videoPath): void
@@ -1046,6 +1191,88 @@ class ProviderServiceApiController extends Controller
         }
     }
 
+    private function firstPresentField(Request $request, array $fields): ?string
+    {
+        foreach ($fields as $field) {
+            if ($request->exists($field)) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
+
+    private function decodeMultipartArray(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+    }
+
+    private function normalizedIds(array $ids): array
+    {
+        return collect($ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function normalizeProviderGalleryPositions(int $providerId): void
+    {
+        $ids = MoreImage::query()
+            ->where('provider_user_id', $providerId)
+            ->orderByRaw('CASE WHEN position IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('position')
+            ->orderBy('id')
+            ->pluck('id');
+
+        foreach ($ids as $position => $id) {
+            MoreImage::query()->where('id', $id)->update(['position' => $position]);
+        }
+    }
+
+    private function galleryImagePayload(MoreImage $image, int $position): array
+    {
+        $path = $this->mediaPath('img/uploads', $image->url);
+
+        return [
+            'id' => (int) $image->id,
+            'path' => $path,
+            'file' => $image->url,
+            'url' => $path ? asset($path) : null,
+            'position' => $position,
+        ];
+    }
+
+    private function mediaPath(string $directory, mixed $fileName): ?string
+    {
+        $normalized = str_replace('\\', '/', trim((string) $fileName));
+        if (
+            $normalized === ''
+            || str_starts_with($normalized, '/')
+            || preg_match('#(^|/)\.\.(/|$)#', $normalized)
+        ) {
+            return null;
+        }
+
+        return trim($directory, '/').'/'.ltrim($normalized, '/');
+    }
+
     private function deleteStoredFile(string $relativeDir, string $fileName): void
     {
         $normalized = str_replace('\\', '/', trim($fileName));
@@ -1075,63 +1302,6 @@ class ProviderServiceApiController extends Controller
         $path = $this->providerLogoPath($user);
 
         return $path !== null ? asset('img/photo_profile/'.ltrim($path, '/')) : null;
-    }
-
-    private function processProviderLogo(\Illuminate\Http\UploadedFile $file, int $userId): string
-    {
-        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
-            throw new \RuntimeException('GD/WebP no disponible en el servidor.');
-        }
-
-        $source = $this->createImageResourceFromUpload($file);
-        if (! $source) {
-            throw new \RuntimeException('No se pudo procesar la imagen subida.');
-        }
-
-        $sourceWidth = imagesx($source);
-        $sourceHeight = imagesy($source);
-        $squareSize = min($sourceWidth, $sourceHeight);
-        $sourceX = (int) floor(($sourceWidth - $squareSize) / 2);
-        $sourceY = (int) floor(($sourceHeight - $squareSize) / 2);
-
-        $canvas = imagecreatetruecolor(350, 350);
-        imagealphablending($canvas, true);
-        imagesavealpha($canvas, true);
-
-        imagecopyresampled(
-            $canvas,
-            $source,
-            0,
-            0,
-            $sourceX,
-            $sourceY,
-            350,
-            350,
-            $squareSize,
-            $squareSize
-        );
-
-        $directory = public_path('img/photo_profile');
-        if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
-            throw new \RuntimeException('No se pudo crear el directorio de logos de perfil.');
-        }
-
-        if (! is_writable($directory)) {
-            throw new \RuntimeException('El directorio de logos de perfil no tiene permisos de escritura.');
-        }
-
-        $filename = 'user_'.$userId.'_'.Str::random(12).'.webp';
-        $destination = $directory.DIRECTORY_SEPARATOR.$filename;
-        $saved = imagewebp($canvas, $destination, 82);
-
-        imagedestroy($canvas);
-        imagedestroy($source);
-
-        if (! $saved) {
-            throw new \RuntimeException('No se pudo guardar la imagen en formato WebP.');
-        }
-
-        return $filename;
     }
 
     private function createImageResourceFromUpload(\Illuminate\Http\UploadedFile $file): \GdImage|false

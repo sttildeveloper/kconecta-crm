@@ -66,6 +66,8 @@ class ProviderMediaOwnershipMigrationTest extends TestCase
         ]);
         $this->assertDatabaseHas('service', ['id' => (int) $providerService->id]);
 
+        $positionMigration = require database_path('migrations/2026_09_02_120000_add_position_to_more_images_table.php');
+        $positionMigration->down();
         $migration->down();
 
         $this->assertSame((int) $providerService->id, (int) $cover->fresh()->service_id);
@@ -75,6 +77,7 @@ class ProviderMediaOwnershipMigrationTest extends TestCase
         $this->assertFalse(Schema::hasTable('provider_media_legacy_links'));
 
         $migration->up();
+        $positionMigration->up();
     }
 
     private function makeUser(int $levelId, string $email): User

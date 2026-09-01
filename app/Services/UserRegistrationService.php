@@ -25,7 +25,7 @@ class UserRegistrationService
         }
 
         $rules = [
-            'user_level_id' => 'required|integer|in:' . User::LEVEL_SERVICE_PROVIDER . ',' . User::LEVEL_AGENT . ',' . User::LEVEL_FINAL_CLIENT,
+            'user_level_id' => 'required|integer|in:'.User::LEVEL_SERVICE_PROVIDER.','.User::LEVEL_AGENT.','.User::LEVEL_FINAL_CLIENT,
             'document_type' => 'nullable|string|max:25',
             'document_number' => 'nullable|string|max:25',
             'first_name' => 'nullable|required_without:company_name|string|max:50',
@@ -103,11 +103,11 @@ class UserRegistrationService
 
             if (! empty($duplicates)) {
                 $details = collect($duplicates)
-                    ->map(fn ($row) => $row['label'] . ': ' . $row['value'])
+                    ->map(fn ($row) => $row['label'].': '.$row['value'])
                     ->implode(' | ');
                 $validator->errors()->add(
                     'duplicate_identity',
-                    'Ya existe un registro con estos valores: ' . $details
+                    'Ya existe un registro con estos valores: '.$details
                 );
             }
 
@@ -145,6 +145,12 @@ class UserRegistrationService
                 'email' => $email,
                 'phone' => $phone !== '' ? $phone : null,
                 'landline_phone' => $landlinePhone !== '' ? $landlinePhone : null,
+                'provider_phone' => (int) $validatedData['user_level_id'] === User::LEVEL_SERVICE_PROVIDER && $phone !== ''
+                    ? $phone
+                    : null,
+                'provider_landline_phone' => (int) $validatedData['user_level_id'] === User::LEVEL_SERVICE_PROVIDER && $landlinePhone !== ''
+                    ? $landlinePhone
+                    : null,
                 'document_type' => $documentType !== '' ? $documentType : null,
                 'document_number' => $documentNumber !== '' ? $documentNumber : null,
                 'address' => null,
@@ -197,6 +203,7 @@ class UserRegistrationService
     public function normalizePhone(string $value): string
     {
         $clean = trim($value);
+
         return preg_replace('/[\s\-\.\+]/', '', $clean) ?? '';
     }
 }

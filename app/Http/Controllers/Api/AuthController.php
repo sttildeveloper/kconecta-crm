@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ProfilePhotoService;
 use App\Services\ServiceRatingService;
+use App\Support\PersonalProfileRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,8 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\TransientToken;
 
@@ -86,34 +88,116 @@ class AuthController extends Controller
             return $this->errorResponse('User not authenticated', 401);
         }
 
-        $providerLogoPath = trim((string) ($user->photo ?? ''));
-        $providerLogoPath = $providerLogoPath !== '' ? $providerLogoPath : null;
-        $providerLogoUrl = $providerLogoPath ? asset('img/photo_profile/' . ltrim($providerLogoPath, '/')) : null;
+        return $this->successResponse($this->mePayload($user));
+    }
+
+    public function updateMe(Request $request, ProfilePhotoService $profilePhotoService)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('No autenticado', 401);
+        }
+
+        $validator = Validator::make(
+            $request->all(),
+            PersonalProfileRules::forUpdate($user, true),
+            [
+                'photo.mimes' => 'La foto debe ser una imagen JPG, JPEG, PNG o WEBP.',
+                'photo.max' => 'La foto no puede superar 2MB.',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Datos invalidos.', 422, $validator->errors()->toArray());
+        }
+
+        $validated = $validator->validated();
+        $oldPhoto = (string) ($user->photo ?? '');
+        $newPhoto = null;
+
+        if ($request->hasFile('photo')) {
+            try {
+                $newPhoto = $profilePhotoService->store($request->file('photo'), (int) $user->id);
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return $this->errorResponse(
+                    'No se pudo procesar la foto en este momento.',
+                    422,
+                    ['photo' => ['No se pudo procesar el archivo enviado.']]
+                );
+            }
+        }
+
+        foreach ([
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'landline_phone',
+            'document_type',
+            'document_number',
+            'address',
+        ] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $user->{$field} = $validated[$field];
+            }
+        }
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        if (! empty($validated['password'])) {
+            $user->password = Hash::make((string) $validated['password']);
+        }
+
+        if ($newPhoto !== null) {
+            $user->photo = $newPhoto;
+        }
+
+        try {
+            $user->save();
+        } catch (\Throwable $exception) {
+            if ($newPhoto !== null) {
+                $profilePhotoService->delete($newPhoto);
+            }
+
+            throw $exception;
+        }
+
+        if ($newPhoto !== null && $oldPhoto !== $newPhoto) {
+            $profilePhotoService->delete($oldPhoto);
+        }
+
+        return $this->successResponse(
+            $this->mePayload($user->fresh()),
+            'Perfil actualizado correctamente.'
+        );
+    }
+
+    private function mePayload(User $user): array
+    {
+        $providerLogoFile = trim((string) ($user->photo ?? ''));
+        $providerLogoFile = $providerLogoFile !== '' ? $providerLogoFile : null;
+        $photoPath = $providerLogoFile ? 'img/photo_profile/'.ltrim($providerLogoFile, '/') : null;
+        $providerLogoUrl = $photoPath ? asset($photoPath) : null;
         $ratingSummary = $user->isServiceProvider()
             ? app(ServiceRatingService::class)->providerRatingSummary((int) $user->id)
             : null;
         $ratingAvg = $ratingSummary ? (float) ($ratingSummary['average_stars'] ?? 0.0) : null;
         $reviewsCount = $ratingSummary ? (int) ($ratingSummary['ratings_count'] ?? 0) : null;
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $user,
-                'provider_logo_path' => $providerLogoPath,
-                'provider_logo_url' => $providerLogoUrl,
-                'rating_avg' => $ratingAvg,
-                'reviews_count' => $reviewsCount,
-            ],
-            'meta' => null,
-            'message' => null,
-            'errors' => null,
-            // Backward compatibility
+        return [
             'user' => $user,
-            'provider_logo_path' => $providerLogoPath,
+            'photo_path' => $photoPath,
+            'photo_url' => $providerLogoUrl,
+            'email_verified' => $user->email_verified_at !== null,
+            'provider_logo_path' => $providerLogoFile,
             'provider_logo_url' => $providerLogoUrl,
             'rating_avg' => $ratingAvg,
             'reviews_count' => $reviewsCount,
-        ]);
+        ];
     }
 
     public function logout(Request $request)
@@ -221,7 +305,7 @@ class AuthController extends Controller
 
         $userId = (int) $user->id;
         $deletedAt = now();
-        $deletedSuffix = $userId . '_' . $deletedAt->timestamp;
+        $deletedSuffix = $userId.'_'.$deletedAt->timestamp;
         $reason = trim((string) $request->input('reason', ''));
         $actorIp = (string) $request->ip();
         $actorUserAgent = substr((string) $request->userAgent(), 0, 255);
@@ -231,8 +315,8 @@ class AuthController extends Controller
             $payload = [
                 'first_name' => 'Cuenta eliminada',
                 'last_name' => null,
-                'user_name' => 'deleted-user-' . $userId,
-                'email' => 'deleted+' . $deletedSuffix . '@' . ltrim($deletedEmailDomain, '@'),
+                'user_name' => 'deleted-user-'.$userId,
+                'email' => 'deleted+'.$deletedSuffix.'@'.ltrim($deletedEmailDomain, '@'),
                 'phone' => null,
                 'landline_phone' => null,
                 'document_type' => null,
@@ -287,13 +371,27 @@ class AuthController extends Controller
 
     private function successResponse(mixed $data, ?string $message = null, int $status = 200)
     {
-        return response()->json([
+        $payload = [
             'success' => true,
             'data' => $data,
             'meta' => null,
             'message' => $message,
             'errors' => null,
-        ], $status);
+            'status' => $status,
+        ];
+
+        if (is_array($data) && isset($data['user']) && $data['user'] instanceof User) {
+            $payload += [
+                // Backward compatibility
+                'user' => $data['user'],
+                'provider_logo_path' => $data['provider_logo_path'],
+                'provider_logo_url' => $data['provider_logo_url'],
+                'rating_avg' => $data['rating_avg'],
+                'reviews_count' => $data['reviews_count'],
+            ];
+        }
+
+        return response()->json($payload, $status);
     }
 
     private function errorResponse(string $message, int $status, ?array $errors = null)
@@ -304,6 +402,7 @@ class AuthController extends Controller
             'meta' => null,
             'message' => $message,
             'errors' => $errors,
+            'status' => $status,
         ], $status);
     }
 }
