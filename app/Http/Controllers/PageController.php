@@ -507,7 +507,8 @@ class PageController extends Controller
         }
 
         $providersQuery = User::query()
-            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'));
         if ($hasServiceTypeFilter) {
             if (! empty($providerIdsForTypes)) {
                 $providersQuery->whereIn('id', $providerIdsForTypes);
@@ -722,6 +723,7 @@ class PageController extends Controller
         $provider = User::query()
             ->where('id', (int) $id)
             ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'))
             ->first();
 
         if (! $provider) {

@@ -20,7 +20,6 @@
     <meta property="og:image" content="<?= $coverImageUrl ?>">
     <meta property="og:url" content="<?= base_url()."result/".$property["reference"] ?>">
     <meta property="og:site_name" content="<?= base_url() ?>">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9259257545893744" crossorigin="anonymous"></script>
 @endsection
 
 @section('content')
@@ -262,7 +261,7 @@
                             <?php } ?>
                         </div>
     
-                        <button id="btn-openLoginModal" data-email="<?= $property["user"]["email"] ?>" data-link="https://kconecta.com/result/<?=$property["reference"]?>">
+                        <button id="btn-openLoginModal">
                             <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24"><path fill="#666666" d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2zm-2 0l-8 5l-8-5zm0 12H4V8l8 5l8-5z"/></svg>
                             Enviar mensaje por correo
                         </button>
@@ -279,9 +278,6 @@
                 data-ad-slot="1002920395"
                 data-ad-format="auto"
                 data-full-width-responsive="true"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
 
             <!-- banner_in_details_2 -->
             <ins class="adsbygoogle"
@@ -290,9 +286,6 @@
                 data-ad-slot="5043944044"
                 data-ad-format="auto"
                 data-full-width-responsive="true"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
         </div>
     </div>
 </div>
@@ -328,6 +321,23 @@
 @section('js')   
 <script src="<?= base_url()."js/index_func.js" ?>"></script>
 <script src="<?= base_url()."js/visits_control.js" ?>"></script>
+<script>
+    window.KConectaConsent.onAllowed('advertising', function () {
+        if (!document.querySelector('script[data-kconecta-adsense]')) {
+            const script = document.createElement('script');
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.dataset.kconectaAdsense = 'true';
+            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9259257545893744';
+            script.onload = function () {
+                document.querySelectorAll('.adsbygoogle').forEach(function () {
+                    (window.adsbygoogle = window.adsbygoogle || []).push({});
+                });
+            };
+            document.head.appendChild(script);
+        }
+    });
+</script>
 
 <script>
     const thumbsSwiper = new Swiper('.swiper-thumbs', {

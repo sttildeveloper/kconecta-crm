@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CadastralController;
+use App\Http\Controllers\Api\ContentSafetyController;
 use App\Http\Controllers\Api\Internal\OrchestratorController;
+use App\Http\Controllers\Api\LegalAcceptanceController;
 use App\Http\Controllers\Api\PropertyApiController;
 use App\Http\Controllers\Api\ProviderServiceApiController;
 use App\Http\Controllers\ApiController;
@@ -33,8 +35,6 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::post('/visitor/save', [ApiController::class, 'visitorRegister']);
     Route::post('/visitor/contacted', [ApiController::class, 'visitorContactedUpdate']);
     Route::post('/google/user/verify_token_google', [ApiController::class, 'verifyTokenGoogleFloat']);
-    Route::post('/send/message/email_to_provider', [ApiController::class, 'sendEmailContactUser']);
-    Route::get('/send/message/email_share', [ApiController::class, 'sendEmailShare']);
     Route::post('/property_stats/register', [ApiController::class, 'propertyStatsConfig']);
     Route::post('/service_stats/register_visit', [ApiController::class, 'serviceStatsRegisterVisit']);
     Route::post('/service_stats/register_contact_click', [ApiController::class, 'serviceStatsRegisterContactClick']);
@@ -51,6 +51,9 @@ Route::post('/mobile/register-provider', [\App\Http\Controllers\Api\RegisterApiC
 Route::post('/mobile/register-client', [\App\Http\Controllers\Api\RegisterApiController::class, 'registerClient'])->middleware('throttle:10,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+Route::get('/legal/documents', [LegalAcceptanceController::class, 'documents'])->middleware('throttle:30,1');
+Route::post('/send/message/email_to_provider', [ApiController::class, 'sendEmailContactUser'])->middleware('throttle:5,1');
+Route::post('/send/message/email_share', [ApiController::class, 'sendEmailShare'])->middleware('throttle:3,1');
 
 Route::middleware(['orchestrator.key', 'throttle:120,1'])->prefix('orchestrate')->group(function () {
     Route::post('/plan', [OrchestratorController::class, 'plan']);
@@ -62,8 +65,14 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me', [AuthController::class, 'updateMe']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::delete('/me', [AuthController::class, 'deleteAccount'])->middleware('throttle:5,1');
-    Route::post('/account/delete', [AuthController::class, 'deleteAccount'])->middleware('throttle:5,1');
+    Route::delete('/me', [AuthController::class, 'deleteAccount'])->middleware('throttle:account-deletion');
+    Route::post('/account/delete', [AuthController::class, 'deleteAccount'])->middleware('throttle:account-deletion');
+    Route::post('/reports', [ContentSafetyController::class, 'report'])->middleware('throttle:content-reports');
+    Route::get('/me/blocks', [ContentSafetyController::class, 'blocks'])->middleware('throttle:user-blocks');
+    Route::post('/users/{user}/block', [ContentSafetyController::class, 'block'])->middleware('throttle:user-blocks');
+    Route::delete('/users/{user}/block', [ContentSafetyController::class, 'unblock'])->middleware('throttle:user-blocks');
+    Route::get('/me/legal-acceptances', [LegalAcceptanceController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/me/legal-acceptances', [LegalAcceptanceController::class, 'store'])->middleware('throttle:legal-acceptance');
     Route::get('/agent/property-types', [PropertyApiController::class, 'propertyTypes']);
     Route::get('/agent/property-form-catalogs', [PropertyApiController::class, 'propertyFormCatalogs']);
     Route::get('/agent/service-types', [ProviderServiceApiController::class, 'serviceTypes']);

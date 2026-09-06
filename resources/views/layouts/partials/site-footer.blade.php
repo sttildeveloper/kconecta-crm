@@ -42,6 +42,7 @@
         <div>
             <a href="{{ route('legal.privacy') }}">Privacidad</a>
             <a href="{{ route('legal.account-deletion') }}">Eliminación de cuenta</a>
+            <button type="button" data-cookie-manage>Configurar cookies</button>
             <a href="mailto:contacto@kconecta.com">contacto@kconecta.com</a>
         </div>
     </div>

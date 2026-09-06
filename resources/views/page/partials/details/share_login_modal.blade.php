@@ -6,11 +6,10 @@
                 <div class="column is-fullwidth">
                     <h1 class="title is-4 has-text-centered" style="margin-bottom: 32px;">Enviar Mensaje</h1>
                     <form action="#" id="formSendMessageEmail" class="is-fullwidth">
-                        <input type="hidden" name="provider_email">
-                        <input type="hidden" name="property_link">
                         <input type="hidden" name="user_email">
                         <input type="hidden" name="user_name">
                         <input type="hidden" name="property_id" value="<?= $property["id"] ?>">
+                        <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px">
                         <div class="field">
                             <div class="control">
                                 <textarea name="message" id="messageEmailToProvider" class="textarea is-medium" placeholder="Escribe tu mensaje aquí..."></textarea>
@@ -110,12 +109,15 @@
     })
     const sendShareToEmails = document.getElementById("send-share-to-emails");
     const inputEmailShare = document.getElementById("input-email-share");
-    const propertyLink = document.getElementById("link-reference");
     sendShareToEmails.addEventListener("click", async()=>{
         if (inputEmailShare.value.trim() !== ""){
             sendShareToEmails.textContent = "Enviando...";
             sendShareToEmails.setAttribute("disabled", true);
-            await fetch("/api/send/message/email_share?user_emails="+inputEmailShare.value+"&property_link="+propertyLink.value).then(res => res.json()).then(data => {
+            await fetch("/api/send/message/email_share", {
+                method: "POST",
+                headers: {"Content-Type": "application/json", "Accept": "application/json"},
+                body: JSON.stringify({user_emails: inputEmailShare.value.split(',').map(email => email.trim()).filter(Boolean), property_id: <?= (int) $property["id"] ?>})
+            }).then(res => res.json()).then(data => {
                 inputEmailShare.value = "";
                 closeModal(document.getElementById("modal-share"));
                 sendShareToEmails.textContent = "Enviar";
@@ -222,8 +224,6 @@
     
     const btn_open_login_modal = document.getElementById("btn-openLoginModal");
     btn_open_login_modal.addEventListener("click", ()=>{
-        document.getElementsByName("provider_email")[0].value = btn_open_login_modal.dataset.email;
-        document.getElementsByName("property_link")[0].value = btn_open_login_modal.dataset.link;
         openLoginModal();
     })
     const btn_send_message_email = document.getElementById("btnSubitSendMessageToProvider");

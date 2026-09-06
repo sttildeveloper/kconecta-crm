@@ -28,7 +28,7 @@ class RegisterApiController extends Controller
             ], 422);
         }
 
-        $user = $registrationService->register($validated);
+        $user = $registrationService->register($validated + $this->acceptanceMetadata($request));
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -64,7 +64,7 @@ class RegisterApiController extends Controller
             ], 422);
         }
 
-        $user = $registrationService->register($validated);
+        $user = $registrationService->register($validated + $this->acceptanceMetadata($request));
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -81,5 +81,13 @@ class RegisterApiController extends Controller
             'token_type' => 'Bearer',
             'user' => $user,
         ], 201);
+    }
+
+    private function acceptanceMetadata(Request $request): array
+    {
+        return [
+            '_acceptance_ip' => $request->ip(),
+            '_acceptance_user_agent' => $request->userAgent(),
+        ];
     }
 }

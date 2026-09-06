@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Services\LegalAcceptanceService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,9 @@ class UserRegistrationService
             'landline_phone' => 'nullable|string|max:100',
             'email' => 'required|string|lowercase|email|max:50',
             'password' => ['required', 'confirmed', 'min:6'],
+            'legal_acceptances' => ['sometimes', 'array', 'max:10'],
+            'legal_acceptances.*.type' => ['required', 'string', 'in:terms,privacy'],
+            'legal_acceptances.*.version' => ['required', 'string', 'max:80'],
         ];
 
         $messages = [
@@ -117,6 +121,15 @@ class UserRegistrationService
                 $validator->errors()->add('first_name', 'Completa Nombre o Razon social.');
                 $validator->errors()->add('company_name', 'Completa Nombre o Razon social.');
             }
+
+            if ((bool) config('compliance.legal_acceptance.required_on_registration', false)) {
+                $submitted = collect($data['legal_acceptances'] ?? [])->keyBy('type');
+                foreach ((array) config('compliance.legal_acceptance.documents', []) as $type => $version) {
+                    if (! $version || ($submitted[$type]['version'] ?? null) !== $version) {
+                        $validator->errors()->add('legal_acceptances', 'Debes aceptar la versión vigente de '.$type.'.');
+                    }
+                }
+            }
         });
 
         return $validator->validate();
@@ -173,6 +186,13 @@ class UserRegistrationService
                 'longitude' => null,
                 'additional_info' => null,
             ]);
+
+            app(LegalAcceptanceService::class)->record(
+                $user,
+                $validatedData['legal_acceptances'] ?? [],
+                $validatedData['_acceptance_ip'] ?? null,
+                $validatedData['_acceptance_user_agent'] ?? null,
+            );
 
             return $user;
         });

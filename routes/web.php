@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\Admin\ContentReportController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
@@ -73,6 +74,8 @@ Route::middleware(['auth', 'provider_or_agent_verified'])->group(function () {
     Route::post('/admin/service-types/save', [ServiceTypeController::class, 'store'])->name('admin.service-types.store');
     Route::post('/admin/service-types/update/{id}', [ServiceTypeController::class, 'update'])->name('admin.service-types.update');
     Route::post('/admin/service-types/delete', [ServiceTypeController::class, 'delete'])->name('admin.service-types.delete');
+    Route::get('/admin/content-reports', [ContentReportController::class, 'index'])->middleware('throttle:60,1')->name('admin.content-reports.index');
+    Route::patch('/admin/content-reports/{report}', [ContentReportController::class, 'update'])->middleware('throttle:60,1')->name('admin.content-reports.update');
 
     Route::get('/user/update', [UserController::class, 'update']);
     Route::post('/user/update/save', [UserController::class, 'updateSave']);

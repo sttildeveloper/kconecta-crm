@@ -12,10 +12,13 @@
     <ul>
         <li>Se eliminan o anonimizan datos personales directos de la cuenta (nombre, correo, telefonos, direccion de perfil, foto).</li>
         <li>Se revocan tokens activos para impedir nuevos accesos con la cuenta eliminada.</li>
+        <li>En proveedores se eliminan dirección pública, especialidades, servicios legacy, portada, galería, vídeo, visitas y clics.</li>
+        <li>Solo se retiran archivos físicos atribuibles de forma exclusiva a esa cuenta.</li>
     </ul>
 
     <h2>4. Datos retenidos y motivo</h2>
     <p>{{ $legalConfig['retention_note'] }}</p>
+    <p>Valoraciones, códigos de trabajo, tickets, mensajes y auditorías siguen políticas configurables. Hasta que exista una decisión empresarial y legal explícita, no se activa su borrado irreversible.</p>
 
     <h2>5. Plazos de eliminacion</h2>
     @if ((int) $legalConfig['account_deletion_sla_days'] <= 0)
@@ -25,4 +28,3 @@
     @endif
     <p>La retencion residual se limita a lo estrictamente necesario por obligaciones legales aplicables.</p>
 @endsection
-

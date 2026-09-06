@@ -85,7 +85,9 @@ class ProfileTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $deleted = $user->fresh();
+        $this->assertNotNull($deleted);
+        $this->assertStringStartsWith('deleted+', (string) $deleted->email);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

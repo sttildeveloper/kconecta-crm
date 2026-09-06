@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: $appEnv === 'testing' ? ['*'] : []);
 
         $middleware->web(append: [
+            \App\Http\Middleware\RejectDeletedAccountSession::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);

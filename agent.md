@@ -39,6 +39,61 @@ Operate and evolve `kconecta-crm` with focus on:
 - Context checkpoint updated: `2026-06-07` (Sprint 1 tickets local-only + property form validation work paused + Apple App Store provider app release becomes active focus)
 - Context checkpoint updated: `2026-07-08` (provider specialties refactor completed locally with canonical pivot model)
 - Context checkpoint updated: `2026-08-03` (public map stabilized, provider-media migrations applied and cluster panel deployed)
+- Context checkpoint updated: `2026-09-02` (mobile provider-profile API contract deployed, migrations applied and mobile handoff active)
+- Context checkpoint updated: `2026-09-06` (Google Play compliance backend prepared and validated; production rollout remains pending)
+
+## Context checkpoint updated: 2026-09-06 (Google Play compliance backend)
+
+- Account deletion is centralized in `AccountDeletionService` for API and web,
+  with transactional database cleanup and staged/restorable owned-file deletion.
+- UGC reporting and user blocking are implemented with authenticated APIs,
+  moderation states, duplicate protection and an admin review panel.
+- Versioned legal acceptances are implemented; registration enforcement remains
+  disabled until the mobile release is coordinated.
+- Cookie consent is versioned by category and AdSense is gated behind advertising
+  consent.
+- Retention configuration and dry-run-first Artisan commands are available;
+  backup deletion is deliberately excluded.
+- Public contact/share mail endpoints resolve internal recipients, validate input,
+  use POST and apply strict rate limits.
+- Mobile contract: `docs/mobile-compliance-contract.md`; compliance decisions and
+  pending JM data: `docs/google-play-compliance.md`.
+- Final local regression: 189 tests / 1,749 assertions.
+- These changes are source-controlled but are not deployed; production migrations,
+  environment values and smoke tests require a separately authorized rollout.
+
+## Context checkpoint updated: 2026-09-02 (mobile provider profile contract online)
+
+- Release commit deployed on `main`: `4fc543b` (`feat: add mobile provider profile contract`).
+- Personal account API is canonical at `GET|PATCH /api/me`; multipart uploads use
+  `POST /api/me` with `_method=PATCH` and canonical field `photo`.
+- Personal photos are validated at 2 MB, center-cropped and stored as 350 x 350 WEBP.
+- Commercial provider profile remains canonical at
+  `GET|PATCH /api/agent/provider-profile`; multipart uses POST method spoofing.
+- Personal and commercial contacts are separated through `provider_phone` and
+  `provider_landline_phone`; production values were backfilled from existing contacts.
+- Public provider/map location remains exclusively in structured `user_address`; never
+  fall back to the personal `user.address` field.
+- Canonical gallery response is `gallery` with `id`, `path`, `url` and `position`.
+- Canonical gallery mutations are `gallery_images[]`, `gallery_delete_ids` and
+  `gallery_order`; `more_images` and `delete_more_images` remain legacy aliases.
+- Cover/gallery uploads are converted to WEBP; gallery maximum remains five and the
+  cover remains independent.
+- Production backup before migrations:
+  `/root/kconecta_backups/20260901_231002_pre_mobile_profile_migrations/db_production.sql.gz`.
+- Backup SHA-256:
+  `10b03c176c93b0902c64622ca03fce569e8a60982c6cbfc037b30d6c5cf057fe`.
+- Production migrations applied successfully with `MIGRATE_STATUS=0`:
+  - `2026_09_02_115900_normalize_legacy_migration_repository_defaults`
+  - `2026_09_02_120000_add_position_to_more_images_table`
+  - `2026_09_02_120100_add_provider_contact_fields_to_users`
+- Post-deploy checks returned HTTP 200 for home, provider page, public provider API,
+  map API, cover and gallery image; unauthenticated `/api/me` returns expected 401.
+- Production public-provider API currently returns 4,707 providers.
+- Local complete regression for this release: 177 tests / 1,667 assertions.
+- Mobile Codex handoff is active. Source prompt:
+  `docs/mobile-provider-gallery-codex-prompt.md`; full contract:
+  `docs/mobile-provider-profile-api-contract.md`.
 
 ## Context checkpoint updated: 2026-08-03 (public discovery and media ownership)
 

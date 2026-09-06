@@ -9,6 +9,7 @@
 
     <h2>3. Publicaciones y contenidos</h2>
     <p>El usuario garantiza que cuenta con legitimidad sobre la informacion publicada y que no infringe derechos de terceros.</p>
+    <p>No se admite suplantación, fraude, acoso, discriminación, contenido sexual ilícito, servicios ilegales, spam, exposición indebida de datos personales ni infracciones de propiedad intelectual. El contenido puede denunciarse y moderarse.</p>
 
     <h2>4. Responsabilidades</h2>
     <p>{{ $legalConfig['brand_name'] }} actua como plataforma de intermediacion digital y no garantiza resultados comerciales concretos entre usuarios.</p>
@@ -23,6 +24,9 @@
     <p>Estos terminos pueden actualizarse para reflejar cambios legales o funcionales. La fecha de actualizacion se publica en esta pagina.</p>
 
     <h2>8. Jurisdiccion y ley aplicable</h2>
-    <p>La relacion se regira por la normativa aplicable en {{ $legalConfig['jurisdiction'] }}, salvo disposiciones imperativas en contrario.</p>
+    @if($legalConfig['jurisdiction'])
+        <p>La relacion se regira por la normativa aplicable en {{ $legalConfig['jurisdiction'] }}, salvo disposiciones imperativas en contrario.</p>
+    @else
+        <p>Se aplicarán las normas imperativas que correspondan a la relación con cada usuario.</p>
+    @endif
 @endsection
-

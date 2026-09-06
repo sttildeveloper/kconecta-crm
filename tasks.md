@@ -1065,6 +1065,35 @@
   handoff prompt.
 - [x] Focused integration regression: 63 tests / 466 assertions.
 - [x] Complete CRM regression: 177 tests / 1,667 assertions.
-- [ ] Commit and push only after explicit authorization; production migrations
-  and smoke verification remain pending.
+- [x] Committed and pushed as `4fc543b` (`feat: add mobile provider profile contract`).
+- [x] Created and integrity-checked production DB backup before migrations:
+  `/root/kconecta_backups/20260901_231002_pre_mobile_profile_migrations/db_production.sql.gz`.
+- [x] Production backup SHA-256:
+  `10b03c176c93b0902c64622ca03fce569e8a60982c6cbfc037b30d6c5cf057fe`.
+- [x] Applied all three production migrations successfully with `MIGRATE_STATUS=0`.
+- [x] Cleared application caches and rebuilt configuration and route caches.
+- [x] Verified online HTTP 200 for home, provider page, public provider API,
+  services map, cover and gallery image; `/api/me` returns expected unauthenticated 401.
+- [x] Confirmed 4,707 public providers through the production API.
+- [x] Delivered the updated implementation prompt to the Codex of the mobile app.
+- [ ] Mobile Codex is continuing implementation and validation in the native app repository.
+
+## Session Update (2026-09-02) - Google Play compliance preparation (local only)
+
+- [x] Centralized API and web self-service account deletion in a transactional service with safe file staging/rollback.
+- [x] Removed provider profile media, public address, specialties, legacy services, tokens, indexed sessions and service metrics; unpublished property listings for other account roles.
+- [x] Kept ratings, work codes, tickets, messages and audits on configurable `retain` defaults pending business/legal approval.
+- [x] Added authenticated UGC report and user block APIs, duplicate-abuse protection, moderation states and an admin review panel.
+- [x] Added versioned legal acceptance storage and optional mobile registration payload; enforcement remains disabled until coordinated release.
+- [x] Replaced binary cookie behavior with versioned category consent and gated AdSense behind advertising consent.
+- [x] Added daily log defaults, separate retention settings, read-only inventory and dry-run-first prune commands; backup deletion is excluded.
+- [x] Hardened public contact/share mail flows with internal recipient/link resolution, POST sharing, validation, honeypot and strict limits.
+- [x] Expanded legal templates and documented JM inputs without publishing invented legal identity, age or jurisdiction.
+- [x] Added `docs/mobile-compliance-contract.md` and `docs/google-play-compliance.md`.
+- [x] Focused compliance regression: 21 tests / 103 assertions before final hardening; targeted post-hardening checks also passed.
+- [x] Final complete local regression: 189 tests / 1,749 assertions.
+- [ ] Decide definitive retention/deletion policies and provide missing legal variables before any deployment.
+- [ ] Coordinate legal-acceptance enforcement with a compatible mobile release before enabling the flag.
+- [x] Commit and push authorized on 2026-09-06 to close the CRM implementation.
+- [ ] No deployment, production migration or production data change has been performed for this compliance release.
 

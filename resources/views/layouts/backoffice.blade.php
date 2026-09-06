@@ -32,6 +32,7 @@
                     @endif
                     @if ($navIsAdmin)
                         <a class="{{ ($activeNav ?? '') === 'service-types' ? 'active' : '' }}" href="{{ route('admin.service-types.index') }}">Servicios</a>
+                        <a class="{{ ($activeNav ?? '') === 'content-reports' ? 'active' : '' }}" href="{{ route('admin.content-reports.index') }}">Denuncias</a>
                         <a class="{{ ($activeNav ?? '') === 'blog' ? 'active' : '' }}" href="{{ url('/post/blogs') }}">Blog</a>
                         <a class="{{ ($activeNav ?? '') === 'users' ? 'active' : '' }}" href="{{ url('/users') }}">Usuarios</a>
                     @endif

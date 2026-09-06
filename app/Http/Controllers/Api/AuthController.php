@@ -4,16 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AccountDeletionService;
 use App\Services\ProfilePhotoService;
 use App\Services\ServiceRatingService;
 use App\Support\PersonalProfileRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -281,7 +279,7 @@ class AuthController extends Controller
         return $this->successResponse(null, 'Contrasena actualizada correctamente.');
     }
 
-    public function deleteAccount(Request $request)
+    public function deleteAccount(Request $request, AccountDeletionService $deletionService)
     {
         $user = $request->user();
         if (! $user) {
@@ -303,62 +301,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $userId = (int) $user->id;
-        $deletedAt = now();
-        $deletedSuffix = $userId.'_'.$deletedAt->timestamp;
-        $reason = trim((string) $request->input('reason', ''));
-        $actorIp = (string) $request->ip();
-        $actorUserAgent = substr((string) $request->userAgent(), 0, 255);
-        $deletedEmailDomain = (string) config('legal.deleted_user_email_domain', 'kconecta.local');
-
-        DB::transaction(function () use ($user, $userId, $deletedSuffix, $reason, $actorIp, $actorUserAgent, $deletedAt, $deletedEmailDomain) {
-            $payload = [
-                'first_name' => 'Cuenta eliminada',
-                'last_name' => null,
-                'user_name' => 'deleted-user-'.$userId,
-                'email' => 'deleted+'.$deletedSuffix.'@'.ltrim($deletedEmailDomain, '@'),
-                'phone' => null,
-                'landline_phone' => null,
-                'document_type' => null,
-                'document_number' => null,
-                'address' => null,
-                'photo' => null,
-                'email_verified_at' => null,
-                'remember_token' => Str::random(60),
-                'password' => Hash::make(Str::random(64)),
-            ];
-
-            if (Schema::hasColumn('user', 'is_active')) {
-                $payload['is_active'] = 0;
-            }
-
-            $user->forceFill($payload)->save();
-
-            if (Schema::hasTable('user_address')) {
-                DB::table('user_address')->where('user_id', $userId)->delete();
-            }
-
-            if (Schema::hasTable('personal_access_tokens')) {
-                $user->tokens()->delete();
-            }
-
-            if (Schema::hasTable('account_deletion_audits')) {
-                DB::table('account_deletion_audits')->insert([
-                    'user_id' => $userId,
-                    'requested_reason' => $reason !== '' ? $reason : null,
-                    'requested_ip' => $actorIp !== '' ? $actorIp : null,
-                    'requested_user_agent' => $actorUserAgent !== '' ? $actorUserAgent : null,
-                    'created_at' => $deletedAt,
-                    'updated_at' => $deletedAt,
-                ]);
-            }
-        });
-
-        Log::info('account_deleted', [
-            'user_id' => $userId,
-            'ip' => $actorIp,
-            'reason_present' => $reason !== '',
-        ]);
+        $deletionService->delete($user, $request);
 
         Auth::guard('web')->logout();
         if ($request->hasSession()) {

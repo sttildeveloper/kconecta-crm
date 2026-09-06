@@ -27,6 +27,7 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserFree;
 use App\Models\Video;
+use App\Models\UserBlock;
 use App\Services\EmailService;
 use App\Services\ProviderLocationSearchService;
 use App\Services\ProviderServiceTypeService;
@@ -174,16 +175,17 @@ class ApiController extends Controller
 
     public function providerServiceRatingSummary(Request $request, int $providerUserId, ServiceRatingService $serviceRatingService)
     {
-        $provider = DB::table('user')
+        $providerQuery = DB::table('user')
             ->where('id', $providerUserId)
-            ->first(['id', 'user_level_id']);
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'));
+        if (Schema::hasColumn('user', 'is_active')) $providerQuery->where('is_active', 1);
+        $provider = $providerQuery->first(['id', 'user_level_id']);
 
         if (! $provider || (int) $provider->user_level_id !== User::LEVEL_SERVICE_PROVIDER) {
             return $this->errorResponse('El proveedor indicado no es valido.', 404, ['code' => 'PROVIDER_NOT_ALLOWED']);
         }
 
         $authUser = $request->user() ?: $request->user('sanctum');
-
         return $this->successResponse($serviceRatingService->providerRatingSummary($providerUserId, $authUser));
     }
 
@@ -574,6 +576,7 @@ class ApiController extends Controller
 
         $providerQuery = User::query()
             ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'))
             ->orderBy('id');
 
         if (Schema::hasColumn('user', 'is_active')) {
@@ -800,6 +803,7 @@ class ApiController extends Controller
 
         $providerQuery = User::query()
             ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'))
             ->orderBy('id');
 
         if (Schema::hasColumn('user', 'is_active')) {
@@ -972,7 +976,8 @@ class ApiController extends Controller
     {
         $providerQuery = User::query()
             ->where('id', $providerUserId)
-            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
+            ->where('user_level_id', User::LEVEL_SERVICE_PROVIDER)
+            ->where(fn ($query) => $query->whereNull('email')->orWhere('email', 'not like', 'deleted+%'));
 
         if (Schema::hasColumn('user', 'is_active')) {
             $providerQuery->where('is_active', 1);
@@ -1054,6 +1059,9 @@ class ApiController extends Controller
             ? 'https://wa.me/'.$whatsappPhone.'?text='.urlencode('Hola, me interesa tu servicio')
             : null;
         $authUser = $request->user() ?: $request->user('sanctum');
+        $isBlocked = $authUser
+            ? UserBlock::query()->where('blocker_user_id', $authUser->id)->where('blocked_user_id', $providerUserId)->exists()
+            : false;
         $ratingSummary = app(ServiceRatingService::class)
             ->providerRatingSummary($providerUserId, $authUser);
 
@@ -1105,6 +1113,7 @@ class ApiController extends Controller
             'provider_url' => url('/result_provider/'.$providerUserId),
             'has_public_provider_detail' => true,
             'has_public_service_detail' => false,
+            'is_blocked' => $isBlocked,
         ];
 
         if (isset($ratingSummary['my_stars'])) {
@@ -1270,12 +1279,30 @@ class ApiController extends Controller
 
     public function sendEmailContactUser(Request $request)
     {
-        $userEmail = $request->post('user_email');
-        $userName = $request->post('user_name');
-        $providerEmail = $request->post('provider_email');
-        $message = $request->post('message');
-        $propertyLink = $request->post('property_link');
-        $propertyId = $request->post('property_id');
+        $validated = $request->validate([
+            'user_email' => ['required', 'email:rfc', 'max:254'],
+            'user_name' => ['required', 'string', 'max:100'],
+            'message' => ['required', 'string', 'min:5', 'max:2000'],
+            'property_id' => ['nullable', 'integer', 'exists:property,id', 'required_without:provider_user_id'],
+            'provider_user_id' => ['nullable', 'integer', 'exists:user,id', 'required_without:property_id'],
+            'website' => ['nullable', 'max:0'],
+        ]);
+
+        $property = isset($validated['property_id']) ? Property::query()->find($validated['property_id']) : null;
+        $providerId = (int) ($validated['provider_user_id'] ?? $property?->user_id ?? 0);
+        $providerQuery = User::query()->whereKey($providerId);
+        if (! $property) $providerQuery->where('user_level_id', User::LEVEL_SERVICE_PROVIDER);
+        if (Schema::hasColumn('user', 'is_active')) $providerQuery->where('is_active', 1);
+        $provider = $providerQuery->first();
+        if (! $provider || ! filter_var($provider->email, FILTER_VALIDATE_EMAIL)) {
+            return $this->errorResponse('No se ha podido resolver un destinatario válido.', 422);
+        }
+
+        $userEmail = $validated['user_email'];
+        $userName = $validated['user_name'];
+        $message = $validated['message'];
+        $propertyId = $property?->id;
+        $propertyLink = $property ? url('/result/'.$property->reference) : url('/result_provider/'.$providerId);
 
         $safeUserName = htmlspecialchars((string) $userName, ENT_QUOTES, 'UTF-8');
         $safeUserEmail = htmlspecialchars((string) $userEmail, ENT_QUOTES, 'UTF-8');
@@ -1296,7 +1323,7 @@ class ApiController extends Controller
             .'</div></div></body></html>';
 
         $emailService = app(EmailService::class);
-        $sent = $emailService->send((string) $providerEmail, 'Un usuario se ha contactado contigo', $template);
+        $sent = $emailService->send((string) $provider->email, 'Un usuario se ha contactado contigo', $template);
 
         if (! empty($userEmail)) {
             $userFree = UserFree::where('email', $userEmail)->first();
@@ -1318,8 +1345,19 @@ class ApiController extends Controller
 
     public function sendEmailShare(Request $request)
     {
-        $userEmails = (string) $request->query('user_emails');
-        $propertyLink = (string) $request->query('property_link');
+        $rawEmails = $request->input('user_emails', []);
+        if (is_string($rawEmails)) {
+            $rawEmails = array_filter(array_map('trim', explode(',', $rawEmails)));
+        }
+        $request->merge(['user_emails' => $rawEmails]);
+        $validated = $request->validate([
+            'user_emails' => ['required', 'array', 'min:1', 'max:3'],
+            'user_emails.*' => ['required', 'email:rfc', 'max:254', 'distinct'],
+            'property_id' => ['required', 'integer', 'exists:property,id'],
+            'website' => ['nullable', 'max:0'],
+        ]);
+        $property = Property::query()->findOrFail($validated['property_id']);
+        $propertyLink = url('/result/'.$property->reference);
 
         $safeLink = htmlspecialchars($propertyLink, ENT_QUOTES, 'UTF-8');
         $template = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
@@ -1340,8 +1378,7 @@ class ApiController extends Controller
             .'<p>&copy; '.date('Y').' Kconecta.</p></div></div></body></html>';
 
         $emailService = app(EmailService::class);
-        $emails = array_filter(array_map('trim', explode(',', $userEmails)));
-        foreach ($emails as $email) {
+        foreach ($validated['user_emails'] as $email) {
             $emailService->send($email, 'Mira este inmueble', $template);
         }
 
